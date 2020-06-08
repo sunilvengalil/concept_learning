@@ -1,0 +1,1 @@
+MNIST_DATASET_NAME = "mnist"
