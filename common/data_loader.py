@@ -54,6 +54,11 @@ def load_mnist(dataset_name):
 
 class TrainValDataIterator:
     @classmethod
+    def load_manual_annotation(cls,manual_annotation_path):
+        df = pd.read_csv(manual_annotation_path + "manual_annotation.csv")
+        return df.values
+
+    @classmethod
     def load_train_val(cls, split_name, split_location):
         with open(split_location + split_name + ".json") as fp:
             dataset_dict = json.load(fp)
@@ -93,11 +98,16 @@ class TrainValDataIterator:
 
         # return train_x / 255., _train_y, val_x / 255., _val_y
         #TODO separate normalizing and loading logic
-        return {"train_x": train_x / 255., "train_y": _train_y, "validation_x": val_x / 255., "validation_y": _val_y}
+        return {"train_x": train_x / 255.,
+                "train_y": _train_y,
+                "validation_x": val_x / 255.,
+                "validation_y": _val_y,
+                "validation_y_raw":val_y}
         #return {"train_x": train_x, "train_y": _train_y, "validation_x": val_x, "validation_y": _val_y}
 
     @classmethod
-    def from_existing_split(cls, split_name, split_location,batch_size =  None):
+    def from_existing_split(cls, split_name, split_location,batch_size =  None,
+                            manual_annotation_path=None):
         instance = cls()
         instance.batch_size = batch_size
         instance.dataset_dict = cls.load_train_val(split_name, split_location)
@@ -106,6 +116,19 @@ class TrainValDataIterator:
         instance.train_y = instance.dataset_dict["train" + "_y"]
         instance.val_x = instance.dataset_dict["validation" + "_x"]
         instance.val_y = instance.dataset_dict["validation" + "_y"]
+        if manual_annotation_path is not None and os.path.isfile(manual_annotation_path+"manual_annotation.csv"):
+            _manual_annotation = cls.load_manual_annotation(manual_annotation_path)
+            instance.manual_annotation = np.zeros((len(_manual_annotation), 11), dtype=np.float)
+            for i, label in enumerate(_manual_annotation):
+                instance.manual_annotation[i, int(_manual_annotation[i,0]) ] = 1.0
+                instance.manual_annotation[i,10] = _manual_annotation[i,1]
+        else:
+            labels = np.unique(instance.dataset_dict["validation_y_raw"])
+            _manual_annotation = np.random.choice(labels, len(instance.train_x))
+            instance.manual_annotation = np.zeros((len(_manual_annotation), 11), dtype=np.float)
+            for i, label in enumerate(_manual_annotation):
+                instance.manual_annotation[i, _manual_annotation[i]] = 1.0
+                instance.manual_annotation[i,10] = 0
 
         instance.train_idx = 0
         instance.val_idx = 0
@@ -160,20 +183,55 @@ class TrainValDataIterator:
         #TODO fix this to handle last batch
         return self.train_idx * self.batch_size - self.train_x.shape[0] < self.batch_size
 
+    def has_next(self,dataset_type):
+        #TODO fix this to handle last batch
+        if dataset_type == "train":
+            return self.train_idx * self.batch_size - self.train_x.shape[0] < self.batch_size
+        elif dataset_type == "val":
+            return self.val_idx * self.batch_size < self.val_x.shape[0]
+        else:
+            raise ValueError("dataset_type should be either 'train' or 'val' ")
 
     def get_feature_shape(self):
         return self.val_x.shape[1:]
+
+    def get_next_batch(self, dataset_type):
+        if self.batch_size is None:
+            raise Exception("batch_size attribute is not set")
+        if dataset_type == "train":
+            x = self.train_x[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size]
+            y = self.train_y[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size]
+            self.train_idx += 1
+        elif dataset_type == "val":
+            x = self.val_x[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
+            y = self.val_y[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
+            # TODO check if this is last batch, if yes,reset the counter
+
+            self.val_idx += 1
+        else:
+            raise ValueError("dataset_type should be either 'train' or 'val' ")
+        return x, y
 
 
     def get_next_batch_train(self):
         if self.batch_size is None:
             raise Exception("batch_size attribute is not set")
         x = self.train_x[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size]
+        y = self.train_y[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size]
+        label = self.manual_annotation[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size ]
         self.train_idx += 1
-        return x
+        return x, y,label
 
-    def get_num_samples_train(self):
-        return len(self.train_x)
+    # def get_num_samples_train(self):
+    #     return len(self.train_x)
+
+    def get_num_samples(self, dataset_type):
+        if dataset_type == "train":
+            return len(self.train_x)
+        elif dataset_type == "val":
+            return len(self.val_x)
+        else:
+            raise ValueError("dataset_type should be either 'train' or 'val' ")
 
     def get_next_batch_val(self):
         if self.batch_size is None:
@@ -183,12 +241,18 @@ class TrainValDataIterator:
         # TODO check if this is last batch, if yes,reset the counter
 
         self.val_idx += 1
+        return x, y
 
+    # def get_num_samples_val(self):
+    #     return len(self.val_x)
 
-        return x,y
-
-    def get_num_samples_val(self):
-        return len(self.val_x)
+    def reset_counter(self,dataset_type):
+        if dataset_type == "train":
+            self.train_idx = 0
+        elif dataset_type == "val":
+            self.val_idx = 0
+        else:
+            raise ValueError("dataset_type should be either 'train' or 'val' ")
 
     def reset_train_couner(self):
         self.train_idx = 0

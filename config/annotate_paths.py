@@ -1,7 +1,7 @@
 import os
 from config.common_path import ROOT_PATH, BATCH_SIZE, SPLIT_NAME, DATASET_NAME, MODEL_NAME
 Z_DIM = 10
-N_3 = 16
+N_3 = 32
 N_2 = 128
 BASE_PATH = os.path.join(ROOT_PATH, "Exp_{:02d}_{:03}_{:03d}/".format(Z_DIM, N_3,N_2))
 

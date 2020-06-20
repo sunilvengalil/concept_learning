@@ -10,7 +10,7 @@ from utils.utils import segregate_images_by_label,check_folder,get_latent_vector
 import numpy as np
 from config.common_path import get_encoded_csv_file
 
-epoch = 20
+epoch = 5
 import pandas as pd
 
 num_units_in_layer = [64, N_2, N_3, Z_DIM * 2]
@@ -25,28 +25,28 @@ check_folder(ANALYSIS_PATH)
 
 
 with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
-    # declare instance for GAN
-    model = VAE(sess,
-                epoch=epoch,
-                batch_size=BATCH_SIZE,
-                z_dim=Z_DIM,
-                dataset_name=DATASET_NAME,
-                log_dir=LOG_PATH,
-                checkpoint_dir=TRAINED_MODELS_PATH,
-                result_dir=PREDICTION_RESULTS_PATH)
+    # model = VAE(sess,
+    #             epoch=epoch,
+    #             batch_size=BATCH_SIZE,
+    #             z_dim=Z_DIM,
+    #             dataset_name=DATASET_NAME,
+    #             log_dir=LOG_PATH,
+    #             checkpoint_dir=TRAINED_MODELS_PATH,
+    #             result_dir=PREDICTION_RESULTS_PATH)
+    #
+    # # build graph
+    # model.build_model()
+    # # show network architecture
+    # show_all_variables()
 
-    # build graph
-    model.build_model()
-    # show network architecture
-    show_all_variables()
 
     train_val_data_iterator = TrainValDataIterator.from_existing_split(SPLIT_NAME,
                                                                        SPLIT_PATH,BATCH_SIZE)
     num_batches_train = train_val_data_iterator.get_num_samples_train() // BATCH_SIZE
 
-    checkpoint_counter = model.load_from_checkpoint()
-    epochs_completed = (int)(checkpoint_counter / num_batches_train)
-    print("Number of epochs completed", epochs_completed)
+    #checkpoint_counter = model.load_from_checkpoint()
+    #epochs_completed = (int)(checkpoint_counter / num_batches_train)
+    #print("Number of epochs completed", epochs_completed)
 
     # visualize learned generator
     #TODO change this to get a random batch.
@@ -54,7 +54,7 @@ with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
     images_by_label = segregate_images_by_label(train_val_data_iterator)
 
     df = None
-    for label,images in images_by_label.items():
+    for label, images in images_by_label.items():
         if len(images) == 0:
             print("No images for label {} in data ".format(label))
             continue

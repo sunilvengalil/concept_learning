@@ -1,15 +1,14 @@
 import tensorflow as tf
-import os
 import argparse
+from analysis.encode_images import encode_images
+import json
 
 from generative_models.vae import VAE
-from config.exp_paths import BASE_PATH, DATASET_PATH,\
-    DATASET_ROOT_PATH, \
-    DATASET_PATH_COMMON_TO_ALL_EXPERIMENTS, SPLIT_NAME, BATCH_SIZE, Z_DIM, N_3, N_2,\
-    MODEL_NAME_WITH_CONFIG
 from common.data_loader import TrainValDataIterator
 from utils.utils import show_all_variables
+from config import ExperimentConfig
 create_split = False
+
 
 def parse_args():
     desc = "Tensorflow implementation of GAN collections"
@@ -23,9 +22,9 @@ def parse_args():
     parser.add_argument('--dataset', type=str, default='mnist',
                         choices=['mnist', 'fashion-mnist', 'celebA', 'documents'],
                         help='The name of dataset')
-    parser.add_argument('--epoch', type=int, default=20, help='The number of epochs to run')
+    parser.add_argument('--epoch', type=int, default=5, help='The number of epochs to run')
     parser.add_argument('--batch_size', type=int, default=64, help='The size of batch')
-    parser.add_argument('--z_dim', type=int, default=Z_DIM, help='Dimension of noise vector')
+    parser.add_argument('--z_dim', type=int, default=10, help='Dimension of noise vector')
     parser.add_argument('--checkpoint_dir', type=str, default='checkpoint',
                         help='Directory name to save the checkpoints')
     parser.add_argument('--result_dir', type=str, default='results',
@@ -51,86 +50,63 @@ def check_args(args):
 
 
 class Experiment:
-    def __init__(self, exp_id, name, num_val_samples):
+    def __init__(self, exp_id, name, num_val_samples, config1, run_id = None):
+        if run_id is None:
+            self.run_id = id
+        else:
+            self.run_id = run_id
         self.id = exp_id
         self.name = name
-        self.num_validtion_samples = num_val_samples
+        self.num_validation_samples = num_val_samples
+        self.config = config1
 
-    def create_directories(self, model):
-        if model is not None:
-            self.model = model
+    def initialize(self, model=None):
+        self.model =  model
+        self.config.create_directories(self.run_id)
 
-            self.MODEL_PATH = os.path.join(DATASET_PATH, MODEL_NAME_WITH_CONFIG)
-            self.SPLIT_PATH = os.path.join(DATASET_PATH_COMMON_TO_ALL_EXPERIMENTS, SPLIT_NAME + "/")
-            # self.TRAINED_MODELS_PATH = os.path.join(self.MODEL_PATH, "trained_models/")
-            # self.PREDICTION_RESULTS_PATH = os.path.join(self.MODEL_PATH, "prediction_results/")
-            # self.LOG_PATH = os.path.join(self.MODEL_PATH,"logs/")
-            self.TRAINED_MODELS_PATH = os.path.join(self.MODEL_PATH, "trained_models/")
-            self.PREDICTION_RESULTS_PATH = os.path.join(self.MODEL_PATH, "prediction_results/")
-            self.LOG_PATH = os.path.join(self.MODEL_PATH,"logs/")
+    def asJson(self):
+        config_json = self.config.asJson()
+        config_json["RUN_ID"] = self.run_id
+        config_json["ID"] = self.id
+        config_json["name"] = self.name
+        config_json["NUM_VALIDATION_SAMPLES"] = self.num_validation_samples
+        return config_json
 
-            if not os.path.isdir(BASE_PATH):
-                print("Creating directory{}".format(BASE_PATH))
-                os.mkdir(BASE_PATH)
-            if not os.path.isdir(DATASET_ROOT_PATH):
-                print("Creating directory{}".format(DATASET_ROOT_PATH))
-                os.mkdir(DATASET_ROOT_PATH)
-            if not os.path.isdir(DATASET_PATH):
-                print("Creating directory{}".format(DATASET_PATH))
-                os.mkdir(DATASET_PATH)
-            if not os.path.isdir(self.MODEL_PATH):
-                print("Creating directory{}".format(self.MODEL_PATH))
-                os.mkdir(self.MODEL_PATH)
+    def train(self, train_val_data_iterator=None, create_split=False):
+        if train_val_data_iterator is None:
 
-            if not os.path.isdir(self.SPLIT_PATH):
-                print("Creating directory{}".format(self.SPLIT_PATH))
-                os.mkdir(self.SPLIT_PATH)
-
-            if not os.path.isdir(self.TRAINED_MODELS_PATH):
-                os.mkdir(self.TRAINED_MODELS_PATH)
-            if not os.path.isdir(self.PREDICTION_RESULTS_PATH):
-                os.mkdir(self.PREDICTION_RESULTS_PATH)
-            if not os.path.isdir(self.LOG_PATH):
-                print("Creating directory{}".format(BASE_PATH))
-                os.mkdir(self.LOG_PATH)
-
-    def initialze(self,model = None):
-        self.create_directories(model)
-
-    def train(self):
-        # build graph
-        model.build_model()
-
-        # show network architecture
-        show_all_variables()
-
-        if create_split:
-            train_val_data_iterator = TrainValDataIterator(DATASET_PATH_COMMON_TO_ALL_EXPERIMENTS,
-                                                           shuffle=True,
-                                                           stratified=True,
-                                                           validation_samples=self.num_validtion_samples,
-                                                           split_names=["train","validation"],
-                                                           split_location=self.SPLIT_PATH,
-                                                           batch_size=BATCH_SIZE)
-        else:
-            train_val_data_iterator = TrainValDataIterator.from_existing_split(SPLIT_NAME,
-                                                                               self.SPLIT_PATH,
-                                                                               BATCH_SIZE)
-
-        model.train(train_val_data_iterator)
+            if create_split:
+                train_val_data_iterator = TrainValDataIterator(self.config.DATASET_PATH_COMMON_TO_ALL_EXPERIMENTS,
+                                                               shuffle=True,
+                                                               stratified=True,
+                                                               validation_samples=self.num_validtion_samples,
+                                                               split_names=["train","validation"],
+                                                               split_location=self.config.SPLIT_PATH,
+                                                               batch_size=self.config.BATCH_SIZE)
+            else:
+                train_val_data_iterator = TrainValDataIterator.from_existing_split(self.config.split_name,
+                                                                                   self.config.SPLIT_PATH,
+                                                                                   self.config.BATCH_SIZE)
+        self.model.train(train_val_data_iterator)
         print(" [*] Training finished!")
+
+    def encode_latent_vector(self, train_val_data_iterator, dataset_type):
+        encoded_df = encode_images(self.model,
+                                   train_val_data_iterator,
+                                   self.config,
+                                   dataset_type)
+
 
 def generate_image(z):
     # parse arguments
     args = parse_args()
     if args is None:
-      exit()
+        exit()
 
     # open session
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
         # declare instance for GAN
-
         model = VAE
 
         # build graph
@@ -156,21 +132,65 @@ def generate_image(z):
 
 if __name__ == '__main__':
     # parse arguments
+    run_id = 6
+    ROOT_PATH = "/Users/sunilkumar/concept_learning/image_classification_unsupervised/"
+
     args = parse_args()
     if args is None:
-      exit()
-    exp = Experiment(1, "VAE_MNIST",128)
+        exit()
+    config1 = ExperimentConfig(ROOT_PATH, 4, 10, [64, 128, 32])
+    config2 = ExperimentConfig(ROOT_PATH, 4, 5, [64, 128, 32])
+    config3 = ExperimentConfig(ROOT_PATH, 4, 15, [64, 128, 32])
+
+    _config = config1
+    exp = Experiment(1, "VAE_MNIST", 128, _config, run_id)
+    _config.create_directories(run_id)
+    #TODO if file exists verify the configuration are same. Othervise create new file with new timestamp
+    print(exp.asJson())
+    with open( _config.BASE_PATH + "config.json","w") as config_file:
+        json.dump(_config.asJson(),config_file)
+    if create_split:
+        train_val_data_iterator = TrainValDataIterator(exp.config.DATASET_PATH_COMMON_TO_ALL_EXPERIMENTS,
+                                                       shuffle=True,
+                                                       stratified=True,
+                                                       validation_samples=exp.num_validtion_samples,
+                                                       split_names=["train", "validation"],
+                                                       split_location=exp.config.SPLIT_PATH,
+                                                       batch_size=exp.config.BATCH_SIZE)
+    else:
+        train_val_data_iterator = TrainValDataIterator.from_existing_split(exp.config.split_name,
+                                                                           exp.config.SPLIT_PATH,
+                                                                           exp.config.BATCH_SIZE)
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
         model = VAE(sess,
                     epoch=args.epoch,
-                    batch_size=args.batch_size,
-                    z_dim=args.z_dim,
+                    batch_size=_config.BATCH_SIZE,
+                    z_dim=_config.Z_DIM,
                     dataset_name=args.dataset,
-                    num_units_in_layer=[64, N_2, N_3, args.z_dim * 2])
-        exp.initialze(model)
-        model.set_result_directories(log_dir=exp.LOG_PATH,
-                    checkpoint_dir=exp.TRAINED_MODELS_PATH,
-                    result_dir=exp.PREDICTION_RESULTS_PATH)
+                    beta = _config.beta,
+                    num_units_in_layer=_config.num_units,
+                    train_val_data_iterator = train_val_data_iterator,
+                    log_dir=exp.config.LOG_PATH,
+                    checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
+                    result_dir=exp.config.PREDICTION_RESULTS_PATH
+                    )
+        exp.model = model
+        # show network architecture
+        show_all_variables()
 
-        exp.train()
+        exp.train(train_val_data_iterator)
+
+        # num_batches_train = train_val_data_iterator.get_num_samples_train() // exp.config.BATCH_SIZE
+        #
+        # checkpoint_counter = model.load_from_checkpoint()
+        # epochs_completed = int(checkpoint_counter / num_batches_train)
+        # print("Number of epochs trained in current chekpoint", epochs_completed)
+
+        train_val_data_iterator.reset_train_couner()
+        train_val_data_iterator.reset_val_couner()
+        exp.encode_latent_vector(train_val_data_iterator, "train")
+
+        train_val_data_iterator.reset_train_couner()
+        train_val_data_iterator.reset_val_couner()
+        exp.encode_latent_vector(train_val_data_iterator, "val")
