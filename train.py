@@ -1,7 +1,7 @@
 import argparse
 import tensorflow as tf
 from generative_models.vae import VAE
-from utils.utils import check_folder
+from utils.dir_utils import check_and_create_folder
 from utils.utils import show_all_variables
 
 num_val_samples = 128
@@ -36,13 +36,13 @@ def parse_args():
 """checking arguments"""
 def check_args(args):
     # --checkpoint_dir
-    check_folder(args.checkpoint_dir)
+    check_and_create_folder(args.checkpoint_dir)
 
     # --result_dir
-    check_folder(args.result_dir)
+    check_and_create_folder(args.result_dir)
 
     # --result_dir
-    check_folder(args.log_dir)
+    check_and_create_folder(args.log_dir)
 
     # --epoch
     assert args.epoch >= 1, 'number of epochs must be larger than or equal to one'
@@ -54,41 +54,6 @@ def check_args(args):
     assert args.z_dim >= 1, 'dimension of noise vector must be larger than or equal to one'
 
     return args
-
-"""main"""
-def main():
-    # parse arguments
-    args = parse_args()
-    if args is None:
-      exit()
-
-    # open session
-    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
-        # declare instance for GAN
-
-        model = VAE(sess,
-                    epoch=args.epoch,
-                    batch_size=args.batch_size,
-                    z_dim=args.z_dim,
-                    dataset_name=args.dataset)
-        # build graph
-        model.build_model()
-
-        # show network architecture
-        show_all_variables()
-
-        # launch the graph in a session
-        train_val_data_iterator = TrainValDataIterator(DATASET_PATH,
-                                                       shuffle=True,
-                                                       stratified=True,
-                                                       validation_samples=num_val_samples)
-        model.train(train_val_data_iterator)
-        print(" [*] Training finished!")
-
-        # visualize learned generator
-        #gan.visualize_results()
-
-        print(" [*] Testing finished!")
 
 def generate_image(z):
     # parse arguments

@@ -132,19 +132,28 @@ def generate_image(z):
 
 if __name__ == '__main__':
     # parse arguments
-    run_id = 6
-    ROOT_PATH = "/Users/sunilkumar/concept_learning/image_classification_unsupervised/"
-
     args = parse_args()
-    if args is None:
-        exit()
-    config1 = ExperimentConfig(ROOT_PATH, 4, 10, [64, 128, 32])
-    config2 = ExperimentConfig(ROOT_PATH, 4, 5, [64, 128, 32])
-    config3 = ExperimentConfig(ROOT_PATH, 4, 15, [64, 128, 32])
+    N_3 = 16
+    N_2 = 128
+    Z_DIM = 20
+    run_id = 1
 
-    _config = config1
+    ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
+    _config = ExperimentConfig(ROOT_PATH, 4, Z_DIM, [64, N_2, N_3])
+
+    BATCH_SIZE = _config.BATCH_SIZE
+    DATASET_NAME = _config.dataset_name
+
+    _config.check_and_create_directories(run_id, create=False)
+
+    # TODO make this a configuration
+    # to change output type from sigmod to leaky relu, do the following
+    #1. In vae.py change the output layer type in decode()
+    #2. Change the loss function in build_model
+
     exp = Experiment(1, "VAE_MNIST", 128, _config, run_id)
-    _config.create_directories(run_id)
+
+    _config.check_and_create_directories(run_id)
     #TODO if file exists verify the configuration are same. Othervise create new file with new timestamp
     print(exp.asJson())
     with open( _config.BASE_PATH + "config.json","w") as config_file:
@@ -168,12 +177,13 @@ if __name__ == '__main__':
                     batch_size=_config.BATCH_SIZE,
                     z_dim=_config.Z_DIM,
                     dataset_name=args.dataset,
-                    beta = _config.beta,
+                    beta=_config.beta,
                     num_units_in_layer=_config.num_units,
-                    train_val_data_iterator = train_val_data_iterator,
+                    train_val_data_iterator=train_val_data_iterator,
                     log_dir=exp.config.LOG_PATH,
                     checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
-                    result_dir=exp.config.PREDICTION_RESULTS_PATH
+                    result_dir=exp.config.PREDICTION_RESULTS_PATH,
+                    supervise_weight=exp.config.supervise_weight
                     )
         exp.model = model
         # show network architecture

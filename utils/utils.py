@@ -14,13 +14,6 @@ from collections import defaultdict
 from common.data_loader import load_test_raw_data
 
 
-def get_eval_result_dir(result_path, epoch=0, idx=0, orig_or_reconstructed="reconstructed"):
-    orig_dir = check_folder(
-        result_path + "/"
-        + orig_or_reconstructed + '_{:02d}_{:04}/'.format(epoch, idx))
-    return orig_dir
-
-
 def load_docs_train(size):
     data_dir = "/Users/sunilkumar/water_mark/train/"
     # print("size",size)
@@ -51,7 +44,7 @@ def load_docs_train(size):
 def load_docs_test(size):
     data_dir = "/Users/sunilkumar/water_mark/test/"
 
-    X = np.zeros(shape=(7231, size[0], size[1], 3))
+    x = np.zeros(shape=(7231, size[0], size[1], 3))
     original = np.zeros(shape=(7231, size[0], size[1], 3))
 
     img_index = 0
@@ -59,7 +52,7 @@ def load_docs_test(size):
     for img_name in os.listdir(data_dir+"water_marked_jpg"):
         img = cv2.imread(os.path.join(data_dir+"water_marked_jpg", img_name))
         img = cv2.resize(img, (size[1], size[0]))
-        X[img_index] = img
+        x[img_index] = img
 
         img_orig = cv2.imread(os.path.join(data_dir + "jpgs", img_name))
         img_orig = cv2.resize(img_orig, (size[1], size[0]))
@@ -69,12 +62,13 @@ def load_docs_test(size):
     print("Loaded {:05d} test images".format(img_index))
 
 
-    return X/255., img_orig/255.
+    return x/255., img_orig/255.
 
 
-def check_folder(log_dir):
+def check_and_create_folder(log_dir):
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
+
     return log_dir
 
 

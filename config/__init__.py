@@ -1,21 +1,23 @@
 import os
-from utils.utils import check_folder
+from utils.dir_utils import check_and_create_folder
 
 WEIGHTS = "Weights"
 BIAS =  "Bias"
 LAYER_NAME_PREFIX = "Layer"
 
+
 def get_base_path(root_path, z_dim, n_3, n_2, version = ""):
     return os.path.join(root_path, "Exp_{:02d}_{:03}_{:03d}_{}/".format(z_dim, n_3, n_2, version))
 
+
+
 class ExperimentConfig:
     def __init__(self, root_path, num_decoder_layer, z_dim, num_units,
-                 beta = 5,
-                 supervise_weight = 0,
+                 beta=5,
+                 supervise_weight=0,
                  dataset_name="mnist",split_name="Split_1",
                  model_name="VAE",
-                 batch_size=64,
-
+                 batch_size=64
                  ):
         if len(num_units) != num_decoder_layer - 1:
             raise ValueError("No of units should be same as number of layers minus one")
@@ -29,10 +31,13 @@ class ExperimentConfig:
         self.BATCH_SIZE = batch_size
         self.root_path = root_path
         self.beta = beta
+        self.supervise_weight = supervise_weight
         self.MODEL_NAME_WITH_CONFIG = "{}_{}_{:2d}_{:02d}".format(model_name,
                                                                   dataset_name,
                                                                   self.BATCH_SIZE,
                                                                   z_dim)
+        self.DATASET_PATH_COMMON_TO_ALL_EXPERIMENTS = os.path.join(self.root_path,
+                                                                   "datasets/" + dataset_name)
     def asJson(self):
         config_json = dict()
         config_json["NUM_UNITS"] = self.num_units
@@ -45,47 +50,53 @@ class ExperimentConfig:
         config_json["BATCH_SIZE"] = self.BATCH_SIZE
         config_json["SPLIT_NAME"] = self.split_name
         config_json["SUPERVISE_WEIGHT"] = self.supervise_weight
-
+        config_json["BETA"] = self.beta
         return config_json
 
-
-
-    def create_directories(self,run_id):
-        self.DATASET_PATH_COMMON_TO_ALL_EXPERIMENTS = os.path.join(self.root_path, "datasets/" + self.dataset_name)
-
+    def _check_and_create_directories(self,run_id, create):
         self.BASE_PATH = get_base_path(self.root_path, self.Z_DIM, self.num_units[self.num_decoder_layer - 2],
-                                  self.num_units[self.num_decoder_layer - 3],
-                                  version=run_id)
-        DATASET_ROOT_PATH = os.path.join(self.BASE_PATH, self.dataset_name + "/")
-        self.DATASET_PATH = os.path.join(DATASET_ROOT_PATH, self.split_name + "/")
+                                       self.num_units[self.num_decoder_layer - 3],
+                                       version=run_id)
+        self.DATASET_ROOT_PATH = os.path.join(self.BASE_PATH, self.dataset_name + "/")
+        self.DATASET_PATH = os.path.join(self.DATASET_ROOT_PATH, self.split_name + "/")
 
         self.MODEL_PATH = os.path.join(self.DATASET_PATH, self.MODEL_NAME_WITH_CONFIG)
         self.SPLIT_PATH = os.path.join(self.DATASET_PATH_COMMON_TO_ALL_EXPERIMENTS, self.split_name + "/")
         self.TRAINED_MODELS_PATH = os.path.join(self.MODEL_PATH, "trained_models/")
         self.PREDICTION_RESULTS_PATH = os.path.join(self.MODEL_PATH, "prediction_results/")
-        self.LOG_PATH = os.path.join(self.MODEL_PATH,"logs/")
+        self.LOG_PATH = os.path.join(self.MODEL_PATH, "logs/")
         self.ANALYSIS_PATH = os.path.join(self.MODEL_PATH, "analysis/")
-        check_folder(self.ANALYSIS_PATH)
 
-        if not os.path.isdir(self.BASE_PATH):
-            print("Creating directory{}".format(self.BASE_PATH))
-            os.mkdir(self.BASE_PATH)
-        if not os.path.isdir(DATASET_ROOT_PATH):
-            print("Creating directory{}".format(DATASET_ROOT_PATH))
-            os.mkdir(DATASET_ROOT_PATH)
-        if not os.path.isdir(self.DATASET_PATH):
-            print("Creating directory{}".format(self.DATASET_PATH))
-            os.mkdir(self.DATASET_PATH)
-        if not os.path.isdir(self.MODEL_PATH):
-            print("Creating directory{}".format(self.MODEL_PATH))
-            os.mkdir(self.MODEL_PATH)
-        if not os.path.isdir(self.SPLIT_PATH):
-            print("Creating directory{}".format(self.SPLIT_PATH))
-            os.mkdir(self.SPLIT_PATH)
-        if not os.path.isdir(self.TRAINED_MODELS_PATH):
-            os.mkdir(self.TRAINED_MODELS_PATH)
-        if not os.path.isdir(self.PREDICTION_RESULTS_PATH):
-            os.mkdir(self.PREDICTION_RESULTS_PATH)
-        if not os.path.isdir(self.LOG_PATH):
-            print("Creating directory{}".format(self.LOG_PATH))
-            os.mkdir(self.LOG_PATH)
+        paths = [self.root_path, self.BASE_PATH,
+                 self.DATASET_ROOT_PATH, self.ANALYSIS_PATH,
+                 self.DATASET_PATH, self.MODEL_PATH, self.SPLIT_PATH,
+                 self.TRAINED_MODELS_PATH, self.PREDICTION_RESULTS_PATH,
+                 self.LOG_PATH]
+
+        if create:
+            list(map(check_and_create_folder, paths))
+            return True
+        else:
+            directories_present = list(map(os.path.isdir, paths))
+            missing_directories = [path for i, path in enumerate(paths) if not directories_present[i]]
+            if len(missing_directories) > 0:
+                print("Missing directories")
+                print(missing_directories)
+                return False
+            else:
+                return True
+
+
+    def check_and_create_directories(self, run_ids, create=True ):
+        if isinstance(run_ids,list):
+            for run_id in run_ids:
+                if not self._check_and_create_directories(run_id,create):
+                    return False
+            return True
+
+            #return all(map(self._check_and_create_directories, run_ids, list[create] * len(run_ids)))
+        else:
+            #return self._check_and_create_directories(run_ids)
+            return self._check_and_create_directories(run_ids, create)
+
+

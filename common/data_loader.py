@@ -201,26 +201,29 @@ class TrainValDataIterator:
         if dataset_type == "train":
             x = self.train_x[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size]
             y = self.train_y[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size]
+            label = self.manual_annotation[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size]
             self.train_idx += 1
         elif dataset_type == "val":
             x = self.val_x[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
             y = self.val_y[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
+            label = self.manual_annotation[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
+
             # TODO check if this is last batch, if yes,reset the counter
 
             self.val_idx += 1
         else:
             raise ValueError("dataset_type should be either 'train' or 'val' ")
-        return x, y
+        return x, y, label
 
 
-    def get_next_batch_train(self):
-        if self.batch_size is None:
-            raise Exception("batch_size attribute is not set")
-        x = self.train_x[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size]
-        y = self.train_y[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size]
-        label = self.manual_annotation[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size ]
-        self.train_idx += 1
-        return x, y,label
+    # def get_next_batch_train(self):
+    #     if self.batch_size is None:
+    #         raise Exception("batch_size attribute is not set")
+    #     x = self.train_x[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size]
+    #     y = self.train_y[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size]
+    #     label = self.manual_annotation[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size ]
+    #     self.train_idx += 1
+    #     return x, y,label
 
     # def get_num_samples_train(self):
     #     return len(self.train_x)
@@ -233,15 +236,15 @@ class TrainValDataIterator:
         else:
             raise ValueError("dataset_type should be either 'train' or 'val' ")
 
-    def get_next_batch_val(self):
-        if self.batch_size is None:
-            raise Exception("batch_size attribute is not set")
-        x = self.val_x[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
-        y = self.val_y[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
-        # TODO check if this is last batch, if yes,reset the counter
-
-        self.val_idx += 1
-        return x, y
+    # def get_next_batch_val(self):
+    #     if self.batch_size is None:
+    #         raise Exception("batch_size attribute is not set")
+    #     x = self.val_x[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
+    #     y = self.val_y[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
+    #     # TODO check if this is last batch, if yes,reset the counter
+    #
+    #     self.val_idx += 1
+    #     return x, y
 
     # def get_num_samples_val(self):
     #     return len(self.val_x)

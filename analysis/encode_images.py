@@ -8,7 +8,7 @@ from config.common_path import get_encoded_csv_file
 def encode_images(model, train_val_data_iterator, exp_config, dataset_type="train"):
     encoded_df = None
     while train_val_data_iterator.has_next(dataset_type):
-        batch_images, batch_labels = train_val_data_iterator.get_next_batch(dataset_type)
+        batch_images, batch_labels,_ = train_val_data_iterator.get_next_batch(dataset_type)
         if batch_images.shape[0] < exp_config.BATCH_SIZE:
             train_val_data_iterator.reset_counter(dataset_type)
             break

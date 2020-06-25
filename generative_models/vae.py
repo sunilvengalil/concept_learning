@@ -11,11 +11,11 @@ import numpy as np
 
 import pandas as pd
 from utils import prior_factory as prior
-from utils.utils import save_image, get_eval_result_dir
+from utils.utils import save_image
+from utils.dir_utils import get_eval_result_dir
 
 import tensorflow as tf
 from tensorflow_wrappers.layers import conv2d, linear, deconv2d, lrelu
-
 
 class VAE(object):
     _model_name = "VAE"
@@ -46,6 +46,7 @@ class VAE(object):
         self.supervise_weight = supervise_weight
         if dataset_name == 'mnist' or dataset_name == 'fashion-mnist':
             # parameters
+            self.label_dim = 10  # one hot encoding for 10 classes
             self.input_height = 28
             self.input_width = 28
             self.output_height = 28
@@ -81,7 +82,6 @@ class VAE(object):
         self.counter, self.start_batch_id, self.start_epoch = self.initialize(train_val_data_iterator=train_val_data_iterator,
                                                                               restore_from_existing_checkpoint=read_from_existing_checkpoint,
                                                                               check_point_epochs=check_point_epochs)
-
 
 #   Gaussian Encoder
     def encoder(self, x, reuse=False):
@@ -119,6 +119,7 @@ class VAE(object):
                 deconv2d(reshaped, [self.batch_size, 14, 14, self.n[0]], 3, 3, 2, 2, name='de_dc3'))
 
             out = tf.nn.sigmoid(deconv2d(deconv1, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4'))
+            #out = lrelu(deconv2d(deconv1, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4'))
             return out
 
     def inference(self):
@@ -134,8 +135,15 @@ class VAE(object):
         # images
         self.inputs = tf.placeholder(tf.float32, [bs] + image_dims, name='real_images')
 
-        # noises
+        # random vectors with  multi-variate gaussian distribution
+        # 0 mean and covariance matrix as Identity
         self.standard_normal = tf.placeholder(tf.float32, [bs, self.z_dim], name='z')
+
+        #Wheter the sample was manually annotated.
+        # TODO convert this to confidence interval in range [0,1]
+        self.is_manual_annotated = tf.placeholder(tf.float32,[bs], name="is_manual_annotated")
+        self.labels = tf.placeholder(tf.float32, [bs, self.label_dim], name='manual_label')
+
 
         """ Loss Function """
         # encoding
@@ -144,13 +152,22 @@ class VAE(object):
         # sampling by re-parameterization technique
         self.z = self.mu + self.sigma * tf.random_normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
 
+        # supervised loss for labelled samples
+        self.y_pred = linear(self.z, 10)
+        self.supervised_loss = tf.losses.softmax_cross_entropy(onehot_labels=self.labels,
+                                                          logits=self.y_pred,
+                                                          weights=self.is_manual_annotated
+                                                          )
+
         # decoding
         out = self.decoder(self.z, reuse=False)
         self.out = tf.clip_by_value(out, 1e-8, 1 - 1e-8)
 
         # loss
         marginal_likelihood = tf.reduce_sum(self.inputs * tf.log(self.out) + (1 - self.inputs) * tf.log(1 - self.out),
-                                            [1, 2])
+                                             [1, 2])
+        #marginal_likelihood = -tf.losses.mean_squared_error(self.inputs, self.out)
+        #marginal_likelihood = tf.reduce_sum(tf.losses.mean_squared_error(self.inputs, self.out), [1, 2])
         KL_divergence = 0.5 * tf.reduce_sum(tf.square(self.mu) + tf.square(self.sigma) - tf.log(1e-8 + tf.square(self.sigma)) - 1,
                                             [1])
 
@@ -159,7 +176,7 @@ class VAE(object):
 
         ELBO = -self.neg_loglikelihood - self.beta * self.KL_divergence
 
-        self.loss = -ELBO
+        self.loss = -ELBO + self.supervise_weight * self.supervised_loss
 
         """ Training """
         # optimizers
@@ -180,6 +197,8 @@ class VAE(object):
         """ Summary """
         nll_sum = tf.summary.scalar("Negative Log Likelihood", self.neg_loglikelihood)
         kl_sum = tf.summary.scalar("K L Divergence", self.KL_divergence)
+        supervised_loss = tf.summary.scalar("Supervised Loss", self.supervised_loss)
+
         loss_sum = tf.summary.scalar("Total Loss", self.loss)
 
         # final summary operations
@@ -200,16 +219,22 @@ class VAE(object):
         for epoch in range(start_epoch, self.epoch):
             # get batch data
             for idx in range(start_batch_id, num_batches_train):
-                batch_images, _ = train_val_data_iterator.get_next_batch("train")
+                # first 10 elements of manual_labels is actual one hot endoded labels
+                # and next value is confidence currently binary(0/1). TODO change this to continuous
+                #
+                batch_images, _, manual_labels = train_val_data_iterator.get_next_batch("train")
                 batch_z = prior.gaussian(self.batch_size, self.z_dim)
 
                 # update autoencoder
                 _, summary_str, loss, nll_loss, kl_loss = self.sess.run(
                     [self.optim, self.merged_summary_op, self.loss, self.neg_loglikelihood, self.KL_divergence],
-                    feed_dict={self.inputs: batch_images, self.standard_normal: batch_z})
+                    feed_dict={self.inputs: batch_images,
+                               self.labels: manual_labels[:, :10],
+                               self.is_manual_annotated: manual_labels[:, 10],
+                               self.standard_normal: batch_z})
 
-                # print("Epoch: [%2d] [%4d/%4d] time: %4.4f, loss: %.8f, nll: %.8f, kl: %.8f" \
-                #       % (epoch, idx, self.num_batches_train, time.time() - start_time, loss, nll_loss, kl_loss))
+                print("Epoch: [%2d] [%4d/%4d] time: %4.4f, loss: %.8f, nll: %.8f, kl: %.8f" \
+                      % (epoch, idx, num_batches_train, time.time() - start_time, loss, nll_loss, kl_loss))
                 counter += 1
                 if np.mod(idx, self.eval_interval) == 0:
                     self.evaluate(epoch + 1, idx - 1, counter - 1, val_data_iterator=train_val_data_iterator)
@@ -272,7 +297,7 @@ class VAE(object):
         reconstructed_images = []
         num_eval_batches = val_data_iterator.get_num_samples("val") // self.batch_size
         for _idx in range(start_eval_batch, num_eval_batches):
-            batch_eval_images, batch_eval_labels = val_data_iterator.get_next_batch("val")
+            batch_eval_images, batch_eval_labels,manual_labels = val_data_iterator.get_next_batch("val")
             integer_label = np.asarray([np.where(r == 1)[0][0] for r in batch_eval_labels]).reshape([64, 1])
             batch_eval_labels = np.concatenate([batch_eval_labels, integer_label], axis=1)
             columns = [str(i) for i in range(10)]
@@ -285,8 +310,9 @@ class VAE(object):
             batch_z = prior.gaussian(self.batch_size, self.z_dim)
             reconstructed_image, summary = self.sess.run([self.out, self.merged_summary_op],
                                                         feed_dict={self.inputs: batch_eval_images,
+                                                                   self.labels: manual_labels[:, :10],
+                                                                   self.is_manual_annotated: manual_labels[:, 10],
                                                         self.standard_normal: batch_z})
-
 
             self.writer_v.add_summary(summary, counter)
 

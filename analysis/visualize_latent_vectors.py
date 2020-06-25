@@ -4,9 +4,9 @@ from generative_models.vae import VAE
 from config.analysis_paths import BATCH_SIZE, DATASET_NAME, \
     SPLIT_NAME, DATASET_PATH, Z_DIM,N_2, N_3,\
     DATASET_PATH_COMMON_TO_ALL_EXPERIMENTS,MODEL_NAME_WITH_CONFIG
-from utils.utils import show_all_variables
+from utils.dir_utils import check_and_create_folder
 from common.data_loader import TrainValDataIterator
-from utils.utils import segregate_images_by_label,check_folder,get_latent_vector_column
+from utils.utils import segregate_images_by_label,get_latent_vector_column
 import numpy as np
 from config.common_path import get_encoded_csv_file
 
@@ -21,7 +21,7 @@ TRAINED_MODELS_PATH = os.path.join(MODEL_PATH, "trained_models/")
 PREDICTION_RESULTS_PATH = os.path.join(MODEL_PATH, "prediction_results/")
 LOG_PATH = os.path.join(MODEL_PATH, "logs/")
 ANALYSIS_PATH = os.path.join(MODEL_PATH, "analysis/")
-check_folder(ANALYSIS_PATH)
+check_and_create_folder(ANALYSIS_PATH)
 
 
 with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
