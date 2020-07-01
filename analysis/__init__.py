@@ -73,3 +73,8 @@ class ClusterGroup:
             self.cluster_list = [cluster]
         else:
             self.cluster_list.append(cluster)
+
+    def get_cluster(self,cluster_num):
+        for cluster in self.cluster_list:
+            if cluster.id == cluster_num:
+                return cluster

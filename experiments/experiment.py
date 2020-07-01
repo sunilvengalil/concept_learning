@@ -105,8 +105,8 @@ if __name__ == '__main__':
     N_2 = 128
     N_1 = 64
     Z_DIM = 5
-    run_id = 1
-    num_epochs = 2
+    run_id = 2
+    num_epochs = 1
 
     ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_supervised/"
     _config = ExperimentConfig(ROOT_PATH, 4, Z_DIM, [N_1, N_2, N_3], num_val_samples=128)
