@@ -17,6 +17,7 @@ from utils.dir_utils import get_eval_result_dir
 import tensorflow as tf
 from tensorflow_wrappers.layers import conv2d, linear, deconv2d, lrelu
 
+
 class VAE(object):
     _model_name = "VAE"
 
@@ -35,9 +36,6 @@ class VAE(object):
         self.dataset_name = dataset_name
         self.epoch = epoch
         self.batch_size = batch_size
-        self.infer_ = 'infer_10/'
-        self.orinfer_ = 'orinfer_10/'
-        self.input_ = 'input_10/'
         self.num_val_samples = 128
         self.log_dir = log_dir
         self.checkpoint_dir = checkpoint_dir
@@ -103,7 +101,6 @@ class VAE(object):
             # The standard deviation must be positive. Parametrize with a softplus and
             # add a small epsilon for numerical stability
             stddev = 1e-6 + tf.nn.softplus(gaussian_params[:, self.z_dim:])
-
         return mean, stddev
 
     # Bernoulli decoder
@@ -206,7 +203,7 @@ class VAE(object):
 
     def train(self,train_val_data_iterator):
 
-        #counter, start_batch_id, start_epoch = self.initialize(train_val_data_iterator)
+        # counter, start_batch_id, start_epoch = self.initialize(train_val_data_iterator)
         counter = self.counter
         start_batch_id = self.start_batch_id
         start_epoch = self.start_epoch
@@ -249,7 +246,7 @@ class VAE(object):
             # save model
             print("Saving check point", self.checkpoint_dir)
             self.save(self.checkpoint_dir, counter)
-            train_val_data_iterator.reset_train_couner()
+            train_val_data_iterator.reset_counter("train")
 
             # show temporal results
         # self.visualize_results()
@@ -263,8 +260,10 @@ class VAE(object):
         # saver to save model
         self.saver = tf.train.Saver(max_to_keep=50)
         # summary writer
-        self.writer = tf.summary.FileWriter(self.log_dir + '/' + self._model_name, self.sess.graph)
-        self.writer_v = tf.summary.FileWriter(self.log_dir + '/' + self._model_name + "_v", self.sess.graph)
+        self.writer = tf.summary.FileWriter(self.log_dir + '/' + self._model_name,
+                                            self.sess.graph)
+        self.writer_v = tf.summary.FileWriter(self.log_dir + '/' + self._model_name + "_v",
+                                              self.sess.graph)
 
         if train_val_data_iterator is not None:
             num_batches_train = train_val_data_iterator.get_num_samples("train") // self.batch_size
@@ -273,7 +272,7 @@ class VAE(object):
         if restore_from_existing_checkpoint:
             # restore check-point if it exits
             could_load, checkpoint_counter = self.load(self.checkpoint_dir,
-                                                       check_point_epochs = check_point_epochs)
+                                                       check_point_epochs=check_point_epochs)
         if could_load:
             if train_val_data_iterator is not None:
                 start_epoch = int(checkpoint_counter / num_batches_train)
@@ -321,14 +320,13 @@ class VAE(object):
             manifold_h = tot_num_samples // manifold_w
             reconstructed_images.append(reconstructed_image[:manifold_h * manifold_w, :, :, :])
         print("epoch:{} step:{}".format(epoch,step))
-        reconstructed_dir = get_eval_result_dir(self.result_dir,epoch,
-                                                     step, "reconstructed")
+        reconstructed_dir = get_eval_result_dir(self.result_dir, epoch, step, "reconstructed")
         print(reconstructed_dir)
 
         for _idx in range(start_eval_batch, num_eval_batches):
             file = "im_" + str(_idx) + ".png"
             save_image(reconstructed_images[_idx], [manifold_h, manifold_w], reconstructed_dir + file)
-        val_data_iterator.reset_val_couner()
+        val_data_iterator.reset_counter("val")
 
         print("Evaluation completed")
     #
@@ -357,54 +355,6 @@ class VAE(object):
     #         file = "im_" + str(_idx) + ".png"
     #         save_image(original_images[_idx], [manifold_h, manifold_w], reconstructed_dir + file)
 
-    def feature_analysis(self, mu, sigma, batch_images, batch_labels):
-        reconsructed_images = self.sess.run(self.images , feed_dict={self.mu: mu, self.sigma: sigma})
-
-        mu_max = np.max(mu)
-
-        mu_min = np.min(mu)
-
-        f_z = open("z.csv", "w")
-        writer = csv.writer(f_z)
-        for i in range(mu.shape[0]):
-            # writer.writerow( [batch_labels[i]].extend( mu[i,:].tolist() ))
-            tolist = mu[i, :].tolist()
-            tolist.append(np.where(batch_labels[i] == 1)[0][0])
-            writer.writerow(tolist)
-
-        for j in range(np.shape(mu)[1]):
-
-            original_samples = self.sess.run(self.images, feed_dict={self.mu: mu, self.sigma: sigma})
-
-            indexes_to_keep = [a for a in list(range(j))]
-
-            # mu_ = mu[:, indexes_to_keep]
-
-            # mu_feat = mu[0, :]
-
-            mu_ = np.copy(mu)
-
-            mu_[:, :] = 0
-
-            mu_[:, indexes_to_keep] = mu[:, indexes_to_keep]
-            # mu_[:, j+1] = mu_min
-
-            samples = self.sess.run(self.images, feed_dict={self.mu: mu_, self.sigma: sigma})
-
-            # samples = self.sess.run(self.images, feed_dict={self.z: z})
-
-            for i in range(len(samples)):
-                sample = samples[i] * 255
-                ori_sample = original_samples[i] * 255
-                img = batch_images[i] * 255
-
-                # cv2.imwrite(self.infer_ + str(j) + '_' + str(i) + '.jpg', sample)
-                #
-                # cv2.imwrite(self.orinfer_ + str(j) + '_' + str(i) + '.jpg', ori_sample)
-                #
-                # cv2.imwrite(self.input_ + str(j) + '_' + str(i) + '.jpg', img)
-        f_z.close()
-
     def visualize_results(self,batch_images,batch_labels):
         mu, sigma = self.sess.run([self.mu, self.sigma], feed_dict={self.inputs: batch_images})
         self.inference()
@@ -419,7 +369,7 @@ class VAE(object):
     def save(self, checkpoint_dir, step):
         self.saver.save(self.sess, os.path.join(checkpoint_dir, self._model_name + '.model'), global_step=step)
 
-    def load(self, checkpoint_dir,check_point_epochs=None):
+    def load(self, checkpoint_dir, check_point_epochs=None):
         import re
         # saver to save model
         self.saver = tf.train.Saver(max_to_keep=20)
@@ -490,13 +440,18 @@ class VAE(object):
         layer_param_names =[name_w_1, name_b_1, name_w_2, name_b_2, name_w_3, name_b_3, name_w_4, name_b_4]
 
         default_graph = tf.get_default_graph()
-        params = [default_graph.get_tensor_by_name(tn) for tn  in layer_param_names]
+        params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
         param_values = self.sess.run(params)
-        return {tn:tv for tn,tv in zip(layer_param_names,param_values)}
+        return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
 
     def encode_and_get_features(self, images):
-        mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en = self.sess.run([self.mu, self.sigma, self.z,self.dense2_en,
-                                                                            self.reshaped_en, self.conv2,self.conv1],
+        mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en = self.sess.run([self.mu,
+                                                                               self.sigma,
+                                                                               self.z,
+                                                                               self.dense2_en,
+                                                                               self.reshaped_en,
+                                                                               self.conv2,
+                                                                               self.conv1],
                                                                               feed_dict={self.inputs: images})
 
         return mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en

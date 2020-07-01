@@ -2,6 +2,7 @@
 Most codes from https://github.com/carpedm20/DCGAN-tensorflow
 """
 from __future__ import division
+import pandas as pd
 import scipy.misc
 import numpy as np
 import matplotlib.pyplot as plt
@@ -61,7 +62,6 @@ def load_docs_test(size):
         img_index += 1
     print("Loaded {:05d} test images".format(img_index))
 
-
     return x/255., img_orig/255.
 
 
@@ -90,7 +90,7 @@ def save_images(images, size, image_path):
     return imsave(inverse_transform(images), size, image_path)
 
 
-def imread(path, grayscale = False):
+def imread(path, grayscale=False):
     if (grayscale):
         return scipy.misc.imread(path, flatten = True).astype(np.float)
     else:
@@ -176,28 +176,27 @@ def discrete_cmap(N, base_cmap=None):
     return base.from_list(cmap_name, color_list, N)
 
 
-def segregate_images_by_label(train_val_iterator,dataset_type="val"):
+def segregate_images_by_label(train_val_iterator, dataset_type="val"):
     labels = set()
     feature_shape = list(train_val_iterator.get_feature_shape())
     feature_shape.insert(0,10)
-    images_by_label =  defaultdict(list)
+    images_by_label = defaultdict(list)
     num_batches = 0
     while train_val_iterator.has_next(dataset_type):
         num_batches += 1
         images, label = train_val_iterator.get_next_batch(dataset_type)
         print(images.shape)
         for im, lbl in zip(images,label):
-            #images_by_label[ np.where(lbl == 1)[0][0] ] =  np.asarray(im)
             _lbl = np.where(lbl == 1)[0][0]
             labels.add(_lbl)
             images_by_label[_lbl].append( im)
     return images_by_label
 
 
-def get_latent_vector_column(Z_DIM):
-    mean_col_names = ["mu_{}".format(i) for i in range(Z_DIM)]
-    sigma_col_names = ["sigma_{}".format(i) for i in range(Z_DIM)]
-    z_col_names = ["z_{}".format(i) for i in range(Z_DIM)]
+def get_latent_vector_column(z_dim):
+    mean_col_names = ["mu_{}".format(i) for i in range(z_dim)]
+    sigma_col_names = ["sigma_{}".format(i) for i in range(z_dim)]
+    z_col_names = ["z_{}".format(i) for i in range(z_dim)]
     return mean_col_names, sigma_col_names, z_col_names
 
 
@@ -223,7 +222,7 @@ def get_max(i,df,mean_col_names):
 
 
 def get_labels(data_set_path):
-    x,y = load_test_raw_data(data_set_path)
+    x, y = load_test_raw_data(data_set_path)
     labels = np.unique(y)
     return labels
 
@@ -236,3 +235,74 @@ def get_latent_vector(dataset_path, z_dim, df, labels=None):
     for i in labels:
         mu_mean.append( get_mean(i, df, z_col_names))
     return labels, mu_mean
+
+
+"""
+Computes the histogram or probability mass function of y given z
+@:param data_df DataFrame containing the samples
+@:param y_column_name Name of the column which have categorical y values
+@:param z_dim dimension of z
+@:param normalized Returns probability mass function if True. Otherwise returns un-normalized probability
+Note:- It is assumed that  data_df has columns with names as returned by get_latent_vector_column().
+It should also have a categorical column with name specified by parameter y_column_name
+"""
+
+
+def get_pmf_y_given_z(data_df, y_column_name, z_dim, normalized=True):
+    _,  _, z_col_names = get_latent_vector_column(z_dim)
+    un_normalized = data_df[[z_col_names[0],
+                             y_column_name
+                             ]].groupby(by=y_column_name).count()[z_col_names[0]]
+    pmf_y_given_z = un_normalized / data_df.shape[0]
+    if normalized:
+        return pd.Series(pmf_y_given_z, index=un_normalized.index.values)
+    else:
+        return un_normalized
+
+
+# TODO fix this to remove the parameter num_label_files. Instead find and read all files with the
+# specific format
+# Read labels from label file and returns a dictionary of in the format {file_num:label_data_frame}
+# TODO move  this  method to train/iterator
+def read_label(label_file_prefix, num_label_files):
+    labels = {}
+    for file_number in range(num_label_files):
+        label_df = pd.read_csv(label_file_prefix.format(file_number))
+        labels[file_number] = label_df["label"].values
+    return labels
+
+
+# Construct and return an ndarray of manually given labels
+# TODO move this method to annotation utils
+# annotated_df annotated df
+# TODO remove hard coding of string
+def get_label_reconstructed(annotated_df, num_rows_per_image, num_digits_per_row):
+    # Initialize all labels with -2
+    labels = np.ones(num_rows_per_image * num_digits_per_row) * -2
+    annotated_df = annotated_df.fillna("xxxx")
+    for row in annotated_df.iterrows():
+        text = [-1] * num_digits_per_row
+        row_text = row[1]["text"]
+        if isinstance(row_text, float):
+            row_text = str(row_text)
+        row_text = row_text.strip()
+        if len(row_text) != 0:
+            if len(row_text) < num_digits_per_row:
+                # TODO fix this. instead read each row as a string
+                for i in range(num_digits_per_row - len(row_text)):
+                    text[i] = 0
+            offset = num_digits_per_row - len(row_text)
+            for i, c in enumerate(row_text):
+                if c.isdigit():
+                    text[i + offset] = int(c)
+                elif c == 'x':
+                    text[i + offset] = -1
+                else:
+                    raise Exception("Invalid character in annotated data - ", row[1]["num_rows_annotated"])
+
+        for i in range(num_digits_per_row):
+            offset = (row[1]["num_rows_annotated"] - 1) * num_digits_per_row
+            labels[i + offset] = text[i]
+
+    return labels
+

@@ -15,7 +15,7 @@ import tensorflow as tf
 from tensorflow_wrappers.layers import conv2d, linear, deconv2d, lrelu
 beta = 5
 
-class VAE_Supervised(object):
+class VAE_Supervised_Old_Do_not_Usse(object):
     _model_name = "VAE"
 
     def __init__(self, sess, epoch, batch_size,
@@ -218,10 +218,10 @@ class VAE_Supervised(object):
 
         for epoch in range(start_epoch, self.epoch):
             # get batch data
-            number_annotated = 0
-            all_labelled = set()
+            #number_annotated = 0
+            #all_labelled = set()
             for idx in range(start_batch_id, self.num_batches_train):
-                batch_images, _ , labels = train_val_data_iterator.get_next_batch_train()
+                batch_images, _ , labels = train_val_data_iterator.get_next_batch("train")
                 batch_z = prior.gaussian(self.batch_size, self.z_dim)
 
                 # update autoencoder
@@ -243,25 +243,25 @@ class VAE_Supervised(object):
                     self.writer.add_summary(summary_str, counter-1)
                 else:
                     self.writer.add_summary(summary_str, counter-1)
-                _num_annotated = len(np.where(labels[:, 10] != 0)[0])
-                number_annotated += _num_annotated
-                if _num_annotated > 0:
-                    labelled = labels[np.where(labels[:, 10] != 0)[0],:10]
-                    integer_labels = np.asarray([np.where(r == 1)[0][0] for r in labelled]).reshape([_num_annotated, 1])
-                    all_labelled.add(r for r in integer_labels)
+                #_num_annotated = len(np.where(labels[:, 10] != 0)[0])
+                #number_annotated += _num_annotated
+                #if _num_annotated > 0:
+                    #labelled = labels[np.where(labels[:, 10] != 0)[0],:10]
+                    #integer_labels = np.asarray([np.where(r == 1)[0][0] for r in labelled]).reshape([_num_annotated, 1])
+                    #all_labelled.add(r for r in integer_labels)
 
 
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model
-            print("Number of annotated data={}".format(number_annotated))
-            print("Distinct labels",all_labelled)
+            # print("Number of annotated data={}".format(number_annotated))
+            # print("Distinct labels",all_labelled)
 
             start_batch_id = 0
 
             # save model
             print("Saving check point", self.checkpoint_dir)
             self.save(self.checkpoint_dir, counter)
-            train_val_data_iterator.reset_train_couner()
+            train_val_data_iterator.reset_counter("train")
 
             # show temporal results
         # self.visualize_results()

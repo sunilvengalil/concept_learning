@@ -35,129 +35,98 @@ def parse_args():
     return check_args(parser.parse_args())
 
 
-"""checking arguments"""
-def check_args(args):
+def check_args(_args):
     # --epoch
-    assert args.epoch >= 1, 'number of epochs must be larger than or equal to one'
+    assert _args.epoch >= 1, 'number of epochs must be larger than or equal to one'
 
     # --batch_size
-    assert args.batch_size >= 1, 'batch size must be larger than or equal to one'
+    assert _args.batch_size >= 1, 'batch size must be larger than or equal to one'
 
     # --z_dim
-    assert args.z_dim >= 1, 'dimension of noise vector must be larger than or equal to one'
+    assert _args.z_dim >= 1, 'dimension of noise vector must be larger than or equal to one'
 
-    return args
+    return _args
 
 
 class Experiment:
-    def __init__(self, exp_id, name, num_val_samples, config1, run_id = None):
-        if run_id is None:
+    def __init__(self, exp_id, name, num_val_samples, config1, _run_id=None):
+        if _run_id is None:
             self.run_id = id
         else:
-            self.run_id = run_id
+            self.run_id = _run_id
         self.id = exp_id
         self.name = name
         self.num_validation_samples = num_val_samples
         self.config = config1
+        self.model = None
 
-    def initialize(self, model=None):
-        self.model =  model
+    def initialize(self, _model=None):
+        self.model = _model
         self.config.create_directories(self.run_id)
 
-    def asJson(self):
-        config_json = self.config.asJson()
+    def as_json(self):
+        config_json = self.config.as_json()
         config_json["RUN_ID"] = self.run_id
         config_json["ID"] = self.id
         config_json["name"] = self.name
         config_json["NUM_VALIDATION_SAMPLES"] = self.num_validation_samples
         return config_json
 
-    def train(self, train_val_data_iterator=None, create_split=False):
-        if train_val_data_iterator is None:
+    def train(self, _train_val_data_iterator=None, _create_split=False):
+        if _train_val_data_iterator is None:
 
-            if create_split:
-                train_val_data_iterator = TrainValDataIterator(self.config.DATASET_PATH_COMMON_TO_ALL_EXPERIMENTS,
-                                                               shuffle=True,
-                                                               stratified=True,
-                                                               validation_samples=self.num_validtion_samples,
-                                                               split_names=["train","validation"],
-                                                               split_location=self.config.SPLIT_PATH,
-                                                               batch_size=self.config.BATCH_SIZE)
+            if _create_split:
+                _train_val_data_iterator = TrainValDataIterator(self.config.DATASET_PATH_COMMON_TO_ALL_EXPERIMENTS,
+                                                                shuffle=True,
+                                                                stratified=True,
+                                                                validation_samples=self.num_validation_samples,
+                                                                split_names=["train", "validation"],
+                                                                split_location=self.config.SPLIT_PATH,
+                                                                batch_size=self.config.BATCH_SIZE)
             else:
-                train_val_data_iterator = TrainValDataIterator.from_existing_split(self.config.split_name,
-                                                                                   self.config.SPLIT_PATH,
-                                                                                   self.config.BATCH_SIZE)
-        self.model.train(train_val_data_iterator)
+                _train_val_data_iterator = TrainValDataIterator.from_existing_split(self.config.split_name,
+                                                                                    self.config.SPLIT_PATH,
+                                                                                    self.config.BATCH_SIZE)
+        self.model.train(_train_val_data_iterator)
         print(" [*] Training finished!")
 
-    def encode_latent_vector(self, train_val_data_iterator, dataset_type):
+    def encode_latent_vector(self, _train_val_data_iterator, dataset_type):
         encoded_df = encode_images(self.model,
-                                   train_val_data_iterator,
+                                   _train_val_data_iterator,
                                    self.config,
                                    dataset_type)
 
 
-def generate_image(z):
-    # parse arguments
-    args = parse_args()
-    if args is None:
-        exit()
-
-    # open session
-
-    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
-        # declare instance for GAN
-        model = VAE
-
-        # build graph
-        model.build_model()
-
-        # show network architecture
-        show_all_variables()
-
-        # launch the graph in a session
-        model.restore_from_checkpoint()
-        #print(" [*] Training finished!")
-
-        # visualize learned generator
-        batchsize=64
-        #if z.shape[0] > 64:
-        num_batches = z.shape[0]//64
-        generated_images = []
-
-        for i in range(num_batches):
-            generated_images.append(model.generate_image(z[i*batchsize:i*batchsize+batchsize]))
-
-        return generated_images
-
 if __name__ == '__main__':
     # parse arguments
     args = parse_args()
-    N_3 = 16
+
+    N_3 = 32
     N_2 = 128
-    Z_DIM = 20
+    N_1 = 64
+    Z_DIM = 5
     run_id = 1
+    num_epochs = 2
 
-    ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
-    _config = ExperimentConfig(ROOT_PATH, 4, Z_DIM, [64, N_2, N_3])
-
+    ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_supervised/"
+    _config = ExperimentConfig(ROOT_PATH, 4, Z_DIM, [N_1, N_2, N_3], num_val_samples=128)
+    _config.check_and_create_directories(run_id)
     BATCH_SIZE = _config.BATCH_SIZE
     DATASET_NAME = _config.dataset_name
-
     _config.check_and_create_directories(run_id, create=False)
 
     # TODO make this a configuration
     # to change output type from sigmod to leaky relu, do the following
-    #1. In vae.py change the output layer type in decode()
-    #2. Change the loss function in build_model
+    # 1. In vae.py change the output layer type in decode()
+    # 2. Change the loss function in build_model
 
     exp = Experiment(1, "VAE_MNIST", 128, _config, run_id)
 
-    _config.check_and_create_directories(run_id)
-    #TODO if file exists verify the configuration are same. Othervise create new file with new timestamp
-    print(exp.asJson())
-    with open( _config.BASE_PATH + "config.json","w") as config_file:
-        json.dump(_config.asJson(),config_file)
+    # TODO if file exists verify the configuration are same.
+    # Otherwise create new file with new timestamp
+    print(exp.as_json())
+    with open(_config.BASE_PATH + "config.json", "w") as config_file:
+        json.dump(_config.as_json(), config_file)
     if create_split:
         train_val_data_iterator = TrainValDataIterator(exp.config.DATASET_PATH_COMMON_TO_ALL_EXPERIMENTS,
                                                        shuffle=True,
@@ -173,10 +142,10 @@ if __name__ == '__main__':
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
         model = VAE(sess,
-                    epoch=args.epoch,
+                    epoch=num_epochs,
                     batch_size=_config.BATCH_SIZE,
                     z_dim=_config.Z_DIM,
-                    dataset_name=args.dataset,
+                    dataset_name=DATASET_NAME,
                     beta=_config.beta,
                     num_units_in_layer=_config.num_units,
                     train_val_data_iterator=train_val_data_iterator,
@@ -197,10 +166,10 @@ if __name__ == '__main__':
         # epochs_completed = int(checkpoint_counter / num_batches_train)
         # print("Number of epochs trained in current chekpoint", epochs_completed)
 
-        train_val_data_iterator.reset_train_couner()
-        train_val_data_iterator.reset_val_couner()
+        train_val_data_iterator.reset_counter("train")
+        train_val_data_iterator.reset_counter("val")
         exp.encode_latent_vector(train_val_data_iterator, "train")
 
-        train_val_data_iterator.reset_train_couner()
-        train_val_data_iterator.reset_val_couner()
+        train_val_data_iterator.reset_counter("train")
+        train_val_data_iterator.reset_counter("val")
         exp.encode_latent_vector(train_val_data_iterator, "val")

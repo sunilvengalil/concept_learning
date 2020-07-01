@@ -7,59 +7,48 @@ import pandas as pd
 import json
 
 
-def load_mnist(dataset_name):
-    data_dir = os.path.join("/Users/sunilkumar/gitprojects/tensorflow-generative-model-collections/", dataset_name)
+def load_images(_config, dataset_type="train", manual_annotation_file=None):
+    train_val_data_iterator = TrainValDataIterator.from_existing_split(_config.split_name,
+                                                                       _config.SPLIT_PATH,
+                                                                       _config.BATCH_SIZE,
+                                                                       manual_annotation_file=manual_annotation_file
+                                                                       )
+    num_images = train_val_data_iterator.get_num_samples("train")
+    feature_shape = list(train_val_data_iterator.get_feature_shape())
+    num_images = (num_images // _config.BATCH_SIZE) * _config.BATCH_SIZE
+    feature_shape.insert(0, num_images)
+    train_images = np.zeros(feature_shape)
+    i = 0
+    # TODO remove hard coding
+    train_labels = np.zeros([num_images, 10])
+    manual_annotations = np.zeros([num_images, 11])
 
-    def extract_data(filename, num_data, head_size, data_size):
-        with gzip.open(filename) as bytestream:
-            bytestream.read(head_size)
-            buf = bytestream.read(data_size * num_data)
-            data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
-        return data
-
-    data = extract_data(data_dir + '/train-images-idx3-ubyte.gz', 60000, 16, 28 * 28)
-    train_x = data.reshape((60000, 28, 28, 1))
-
-    #code to save images
-    for i in range(10):
-        cv2.imwrite('lol' + str(i) + '.jpg', train_x[i])
-
-    data = extract_data(data_dir + '/train-labels-idx1-ubyte.gz', 60000, 8, 1)
-    train_y = data.reshape((60000))
-
-    data = extract_data(data_dir + '/t10k-images-idx3-ubyte.gz', 10000, 16, 28 * 28)
-    test_x = data.reshape((10000, 28, 28, 1))
-
-    data = extract_data(data_dir + '/t10k-labels-idx1-ubyte.gz', 10000, 8, 1)
-    test_y = data.reshape((10000))
-
-    train_y = np.asarray(train_y)
-    test_y = np.asarray(test_y)
-
-    X = np.concatenate((train_x, test_x), axis=0)
-    y = np.concatenate((train_y, test_y), axis=0).astype(np.int)
-
-    seed = 547
-    np.random.seed(seed)
-    np.random.shuffle(X)
-    np.random.seed(seed)
-    np.random.shuffle(y)
-
-    y_vec = np.zeros((len(y), 10), dtype=np.float)
-    for i, label in enumerate(y):
-        y_vec[i, y[i]] = 1.0
-
-    return X / 255., y_vec
+    train_val_data_iterator.reset_counter(dataset_type)
+    while train_val_data_iterator.has_next(dataset_type):
+        batch_images, batch_labels, batch_annotations = train_val_data_iterator.get_next_batch(dataset_type)
+        if batch_images.shape[0] < _config.BATCH_SIZE:
+            break
+        train_images[i * _config.BATCH_SIZE:(i + 1) * _config.BATCH_SIZE, :] = batch_images
+        train_labels[i * _config.BATCH_SIZE:(i + 1) * _config.BATCH_SIZE, :] = batch_labels
+        manual_annotations[i * _config.BATCH_SIZE:(i + 1) * _config.BATCH_SIZE, :] = batch_annotations
+        i += 1
+    return train_val_data_iterator, train_images, train_labels, manual_annotations
 
 
 class TrainValDataIterator:
+    VALIDATION_Y_RAW = "validation_y_raw"
+    VALIDATION_Y_ONE_HOT = "validation_y"
+    VALIDATION_X = "validation_x"
+    TRAIN_Y = "train_y"
+    TRAIN_X = "train_x"
+
     @classmethod
-    def load_manual_annotation(cls,manual_annotation_path):
-        df = pd.read_csv(manual_annotation_path + "manual_annotation.csv")
+    def _load_manual_annotation(cls, manual_annotation_file):
+        df = pd.read_csv(manual_annotation_file)
         return df.values
 
     @classmethod
-    def load_train_val(cls, split_name, split_location):
+    def load_train_val_existing_split(cls, split_name, split_location):
         with open(split_location + split_name + ".json") as fp:
             dataset_dict = json.load(fp)
 
@@ -68,7 +57,8 @@ class TrainValDataIterator:
             df = pd.read_csv(split_location + split + ".csv")
             dataset_dict[split] = df
         split_names = dataset_dict["split_names"]
-        #TODO fix this remove hard coding of split name and column names
+
+        # TODO fix this remove hard coding of split name and column names
         train = dataset_dict["train"]
         x_columns = list(train.columns)
         x_columns.remove('label')
@@ -84,7 +74,6 @@ class TrainValDataIterator:
         val_y = val[['label']].values
         val_y = np.asarray(val_y.reshape(val_y.shape[0])).astype(np.int)
 
-
         if len(split_names) != 2:
             raise Exception("Split not implemented for for than two splits")
 
@@ -96,53 +85,55 @@ class TrainValDataIterator:
         for i, label in enumerate(train_y):
             _train_y[i, train_y[i]] = 1.0
 
-        # return train_x / 255., _train_y, val_x / 255., _val_y
-        #TODO separate normalizing and loading logic
-        return {"train_x": train_x / 255.,
-                "train_y": _train_y,
-                "validation_x": val_x / 255.,
-                "validation_y": _val_y,
-                "validation_y_raw":val_y}
-        #return {"train_x": train_x, "train_y": _train_y, "validation_x": val_x, "validation_y": _val_y}
+        # TODO separate normalizing and loading logic
+        return {TrainValDataIterator.TRAIN_X: train_x / 255.,
+                TrainValDataIterator.TRAIN_Y: _train_y,
+                TrainValDataIterator.VALIDATION_X: val_x / 255.,
+                TrainValDataIterator.VALIDATION_Y_ONE_HOT: _val_y,
+                TrainValDataIterator.VALIDATION_Y_RAW: val_y}
 
     @classmethod
-    def from_existing_split(cls, split_name, split_location,batch_size =  None,
-                            manual_annotation_path=None):
+    def from_existing_split(cls, split_name, split_location, batch_size=None,
+                            manual_annotation_file=None):
         instance = cls()
         instance.batch_size = batch_size
-        instance.dataset_dict = cls.load_train_val(split_name, split_location)
+        instance.dataset_dict = cls.load_train_val_existing_split(split_name, split_location)
 
-        instance.train_x = instance.dataset_dict["train" + "_x"]
-        instance.train_y = instance.dataset_dict["train" + "_y"]
-        instance.val_x = instance.dataset_dict["validation" + "_x"]
-        instance.val_y = instance.dataset_dict["validation" + "_y"]
-        if manual_annotation_path is not None and os.path.isfile(manual_annotation_path+"manual_annotation.csv"):
-            _manual_annotation = cls.load_manual_annotation(manual_annotation_path)
+        instance.train_x = instance.dataset_dict[TrainValDataIterator.TRAIN_X]
+        instance.train_y = instance.dataset_dict[TrainValDataIterator.TRAIN_Y]
+        instance.val_x = instance.dataset_dict[TrainValDataIterator.VALIDATION_X]
+        instance.val_y = instance.dataset_dict[TrainValDataIterator.VALIDATION_Y_ONE_HOT]
+        instance.unique_labels = np.unique(instance.dataset_dict[TrainValDataIterator.VALIDATION_Y_RAW])
+
+        if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
+            _manual_annotation = cls._load_manual_annotation(manual_annotation_file)
             instance.manual_annotation = np.zeros((len(_manual_annotation), 11), dtype=np.float)
             for i, label in enumerate(_manual_annotation):
-                instance.manual_annotation[i, int(_manual_annotation[i,0]) ] = 1.0
-                instance.manual_annotation[i,10] = _manual_annotation[i,1]
+                instance.manual_annotation[i, int(_manual_annotation[i, 0])] = 1.0
+                instance.manual_annotation[i, 10] = _manual_annotation[i, 1]
         else:
-            labels = np.unique(instance.dataset_dict["validation_y_raw"])
-            _manual_annotation = np.random.choice(labels, len(instance.train_x))
+            #TODO if we are using random prior with uniform distribution, do we need to keep
+            # manual confidence as 0.5 or 0
+            print("Warning", "{} path does not exist. Creating random prior with uniform distribution".
+                  format(manual_annotation_file))
+            _manual_annotation = np.random.choice(instance.unique_labels, len(instance.train_x))
             instance.manual_annotation = np.zeros((len(_manual_annotation), 11), dtype=np.float)
             for i, label in enumerate(_manual_annotation):
                 instance.manual_annotation[i, _manual_annotation[i]] = 1.0
-                instance.manual_annotation[i,10] = 0
+                instance.manual_annotation[i, 10] = 0
 
         instance.train_idx = 0
         instance.val_idx = 0
-
+        # TODO fix this later set unique labels based on the shape of the smallest dataset in the dict
         return instance
 
-
-    def __init__(self, dataset_path=None, shuffle = False,
-                 stratified = None,
-                 validation_samples = 100,
+    def __init__(self, dataset_path=None, shuffle=False,
+                 stratified=None,
+                 validation_samples=100,
                  split_location=None,
                  split_names=[],
-                 batch_size=None
-                 ):
+                 batch_size=None,
+                 manual_annotation_path=None):
         self.train_idx = 0
         self.val_idx = 0
         self.dataset_path = dataset_path
@@ -150,41 +141,29 @@ class TrainValDataIterator:
         if dataset_path is not None :
             self.entire_data_x, self.entire_data_y = load_train(dataset_path)
             percentage_to_be_sampled = validation_samples / len(self.entire_data_y)
-
-            # self.train_x, self.train_y, self.val_x, self.val_y = load_train_val(dataset_path,
-            #                                                                     shuffle = shuffle,
-            #                                                                     stratified = stratified,
-            #                                                                     percentage_to_be_sampled = percentage_to_be_sampled,
-            #                                                                     split_location=split_location,
-            #                                                                     split_names=split_names)
-            self.dataset_dict = load_train_val(dataset_path, shuffle = shuffle,
-                                                stratified = stratified,
-                                                percentage_to_be_sampled = percentage_to_be_sampled,
-                                                split_location=split_location,
-                                                split_names=split_names)
-            #TODO remove this later start using dataset_dict instead
-            self.train_x = self.dataset_dict["train" + "_x"]
-            self.train_y = self.dataset_dict["train" + "_y"]
-            self.val_x = self.dataset_dict["validation" + "_x"]
-            self.val_y = self.dataset_dict["validation" + "_y"]
-
-
-    # def get_next_batch(self, batch_size, split_name):
-    #     x = train_x[self.train_idx * batch_size:(self.train_idx + 1) * batch_size]
-    #     self.train_idx += 1
-    #     return x
+            self.dataset_dict = load_train_val(dataset_path, shuffle=shuffle,
+                                               stratified=stratified,
+                                               percentage_to_be_sampled=percentage_to_be_sampled,
+                                               split_location=split_location,
+                                               split_names=split_names)
+            # TODO remove this later start using dataset_dict instead
+            self.train_x = self.dataset_dict[TrainValDataIterator.TRAIN_X]
+            self.train_y = self.dataset_dict[TrainValDataIterator.TRAIN_Y]
+            self.val_x = self.dataset_dict[TrainValDataIterator.VALIDATION_X]
+            self.val_y = self.dataset_dict[TrainValDataIterator.VALIDATION_Y_ONE_HOT]
+            # TODO fix this later set unique labels based on the shape of the smallest dataset in the dict
+            self.unique_labels = np.unique(self.dataset_dict["validation_y_raw"])
 
     def has_next_val(self):
-        #TODO fix this to handle last batch
+        # TODO fix this to handle last batch
         return self.val_idx * self.batch_size < self.val_x.shape[0]
 
-
     def has_next_train(self):
-        #TODO fix this to handle last batch
+        # TODO fix this to handle last batch
         return self.train_idx * self.batch_size - self.train_x.shape[0] < self.batch_size
 
     def has_next(self,dataset_type):
-        #TODO fix this to handle last batch
+        # TODO fix this to handle last batch
         if dataset_type == "train":
             return self.train_idx * self.batch_size - self.train_x.shape[0] < self.batch_size
         elif dataset_type == "val":
@@ -207,26 +186,11 @@ class TrainValDataIterator:
             x = self.val_x[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
             y = self.val_y[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
             label = self.manual_annotation[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
-
             # TODO check if this is last batch, if yes,reset the counter
-
             self.val_idx += 1
         else:
             raise ValueError("dataset_type should be either 'train' or 'val' ")
         return x, y, label
-
-
-    # def get_next_batch_train(self):
-    #     if self.batch_size is None:
-    #         raise Exception("batch_size attribute is not set")
-    #     x = self.train_x[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size]
-    #     y = self.train_y[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size]
-    #     label = self.manual_annotation[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size ]
-    #     self.train_idx += 1
-    #     return x, y,label
-
-    # def get_num_samples_train(self):
-    #     return len(self.train_x)
 
     def get_num_samples(self, dataset_type):
         if dataset_type == "train":
@@ -236,20 +200,7 @@ class TrainValDataIterator:
         else:
             raise ValueError("dataset_type should be either 'train' or 'val' ")
 
-    # def get_next_batch_val(self):
-    #     if self.batch_size is None:
-    #         raise Exception("batch_size attribute is not set")
-    #     x = self.val_x[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
-    #     y = self.val_y[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
-    #     # TODO check if this is last batch, if yes,reset the counter
-    #
-    #     self.val_idx += 1
-    #     return x, y
-
-    # def get_num_samples_val(self):
-    #     return len(self.val_x)
-
-    def reset_counter(self,dataset_type):
+    def reset_counter(self, dataset_type):
         if dataset_type == "train":
             self.train_idx = 0
         elif dataset_type == "val":
@@ -257,73 +208,46 @@ class TrainValDataIterator:
         else:
             raise ValueError("dataset_type should be either 'train' or 'val' ")
 
-    def reset_train_couner(self):
-        self.train_idx = 0
-
-    def reset_val_couner(self):
-        self.val_idx = 0
+    def get_unique_labels(self):
+        if self.unique_labels is None:
+            # TODO fix this later set unique labels based on the shape of the smallest dataset in the dict
+            self.unique_labels = np.unique(self.val_y)
+        return self.unique_labels
 
 
 def load_train(data_dir, directory_for_sample_images = None,
-               shuffle = True):
+               shuffle=True):
     data_dir = os.path.join(data_dir , "images/")
 
     def extract_data(filename, num_data, head_size, data_size):
         with gzip.open(filename) as bytestream:
             bytestream.read(head_size)
             buf = bytestream.read(data_size * num_data)
-            data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
-        return data
+        return np.frombuffer(buf, dtype=np.uint8).astype(np.float)
 
     data = extract_data(data_dir + 'train-images-idx3-ubyte.gz', 60000, 16, 28 * 28)
-    trX = data.reshape((60000, 28, 28, 1))
+    tr_y = data.reshape((60000, 28, 28, 1))
 
     #code to save images
     if directory_for_sample_images is not None:
         for i in range(10):
-            cv2.imwrite(directory_for_sample_images+ str(i) + '.jpg', trX[i])
+            cv2.imwrite(directory_for_sample_images+ str(i) + '.jpg', tr_y[i])
 
     data = extract_data(data_dir + 'train-labels-idx1-ubyte.gz', 60000, 8, 1)
-    trY = data.reshape((60000))
-
-    trY = np.asarray(trY).astype(np.int)
-
+    tr_y = data.reshape((60000))
+    tr_y = np.asarray(tr_y).astype(np.int)
     if shuffle:
         seed = 547
         np.random.seed(seed)
-        np.random.shuffle(trX)
+        np.random.shuffle(tr_y)
         np.random.seed(seed)
-        np.random.shuffle(trY)
+        np.random.shuffle(tr_y)
 
-    y_vec = np.zeros((len(trY), 10), dtype=np.float)
-    for i, label in enumerate(trY):
-        y_vec[i, trY[i]] = 1.0
+    y_vec = np.zeros((len(tr_y), 10), dtype=np.float)
+    for i, label in enumerate(tr_y):
+        y_vec[i, tr_y[i]] = 1.0
 
-    return trX / 255., y_vec
-
-def load_test(data_dir, shuffle = False, stratified = True, percentage_to_be_sampled = 1):
-    teX, teY = load_test_raw_data(data_dir)
-
-    teY = np.asarray(teY).astype(np.int)
-
-    if shuffle:
-        seed = 547
-        np.random.seed(seed)
-        if stratified:
-            teX,_,teY,_ = train_test_split(teX,teY,train_size=percentage_to_be_sampled,
-                                           stratify= teY)
-
-        else:
-            #TODO incorporate parameter % to be samples
-            np.random.shuffle(teX)
-            np.random.seed(seed)
-            np.random.shuffle(teY)
-
-    y_vec = np.zeros((len(teY), 10), dtype=np.float)
-    for i, label in enumerate(teY):
-        y_vec[i, teY[i]] = 1.0
-
-    return teX / 255., y_vec
+    return tr_y / 255., y_vec
 
 
 def load_test_raw_data(data_dir):
@@ -333,30 +257,30 @@ def load_test_raw_data(data_dir):
         with gzip.open(filename) as bytestream:
             bytestream.read(head_size)
             buf = bytestream.read(data_size * num_data)
-            data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
-        return data
+            _data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
+        return _data
 
     data = extract_data(data_dir + '/t10k-images-idx3-ubyte.gz', 10000, 16, 28 * 28)
-    teX = data.reshape((10000, 28, 28, 1))
+    test_x = data.reshape((10000, 28, 28, 1))
     data = extract_data(data_dir + '/t10k-labels-idx1-ubyte.gz', 10000, 8, 1)
-    teY = data.reshape((10000))
-    return teX, teY
+    test_y = data.reshape(10000)
+    return test_x, test_y
 
 
-def load_train_val(data_dir, shuffle = False,
-                   stratified = None,
-                   percentage_to_be_sampled = 0.7,
+def load_train_val(data_dir, shuffle=False,
+                   stratified=None,
+                   percentage_to_be_sampled=0.7,
                    split_location=None,
-                   split_names = []):
+                   split_names=[]):
 
-    data_dir = os.path.join(data_dir ,"images/")
+    data_dir = os.path.join(data_dir, "images/")
 
     def extract_data(filename, num_data, head_size, data_size):
         with gzip.open(filename) as bytestream:
             bytestream.read(head_size)
             buf = bytestream.read(data_size * num_data)
-            data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
-        return data
+            _data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
+        return _data
 
     data = extract_data(data_dir + 'train-images-idx3-ubyte.gz', 60000, 16, 28 * 28)
     x = data.reshape((60000, 28, 28, 1))
@@ -369,9 +293,9 @@ def load_train_val(data_dir, shuffle = False,
     if stratified:
         _stratify = y
 
-    if len(split_names) == 2 :
-        splitted = train_test_split(x, y,test_size=percentage_to_be_sampled,
-                                    stratify= _stratify, shuffle=shuffle,
+    if len(split_names) == 2:
+        splitted = train_test_split(x, y, test_size=percentage_to_be_sampled,
+                                    stratify=_stratify, shuffle=shuffle,
                                     random_state=seed)
         train_x = splitted[0]
         val_x = splitted[1]
@@ -393,17 +317,14 @@ def load_train_val(data_dir, shuffle = False,
             train_df = pd.DataFrame(splitted[split_num].reshape(splitted[split_num].shape[0], 28 * 28))
             train_df["label"] = splitted[split_num + num_splits]
             train_df.to_csv(split_location + split + ".csv", index=False)
-            #dataset_dict[split]=train_df
         print(split_location)
         json_ = split_location + split_name + ".json"
         with open(json_, "w") as fp:
-            print("Writing json to ",json_)
+            print("Writing json to ", json_)
             json.dump(dataset_dict, fp)
         print("Writing json to ", json_)
-
     else:
         raise Exception("Split not implemented for for than two splits")
-
 
     _val_y = np.zeros((len(val_y), 10), dtype=np.float)
     for i, label in enumerate(val_y):
@@ -412,7 +333,34 @@ def load_train_val(data_dir, shuffle = False,
     _train_y = np.zeros((len(train_y), 10), dtype=np.float)
     for i, label in enumerate(train_y):
         _train_y[i, train_y[i]] = 1.0
+    # TODO separate normalizing and loading logic
+    return {TrainValDataIterator.TRAIN_X: train_x / 255.,
+            TrainValDataIterator.TRAIN_Y: _train_y,
+            TrainValDataIterator.VALIDATION_X: val_x / 255.,
+            TrainValDataIterator.VALIDATION_Y_ONE_HOT: _val_y,
+            TrainValDataIterator.VALIDATION_Y_RAW: val_y}
 
-    #return train_x / 255., _train_y, val_x / 255., _val_y
-    #todo separate normalizing and loading logic
-    return {"train_x":train_x / 255.,"train_y": _train_y, "validation_x":val_x / 255.,"validation_y": _val_y}
+
+if __name__ == "__main__":
+    # Test cases for load_images
+    from config import ExperimentConfig
+    N_3 = 16
+    N_2 = 128
+    Z_DIM = 20
+    run_id = 1
+
+    ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
+    exp_config = ExperimentConfig(ROOT_PATH, 4, Z_DIM, [64, N_2, N_3])
+    BATCH_SIZE = exp_config.BATCH_SIZE
+    DATASET_NAME = exp_config.dataset_name
+    exp_config.check_and_create_directories(run_id, create=False)
+
+    iterator, val_images, val_labels, val_annotations = load_images(exp_config,
+                                                                    dataset_type="val")
+    print("Images shape={}".format(val_images.shape))
+    print("Labels shape={}".format(val_labels.shape))
+    print("Manual Annotations shape={}".format(val_annotations.shape))
+
+    # Test cases for load_images
+    # train_val_iterator, images, labels, manual_annotation = load_images(exp_config, "train",
+    #                                                                     exp_config.DATASET_PATH_COMMON_TO_ALL_EXPERIMENTS)
