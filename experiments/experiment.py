@@ -2,6 +2,7 @@ import tensorflow as tf
 import argparse
 from analysis.encode_images import encode_images
 import json
+import os
 
 from generative_models.vae import VAE
 from common.data_loader import TrainValDataIterator
@@ -49,7 +50,11 @@ def check_args(_args):
 
 
 class Experiment:
-    def __init__(self, exp_id, name, num_val_samples, config1, _run_id=None):
+    def __init__(self, exp_id, name, num_val_samples, config1: ExperimentConfig, _run_id=None):
+        """
+
+        :type config1: ExperimentConfig
+        """
         if _run_id is None:
             self.run_id = id
         else:
@@ -61,8 +66,12 @@ class Experiment:
         self.model = None
 
     def initialize(self, _model=None):
+        """
+
+        :type _model: VAE
+        """
         self.model = _model
-        self.config.create_directories(self.run_id)
+        self.config.check_and_create_directories(self.run_id)
 
     def as_json(self):
         config_json = self.config.as_json()
@@ -76,25 +85,27 @@ class Experiment:
         if _train_val_data_iterator is None:
 
             if _create_split:
-                _train_val_data_iterator = TrainValDataIterator(self.config.DATASET_PATH_COMMON_TO_ALL_EXPERIMENTS,
+                _train_val_data_iterator = TrainValDataIterator(self.config.DATASET_ROOT_PATH,
                                                                 shuffle=True,
                                                                 stratified=True,
                                                                 validation_samples=self.num_validation_samples,
                                                                 split_names=["train", "validation"],
-                                                                split_location=self.config.SPLIT_PATH,
+                                                                split_location=self.config.DATASET_PATH,
                                                                 batch_size=self.config.BATCH_SIZE)
             else:
                 _train_val_data_iterator = TrainValDataIterator.from_existing_split(self.config.split_name,
-                                                                                    self.config.SPLIT_PATH,
+                                                                                    self.config.DATASET_PATH,
                                                                                     self.config.BATCH_SIZE)
         self.model.train(_train_val_data_iterator)
         print(" [*] Training finished!")
 
-    def encode_latent_vector(self, _train_val_data_iterator, dataset_type):
-        encoded_df = encode_images(self.model,
-                                   _train_val_data_iterator,
-                                   self.config,
-                                   dataset_type)
+    def encode_latent_vector(self, _train_val_data_iterator, epoch, dataset_type):
+        encode_images(self.model,
+                      _train_val_data_iterator,
+                      self.config,
+                      epoch,
+                      dataset_type
+                      )
 
 
 if __name__ == '__main__':
@@ -105,18 +116,22 @@ if __name__ == '__main__':
     N_2 = 128
     N_1 = 64
     Z_DIM = 5
-    run_id = 2
-    num_epochs = 1
+    run_id = 1
+    num_epochs = 5
 
-    ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_supervised/"
-    _config = ExperimentConfig(ROOT_PATH, 4, Z_DIM, [N_1, N_2, N_3], num_val_samples=128)
+    ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_unsupervised/"
+    _config = ExperimentConfig(ROOT_PATH, 4, Z_DIM, [N_1, N_2, N_3],
+                               ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW,
+                               supervise_weight=150,
+                               num_val_samples=128
+                               )
     _config.check_and_create_directories(run_id)
     BATCH_SIZE = _config.BATCH_SIZE
     DATASET_NAME = _config.dataset_name
     _config.check_and_create_directories(run_id, create=False)
 
     # TODO make this a configuration
-    # to change output type from sigmod to leaky relu, do the following
+    # to change output type from sigmoid to leaky relu, do the following
     # 1. In vae.py change the output layer type in decode()
     # 2. Change the loss function in build_model
 
@@ -128,17 +143,22 @@ if __name__ == '__main__':
     with open(_config.BASE_PATH + "config.json", "w") as config_file:
         json.dump(_config.as_json(), config_file)
     if create_split:
-        train_val_data_iterator = TrainValDataIterator(exp.config.DATASET_PATH_COMMON_TO_ALL_EXPERIMENTS,
+        train_val_data_iterator = TrainValDataIterator(exp.config.DATASET_ROOT_PATH,
                                                        shuffle=True,
                                                        stratified=True,
-                                                       validation_samples=exp.num_validtion_samples,
+                                                       validation_samples=exp.num_validation_samples,
                                                        split_names=["train", "validation"],
-                                                       split_location=exp.config.SPLIT_PATH,
+                                                       split_location=exp.config.DATASET_PATH,
                                                        batch_size=exp.config.BATCH_SIZE)
     else:
+        manual_annotation_file = os.path.join(_config.ANALYSIS_PATH,
+                                              f"manual_annotation_epoch_{num_epochs - 1:.1f}.csv"
+                                              )
+
         train_val_data_iterator = TrainValDataIterator.from_existing_split(exp.config.split_name,
-                                                                           exp.config.SPLIT_PATH,
-                                                                           exp.config.BATCH_SIZE)
+                                                                           exp.config.DATASET_PATH,
+                                                                           exp.config.BATCH_SIZE,
+                                                                           manual_annotation_file)
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
         model = VAE(sess,
@@ -160,16 +180,10 @@ if __name__ == '__main__':
 
         exp.train(train_val_data_iterator)
 
-        # num_batches_train = train_val_data_iterator.get_num_samples_train() // exp.config.BATCH_SIZE
-        #
-        # checkpoint_counter = model.load_from_checkpoint()
-        # epochs_completed = int(checkpoint_counter / num_batches_train)
-        # print("Number of epochs trained in current chekpoint", epochs_completed)
+        train_val_data_iterator.reset_counter("train")
+        train_val_data_iterator.reset_counter("val")
+        exp.encode_latent_vector(train_val_data_iterator, num_epochs, "train")
 
         train_val_data_iterator.reset_counter("train")
         train_val_data_iterator.reset_counter("val")
-        exp.encode_latent_vector(train_val_data_iterator, "train")
-
-        train_val_data_iterator.reset_counter("train")
-        train_val_data_iterator.reset_counter("val")
-        exp.encode_latent_vector(train_val_data_iterator, "val")
+        exp.encode_latent_vector(train_val_data_iterator, num_epochs, "val")

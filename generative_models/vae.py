@@ -1,13 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
-
-import csv
 import os
 import time
 import numpy as np
-
-# #TODO use this for tensor name formats
-# from config import WEIGHTS, BIAS, LAYER_NAME_PREFIX
 
 import pandas as pd
 from utils import prior_factory as prior
@@ -77,9 +72,9 @@ class VAE(object):
         self.sample_z = prior.gaussian(self.batch_size, self.z_dim)
         self.max_to_keep = 20
 
-        self.counter, self.start_batch_id, self.start_epoch = self.initialize(train_val_data_iterator=train_val_data_iterator,
-                                                                              restore_from_existing_checkpoint=read_from_existing_checkpoint,
-                                                                              check_point_epochs=check_point_epochs)
+        self.counter, self.start_batch_id, self.start_epoch = self.initialize(train_val_data_iterator,
+                                                                              read_from_existing_checkpoint,
+                                                                              check_point_epochs)
 
 #   Gaussian Encoder
     def encoder(self, x, reuse=False):
@@ -152,9 +147,9 @@ class VAE(object):
         # supervised loss for labelled samples
         self.y_pred = linear(self.z, 10)
         self.supervised_loss = tf.losses.softmax_cross_entropy(onehot_labels=self.labels,
-                                                          logits=self.y_pred,
-                                                          weights=self.is_manual_annotated
-                                                          )
+                                                               logits=self.y_pred,
+                                                               weights=self.is_manual_annotated
+                                                               )
 
         # decoding
         out = self.decoder(self.z, reuse=False)
@@ -223,15 +218,17 @@ class VAE(object):
                 batch_z = prior.gaussian(self.batch_size, self.z_dim)
 
                 # update autoencoder
-                _, summary_str, loss, nll_loss, kl_loss = self.sess.run(
-                    [self.optim, self.merged_summary_op, self.loss, self.neg_loglikelihood, self.KL_divergence],
+                _, summary_str, loss, nll_loss, kl_loss, supervised_loss = self.sess.run(
+                    [self.optim, self.merged_summary_op,
+                     self.loss, self.neg_loglikelihood,
+                     self.KL_divergence, self.supervised_loss],
                     feed_dict={self.inputs: batch_images,
                                self.labels: manual_labels[:, :10],
                                self.is_manual_annotated: manual_labels[:, 10],
                                self.standard_normal: batch_z})
 
-                print("Epoch: [%2d] [%4d/%4d] time: %4.4f, loss: %.8f, nll: %.8f, kl: %.8f" \
-                      % (epoch, idx, num_batches_train, time.time() - start_time, loss, nll_loss, kl_loss))
+                print("Epoch: [%2d] [%4d/%4d] time: %4.4f, loss: %.8f, nll: %.8f, kl: %.8f, supervised_loss: %.4f" \
+                      % (epoch, idx, num_batches_train, time.time() - start_time, loss, nll_loss, kl_loss, supervised_loss))
                 counter += 1
                 if np.mod(idx, self.eval_interval) == 0:
                     self.evaluate(epoch + 1, idx - 1, counter - 1, val_data_iterator=train_val_data_iterator)
@@ -256,7 +253,7 @@ class VAE(object):
 
     def initialize(self, train_val_data_iterator=None,
                    restore_from_existing_checkpoint=True,
-                   check_point_epochs = None):
+                   check_point_epochs=None):
         # saver to save model
         self.saver = tf.train.Saver(max_to_keep=50)
         # summary writer
@@ -329,31 +326,6 @@ class VAE(object):
         val_data_iterator.reset_counter("val")
 
         print("Evaluation completed")
-    #
-    # def save_val_images(self):
-    #     start_eval_batch = 0
-    #     original_images = []
-    #     for _idx in range(start_eval_batch, self.num_eval_batches):
-    #         batch_eval_mages = self.data_test_X[_idx * self.batch_size:(_idx + 1) * self.batch_size]
-    #         batch_eval_labels = deepcopy(self.data_test_Y[_idx * self.batch_size:(_idx + 1) * self.batch_size])
-    #         integer_label = np.asarray([np.where(r == 1)[0][0] for r in batch_eval_labels]).reshape([64, 1])
-    #         batch_eval_labels = np.concatenate([batch_eval_labels, integer_label], axis=1)
-    #         columns = [str(i) for i in range(10)]
-    #         columns.append("label")
-    #
-    #         pd.DataFrame(batch_eval_labels, columns=columns).to_csv(
-    #             "/Users/sunilkumar/gitprojects/tensorflow-generative-model-collections/results/label_test_" + str(
-    #                 _idx) + ".csv")
-    #
-    #         manifold_w = 4
-    #         tot_num_samples = min(self.sample_num, self.batch_size)
-    #         manifold_h = tot_num_samples // manifold_w
-    #         original_images.append(batch_eval_mages[:manifold_h * manifold_w, :, :, :])
-    #     reconstructed_dir = self.get_eval_result_dir(orig_or_reconstructed="original")
-    #
-    #     for _idx in range(start_eval_batch, self.num_eval_batches):
-    #         file = "im_" + str(_idx) + ".png"
-    #         save_image(original_images[_idx], [manifold_h, manifold_w], reconstructed_dir + file)
 
     def visualize_results(self,batch_images,batch_labels):
         mu, sigma = self.sess.run([self.mu, self.sigma], feed_dict={self.inputs: batch_images})
@@ -460,7 +432,7 @@ class VAE(object):
         images = self.sess.run(self.out, feed_dict={self.z: z})
         return images
 
-    def set_result_directories(self,log_dir,checkpoint_dir,result_dir):
+    def set_result_directories(self, log_dir, checkpoint_dir, result_dir):
         self.log_dir = log_dir
         self.checkpoint_dir = checkpoint_dir
         self.result_dir = result_dir
@@ -471,7 +443,6 @@ class VAE(object):
 
         # graph inputs for visualize training results
         self.sample_z = prior.gaussian(self.batch_size, self.z_dim)
-
 
         # restore check-point if it exits
         could_load, checkpoint_counter = self.load(self.checkpoint_dir)

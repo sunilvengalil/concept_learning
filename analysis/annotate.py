@@ -13,15 +13,18 @@ N_3 = 32
 N_2 = 128
 N_1 = 64
 Z_DIM = 5
-run_id = 1
+run_id = 2
 
 ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_supervised/"
-exp_config = ExperimentConfig(ROOT_PATH, 4, Z_DIM, [N_1, N_2, N_3])
+exp_config = ExperimentConfig(ROOT_PATH,
+                              4,
+                              Z_DIM,
+                              [N_1, N_2, N_3],
+                              ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW)
 exp_config.check_and_create_directories(run_id)
 BATCH_SIZE = exp_config.BATCH_SIZE
 DATASET_NAME = exp_config.dataset_name
 exp_config.check_and_create_directories(run_id, create=False)
-
 
 NUMBER_OF_ROWS = 16
 NUM_DIGITS_PER_ROW = 4
@@ -29,15 +32,16 @@ MAX_BACKUPS = 10
 ANNOTATED_CSV = "annotation.csv"
 last_epoch = 50
 
-if annotator == "SUNIL":
-    ANNOTATED_PATH = exp_config.DATASET_PATH + "manual_annotation_sunil"
-elif annotator == "MANJU":
-    BASE_PATH = "/home/test/"
-    ANNOTATED_PATH = exp_config.DATASET_PATH + "manual_annotation_manju"
-elif annotator == "ARYA":
-    ANNOTATED_PATH = exp_config.DATASET_PATH + "manual_annotation_Arya"
-else:
-    raise Exception("Only two annotators {} and {} are allowed now".format("SUNIL", "VIJAY"))
+ANNOTATED_PATH = exp_config.BASE_PATH + "manual_annotation"
+# if annotator == "SUNIL":
+#     ANNOTATED_PATH = exp_config.BASE_PATH + "manual_annotation_sunil"
+# elif annotator == "MANJU":
+#     BASE_PATH = "/home/test/"
+#     ANNOTATED_PATH = exp_config.BASE_PATH + "manual_annotation_manju"
+# elif annotator == "ARYA":
+#     ANNOTATED_PATH = exp_config.BASE_PATH + "manual_annotation_arya"
+# else:
+#     raise Exception("Only two annotators {} and {} are allowed now".format("SUNIL", "VIJAY"))
 
 # Initialize variables
 counter_start = 2
@@ -67,7 +71,7 @@ def get_eval_result_dir(result_path, _epoch=0, idx=0, orig_or_reconstructed="rec
 
 
 def parse_args():
-    desc = "Start annotation of imagess"
+    desc = "Start annotation of images"
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('--epoch', type=int, default=0)
     parser.add_argument('--batch', type=int, default=1)
@@ -102,8 +106,8 @@ if os.path.isfile(annotation_csv):
 
     print(annotation_csv, annotation_csv_backed_up)
     if num_backups == MAX_BACKUPS:
-        raise Exception("{} backups already exist. Please back up the required files manually and restart"
-                        .format(annotation_csv_backed_up))
+        raise Exception(f"{annotation_csv_backed_up} backups already exist. Please back up the "
+                        f"required files manually and restart")
     annotation_csv = annotation_csv_backed_up
 print(start_batch_id)
 with open(annotation_csv, "a")as outfile:
@@ -173,7 +177,7 @@ with open(annotation_csv, "a")as outfile:
                 if stop_annotation:
                     break
 
-                prev_file == file
+                prev_file = file
             if stop_annotation:
                 break
         if stop_annotation:
@@ -183,4 +187,4 @@ if last_file_reached:
     print("Last file reached")
 cv2.destroyAllWindows()
 print("Annotation completed")
-print("Saved results to {}".format(ANNOTATED_PATH))
+print(f"Saved results to {ANNOTATED_PATH}")

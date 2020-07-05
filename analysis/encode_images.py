@@ -5,7 +5,7 @@ from utils.utils import get_latent_vector_column
 from config.common_path import get_encoded_csv_file
 
 
-def encode_images(model, train_val_data_iterator, exp_config, dataset_type="train"):
+def encode_images(model, train_val_data_iterator, exp_config, epoch, dataset_type="train"):
     encoded_df = None
     while train_val_data_iterator.has_next(dataset_type):
         batch_images, batch_labels,_ = train_val_data_iterator.get_next_batch(dataset_type)
@@ -37,6 +37,6 @@ def encode_images(model, train_val_data_iterator, exp_config, dataset_type="trai
     n_3 = exp_config.num_units[exp_config.num_decoder_layer - 2]
     n_2 = exp_config.num_units[exp_config.num_decoder_layer - 3]
 
-    output_csv_file = get_encoded_csv_file(n_2, n_3, exp_config.Z_DIM, dataset_type)
+    output_csv_file = get_encoded_csv_file(n_2, n_3, exp_config.Z_DIM, epoch, dataset_type)
     encoded_df.to_csv(os.path.join(exp_config.ANALYSIS_PATH, output_csv_file), index=False)
     return encoded_df

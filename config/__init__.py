@@ -6,12 +6,23 @@ BIAS = "Bias"
 LAYER_NAME_PREFIX = "Layer"
 
 
-def get_base_path(root_path, z_dim, n_3, n_2, version=""):
-    return os.path.join(root_path, "Exp_{:02d}_{:03}_{:03d}_{}/".format(z_dim, n_3, n_2, version))
+def get_base_path(root_path: str,
+                  z_dim: int,
+                  n_3: int,
+                  n_2: int,
+                  cluster_config,
+                  version: int = 0
+                  ) -> str:
+
+    return os.path.join(root_path, f"Exp_{z_dim:02d}_{n_3:03}_{n_2:03d}_{cluster_config}_{version}/")
 
 
 class ExperimentConfig:
+    NUM_CLUSTERS_CONFIG_ELBOW = "ELBOW"
+    NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW = "TWO_TIMES_ELBOW"
+
     def __init__(self, root_path, num_decoder_layer, z_dim, num_units,
+                 num_cluster_config,
                  beta=5,
                  supervise_weight=0,
                  dataset_name="mnist",
@@ -23,7 +34,7 @@ class ExperimentConfig:
                  total_training_samples=60000,
                  ):
         """
-
+        :type num_cluster_config: str
         :type num_units: list
         :type beta: float
         """
@@ -44,11 +55,11 @@ class ExperimentConfig:
                                                                   dataset_name,
                                                                   self.BATCH_SIZE,
                                                                   z_dim)
-        self.DATASET_PATH_COMMON_TO_ALL_EXPERIMENTS = os.path.join(self.root_path,
-                                                                   "datasets/" + dataset_name)
+        self.DATASET_ROOT_PATH = os.path.join(self.root_path, "datasets/" + dataset_name)
         self.name = name
         self.num_val_samples = num_val_samples
-        self.num_train_samples = ( (total_training_samples - num_val_samples) // batch_size) * batch_size
+        self.num_cluster_config = num_cluster_config
+        self.num_train_samples = ((total_training_samples - num_val_samples) // batch_size) * batch_size
 
     def as_json(self):
         config_json = dict()
@@ -63,26 +74,24 @@ class ExperimentConfig:
         config_json["SPLIT_NAME"] = self.split_name
         config_json["SUPERVISE_WEIGHT"] = self.supervise_weight
         config_json["BETA"] = self.beta
+        config_json["NUM_CLUSTER_CONFIG"] = self.num_cluster_config
         return config_json
 
     def _check_and_create_directories(self, run_id, create):
         self.BASE_PATH = get_base_path(self.root_path, self.Z_DIM, self.num_units[self.num_decoder_layer - 2],
                                        self.num_units[self.num_decoder_layer - 3],
+                                       self.num_cluster_config,
                                        version=run_id
                                        )
-        self.DATASET_ROOT_PATH = os.path.join(self.BASE_PATH, self.dataset_name + "/")
         self.DATASET_PATH = os.path.join(self.DATASET_ROOT_PATH, self.split_name + "/")
 
-        self.MODEL_PATH = os.path.join(self.DATASET_PATH, self.MODEL_NAME_WITH_CONFIG)
-        self.SPLIT_PATH = os.path.join(self.DATASET_PATH_COMMON_TO_ALL_EXPERIMENTS, self.split_name + "/")
-        self.TRAINED_MODELS_PATH = os.path.join(self.MODEL_PATH, "trained_models/")
-        self.PREDICTION_RESULTS_PATH = os.path.join(self.MODEL_PATH, "prediction_results/")
-        self.LOG_PATH = os.path.join(self.MODEL_PATH, "logs/")
-        self.ANALYSIS_PATH = os.path.join(self.MODEL_PATH, "analysis/")
-
+        self.TRAINED_MODELS_PATH = os.path.join(self.BASE_PATH, "trained_models/")
+        self.PREDICTION_RESULTS_PATH = os.path.join(self.BASE_PATH, "prediction_results/")
+        self.LOG_PATH = os.path.join(self.BASE_PATH, "logs/")
+        self.ANALYSIS_PATH = os.path.join(self.BASE_PATH, "analysis/")
         paths = [self.root_path, self.BASE_PATH,
                  self.DATASET_ROOT_PATH, self.ANALYSIS_PATH,
-                 self.DATASET_PATH, self.MODEL_PATH, self.SPLIT_PATH,
+                 self.DATASET_PATH,
                  self.TRAINED_MODELS_PATH, self.PREDICTION_RESULTS_PATH,
                  self.LOG_PATH]
 

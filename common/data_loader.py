@@ -9,7 +9,7 @@ import json
 
 def load_images(_config, dataset_type="train", manual_annotation_file=None):
     train_val_data_iterator = TrainValDataIterator.from_existing_split(_config.split_name,
-                                                                       _config.SPLIT_PATH,
+                                                                       _config.DATASET_PATH,
                                                                        _config.BATCH_SIZE,
                                                                        manual_annotation_file=manual_annotation_file
                                                                        )
@@ -107,6 +107,8 @@ class TrainValDataIterator:
 
         if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
             _manual_annotation = cls._load_manual_annotation(manual_annotation_file)
+            print("Loaded manual annotation")
+            print("Number of samples with manual confidence", sum(_manual_annotation[:, 1] > 0))
             instance.manual_annotation = np.zeros((len(_manual_annotation), 11), dtype=np.float)
             for i, label in enumerate(_manual_annotation):
                 instance.manual_annotation[i, int(_manual_annotation[i, 0])] = 1.0
@@ -162,7 +164,7 @@ class TrainValDataIterator:
         # TODO fix this to handle last batch
         return self.train_idx * self.batch_size - self.train_x.shape[0] < self.batch_size
 
-    def has_next(self,dataset_type):
+    def has_next(self, dataset_type):
         # TODO fix this to handle last batch
         if dataset_type == "train":
             return self.train_idx * self.batch_size - self.train_x.shape[0] < self.batch_size
@@ -350,7 +352,8 @@ if __name__ == "__main__":
     run_id = 1
 
     ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
-    exp_config = ExperimentConfig(ROOT_PATH, 4, Z_DIM, [64, N_2, N_3])
+    exp_config = ExperimentConfig(ROOT_PATH, 4, Z_DIM, [64, N_2, N_3],
+                                  ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW)
     BATCH_SIZE = exp_config.BATCH_SIZE
     DATASET_NAME = exp_config.dataset_name
     exp_config.check_and_create_directories(run_id, create=False)
