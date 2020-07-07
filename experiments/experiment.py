@@ -116,12 +116,12 @@ if __name__ == '__main__':
     N_2 = 128
     N_1 = 64
     Z_DIM = 5
-    run_id = 1
-    num_epochs = 5
+    run_id = 3
+    num_epochs = 10
 
-    ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_unsupervised/"
+    ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
     _config = ExperimentConfig(ROOT_PATH, 4, Z_DIM, [N_1, N_2, N_3],
-                               ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW,
+                               None,
                                supervise_weight=150,
                                num_val_samples=128
                                )
@@ -137,8 +137,6 @@ if __name__ == '__main__':
 
     exp = Experiment(1, "VAE_MNIST", 128, _config, run_id)
 
-    # TODO if file exists verify the configuration are same.
-    # Otherwise create new file with new timestamp
     print(exp.as_json())
     with open(_config.BASE_PATH + "config.json", "w") as config_file:
         json.dump(_config.as_json(), config_file)

@@ -13,8 +13,10 @@ def get_base_path(root_path: str,
                   cluster_config,
                   version: int = 0
                   ) -> str:
-
-    return os.path.join(root_path, f"Exp_{z_dim:02d}_{n_3:03}_{n_2:03d}_{cluster_config}_{version}/")
+    if cluster_config is None:
+        return os.path.join(root_path, f"Exp_{z_dim:02d}_{n_3:03}_{n_2:03d}_{version}/")
+    else:
+        return os.path.join(root_path, f"Exp_{z_dim:02d}_{n_3:03}_{n_2:03d}_{cluster_config}_{version}/")
 
 
 class ExperimentConfig:
@@ -34,6 +36,7 @@ class ExperimentConfig:
                  total_training_samples=60000,
                  ):
         """
+        :rtype: object
         :type num_cluster_config: str
         :type num_units: list
         :type beta: float

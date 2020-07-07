@@ -20,7 +20,7 @@ class ManualAnnotation:
                 if confidence_interval[0] <= self.confidence[1] < confidence_interval[1]:
                     confidence_2 = confidence_label
 
-            return (confidence_1, confidence_2)
+            return confidence_1, confidence_2
         for confidence_label, confidence_interval in ManualAnnotation.confidence_intervals.items():
             if confidence_interval[0] <= self.confidence < confidence_interval[1]:
                 return confidence_label
@@ -39,6 +39,15 @@ class Cluster:
         self.level = level
         self.manual_annotation = manual_annotation
         self.next_level_clusters = ClusterGroup("Clusters_level_{}".format(level))
+
+    def set_next_level_clusters(self, cluster_group_dict):
+        self.next_level_clusters = cluster_group_dict
+
+    def next_lever_cluster_count(self):
+        # TODO fix this get the total number of clusters
+        if "good_clusters" in self.next_level_clusters.keys():
+            return len(self.next_level_clusters["good_clusters"].cluster_list)
+        #len(self.next_level_clusters.cluster_list)
 
 
 class ClusterGroup:
@@ -74,7 +83,7 @@ class ClusterGroup:
         else:
             self.cluster_list.append(cluster)
 
-    def get_cluster(self,cluster_num):
+    def get_cluster(self, cluster_num):
         for cluster in self.cluster_list:
             if cluster.id == cluster_num:
                 return cluster

@@ -12,15 +12,15 @@ eval_interval = 300
 N_3 = 32
 N_2 = 128
 N_1 = 64
-Z_DIM = 5
-run_id = 2
+Z_DIM = 10
+run_id = 5
 
-ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_supervised/"
+ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
 exp_config = ExperimentConfig(ROOT_PATH,
                               4,
                               Z_DIM,
                               [N_1, N_2, N_3],
-                              ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW)
+                              None)
 exp_config.check_and_create_directories(run_id)
 BATCH_SIZE = exp_config.BATCH_SIZE
 DATASET_NAME = exp_config.dataset_name

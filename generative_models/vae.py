@@ -65,7 +65,7 @@ class VAE(object):
         self.mu = tf.placeholder(tf.float32, [self.batch_size, self.z_dim], name='mu')
         self.sigma = tf.placeholder(tf.float32, [self.batch_size, self.z_dim], name='sigma')
         self.images = None
-        self.build_model()
+        self._build_model()
         # initialize all variables
         tf.global_variables_initializer().run()
         # graph inputs for visualize training results
@@ -77,7 +77,7 @@ class VAE(object):
                                                                               check_point_epochs)
 
 #   Gaussian Encoder
-    def encoder(self, x, reuse=False):
+    def _encoder(self, x, reuse=False):
         # Encoder models the probability  P(z/X)
         # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
         # Architecture : (64)4c2s-(128)4c2s_BL-FC1024_BL-FC62*4
@@ -104,21 +104,21 @@ class VAE(object):
         # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
         # Architecture : FC1024_BR-FC7x7x128_BR-(64)4dc2s_BR-(1)4dc2s_S
         with tf.variable_scope("decoder", reuse=reuse):
-            dense1 = lrelu( (linear(z, self.n[2], scope='de_fc1')) )
+            dense1 = lrelu((linear(z, self.n[2], scope='de_fc1')))
             dense2 = lrelu((linear(dense1, self.n[1] * 7 * 7)))
             reshaped = tf.reshape(dense2, [self.batch_size, 7, 7, self.n[1]])
             deconv1 = lrelu(
                 deconv2d(reshaped, [self.batch_size, 14, 14, self.n[0]], 3, 3, 2, 2, name='de_dc3'))
 
             out = tf.nn.sigmoid(deconv2d(deconv1, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4'))
-            #out = lrelu(deconv2d(deconv1, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4'))
+            # out = lrelu(deconv2d(deconv1, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4'))
             return out
 
     def inference(self):
         z = self.mu + self.sigma * tf.random_normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
         self.images = self.decoder(z, reuse=True)
 
-    def build_model(self):
+    def _build_model(self):
         # some parameters
         image_dims = [self.input_height, self.input_width, self.c_dim]
         bs = self.batch_size
@@ -131,15 +131,13 @@ class VAE(object):
         # 0 mean and covariance matrix as Identity
         self.standard_normal = tf.placeholder(tf.float32, [bs, self.z_dim], name='z')
 
-        #Wheter the sample was manually annotated.
-        # TODO convert this to confidence interval in range [0,1]
-        self.is_manual_annotated = tf.placeholder(tf.float32,[bs], name="is_manual_annotated")
+        # Whether the sample was manually annotated.
+        self.is_manual_annotated = tf.placeholder(tf.float32, [bs], name="is_manual_annotated")
         self.labels = tf.placeholder(tf.float32, [bs, self.label_dim], name='manual_label')
-
 
         """ Loss Function """
         # encoding
-        self.mu, self.sigma = self.encoder(self.inputs, reuse=False)
+        self.mu, self.sigma = self._encoder(self.inputs, reuse=False)
 
         # sampling by re-parameterization technique
         self.z = self.mu + self.sigma * tf.random_normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
@@ -156,11 +154,14 @@ class VAE(object):
         self.out = tf.clip_by_value(out, 1e-8, 1 - 1e-8)
 
         # loss
-        marginal_likelihood = tf.reduce_sum(self.inputs * tf.log(self.out) + (1 - self.inputs) * tf.log(1 - self.out),
+        marginal_likelihood = tf.reduce_sum(self.inputs * tf.log(self.out) +
+                                            (1 - self.inputs) * tf.log(1 - self.out),
                                              [1, 2])
-        #marginal_likelihood = -tf.losses.mean_squared_error(self.inputs, self.out)
-        #marginal_likelihood = tf.reduce_sum(tf.losses.mean_squared_error(self.inputs, self.out), [1, 2])
-        KL_divergence = 0.5 * tf.reduce_sum(tf.square(self.mu) + tf.square(self.sigma) - tf.log(1e-8 + tf.square(self.sigma)) - 1,
+        # marginal_likelihood = -tf.losses.mean_squared_error(self.inputs, self.out)
+        # marginal_likelihood = tf.reduce_sum(tf.losses.mean_squared_error(self.inputs, self.out), [1, 2])
+        KL_divergence = 0.5 * tf.reduce_sum(tf.square(self.mu) +
+                                            tf.square(self.sigma) -
+                                            tf.log(1e-8 + tf.square(self.sigma)) - 1,
                                             [1])
 
         self.neg_loglikelihood = -tf.reduce_mean(marginal_likelihood)
@@ -196,7 +197,7 @@ class VAE(object):
         # final summary operations
         self.merged_summary_op = tf.summary.merge_all()
 
-    def train(self,train_val_data_iterator):
+    def train(self, train_val_data_iterator):
 
         # counter, start_batch_id, start_epoch = self.initialize(train_val_data_iterator)
         counter = self.counter
@@ -227,8 +228,9 @@ class VAE(object):
                                self.is_manual_annotated: manual_labels[:, 10],
                                self.standard_normal: batch_z})
 
-                print("Epoch: [%2d] [%4d/%4d] time: %4.4f, loss: %.8f, nll: %.8f, kl: %.8f, supervised_loss: %.4f" \
-                      % (epoch, idx, num_batches_train, time.time() - start_time, loss, nll_loss, kl_loss, supervised_loss))
+                print("Epoch: [%2d] [%4d/%4d] time: %4.4f, loss: %.8f, nll: %.8f, kl: %.8f, supervised_loss: %.4f"\
+                      % (epoch, idx, num_batches_train, time.time() - start_time, loss, nll_loss, kl_loss,
+                         supervised_loss))
                 counter += 1
                 if np.mod(idx, self.eval_interval) == 0:
                     self.evaluate(epoch + 1, idx - 1, counter - 1, val_data_iterator=train_val_data_iterator)
@@ -326,11 +328,6 @@ class VAE(object):
         val_data_iterator.reset_counter("val")
 
         print("Evaluation completed")
-
-    def visualize_results(self,batch_images,batch_labels):
-        mu, sigma = self.sess.run([self.mu, self.sigma], feed_dict={self.inputs: batch_images})
-        self.inference()
-        self.feature_analysis(mu, sigma, batch_images, batch_labels)
 
     @property
     def model_dir(self):
