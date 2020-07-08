@@ -25,6 +25,7 @@ class ExperimentConfig:
 
     def __init__(self, root_path, num_decoder_layer, z_dim, num_units,
                  num_cluster_config,
+                 confidence_decay_factor = 2,
                  beta=5,
                  supervise_weight=0,
                  dataset_name="mnist",
@@ -62,6 +63,7 @@ class ExperimentConfig:
         self.name = name
         self.num_val_samples = num_val_samples
         self.num_cluster_config = num_cluster_config
+        self.confidence_decay_factor = confidence_decay_factor
         self.num_train_samples = ((total_training_samples - num_val_samples) // batch_size) * batch_size
 
     def as_json(self):
@@ -78,6 +80,7 @@ class ExperimentConfig:
         config_json["SUPERVISE_WEIGHT"] = self.supervise_weight
         config_json["BETA"] = self.beta
         config_json["NUM_CLUSTER_CONFIG"] = self.num_cluster_config
+        config_json["CONFIDENCE_DECAY_FACTOR"] = self.confidence_decay_factor
         return config_json
 
     def _check_and_create_directories(self, run_id, create):

@@ -44,10 +44,10 @@ class Cluster:
         self.next_level_clusters = cluster_group_dict
 
     def next_lever_cluster_count(self):
-        # TODO fix this get the total number of clusters
-        if "good_clusters" in self.next_level_clusters.keys():
-            return len(self.next_level_clusters["good_clusters"].cluster_list)
-        #len(self.next_level_clusters.cluster_list)
+        num_clusters = 0
+        for k,v in self.next_level_clusters.items():
+            num_clusters += len(v.cluster_list)
+        return num_clusters
 
 
 class ClusterGroup:

@@ -74,7 +74,7 @@ def get_cluster(cluster_num,
 
 def assign_manual_label_and_confidence(df,
                                        manual_annotation_dict,
-                                       convert_distance_to_confidence,
+                                       dist_to_conf,
                                        cluster_group_dict,
                                        cluster_column_name_2
                                        ):
@@ -98,13 +98,14 @@ def assign_manual_label_and_confidence(df,
                 if isinstance(_manual_label, tuple) or isinstance(_manual_label, list):
                     # TODO add this code
                     pass
-                elif _manual_label != -1 :
+                elif _manual_label != -1:
                     print("Manual_label", manual_label)
-                    indices = np.where((np.asarray(cluster_labels) == cluster.id) & (df[cluster_column_name_2].values == _cluster.id))[0]
+                    indices = np.where((np.asarray(cluster_labels) == cluster.id)
+                                       & (df[cluster_column_name_2].values == _cluster.id))[0]
                     df["manual_annotation"].iloc[indices] = _manual_label
                     _dist = _distance_df.iloc[indices]
-                    df["manual_annotation_confidence"].iloc[indices] = _cluster.manual_annotation.confidence * convert_distance_to_confidence(_dist)
-                    df["distance_to_confidence"].iloc[indices] = convert_distance_to_confidence(_dist)
+                    df["manual_annotation_confidence"].iloc[indices] = _cluster.manual_annotation.confidence * dist_to_conf(_dist)
+                    df["distance_to_confidence"].iloc[indices] = dist_to_conf(_dist)
         elif manual_label != -1:
             print("Manual Label", manual_label)
             indices = np.where(cluster_labels == annotate_cluster)
@@ -117,11 +118,33 @@ def assign_manual_label_and_confidence(df,
             percentage_correct = 100 * num_correct / df[df["manual_annotation"] == manual_label].shape[0]
             print(f"Cluster {annotate_cluster} Manual Label {manual_label} Percentage correct {percentage_correct}")
             dist = distance_df.iloc[indices]
-            df["manual_annotation_confidence"].iloc[indices] = _manual_confidence * convert_distance_to_confidence(dist)
-            df["distance_to_confidence"].iloc[indices] = convert_distance_to_confidence(dist)
+            df["manual_annotation_confidence"].iloc[indices] = _manual_confidence * dist_to_conf(dist)
+            df["distance_to_confidence"].iloc[indices] = dist_to_conf(dist)
         else:
-            # TODO write code for unknown
-            pass
+            print("unknown")
+            # unknown, check if second level clustering is done or not
+            _, cluster = get_cluster(annotate_cluster, cluster_group_dict)
+            print(type(cluster.next_level_clusters))
+            print(list(cluster.next_level_clusters.keys() ))
+
+            for cluster_group_name, cluster_group in cluster.next_level_clusters.items():
+                print(len(cluster_group.cluster_list))
+                for _cluster in cluster_group:
+                    print(_cluster.id, _cluster.id,_cluster.manual_annotation)
+                    _distance_df = df[f"distance_level_2_{cluster.id}_{_cluster.id}"]
+                    _manual_label = _cluster.manual_annotation.label
+                    if isinstance(_manual_label, tuple) or isinstance(_manual_label, list):
+                        # TODO add this code
+                        pass
+                    elif _manual_label != -1:
+                        print("Manual_label", manual_label)
+                        indices = np.where((np.asarray(cluster_labels) == cluster.id)
+                                           & (df[cluster_column_name_2].values == _cluster.id))[0]
+                        df["manual_annotation"].iloc[indices] = _manual_label
+                        _dist = _distance_df.iloc[indices]
+                        df["manual_annotation_confidence"].iloc[
+                            indices] = _cluster.manual_annotation.confidence * dist_to_conf(_dist)
+                        df["distance_to_confidence"].iloc[indices] = dist_to_conf(_dist)
         print("********************************")
 
 
@@ -160,6 +183,7 @@ def get_cluster_groups(manual_labels,
 
     cluster_groups_dict = dict()
     for cluster_num, cluster_center_label in enumerate(manual_labels):
+        print(cluster_num)
         if parent_indices is None:
             _df = get_samples_for_cluster(df, cluster_num, cluster_column_name)
             indices = np.where(df[cluster_column_name].values == cluster_num)
@@ -174,9 +198,11 @@ def get_cluster_groups(manual_labels,
             "cluster_data_frame": _df,
             "whole_data_frame": df
            }
+        print(f"cluster_center_label {cluster_center_label} confidence {manual_confidence[cluster_num]}")
         if isinstance(cluster_center_label, tuple) or isinstance(cluster_center_label, list):
             # impure cluster
             # create an impure clusterGroup
+            print("Impure cluster")
             manual_annotation = ManualAnnotation(cluster_center_label,
                                                  manual_confidence[cluster_num])
             cluster = Cluster(cluster_id=cluster_num,
@@ -189,16 +215,24 @@ def get_cluster_groups(manual_labels,
             else:
                 cluster_groups_dict["impure_cluster"] = ClusterGroup("impure_cluster", [cluster])
         elif cluster_center_label == -1:
+            print("unknown cluster")
             # unknown cluster
-            cluster = Cluster(cluster_id=cluster_num, name=f"cluster_{cluster_num}",
-                              cluster_details=cluster_details, level=1)
-            if "unknown cluster" in cluster_groups_dict.keys():
+            manual_annotation = ManualAnnotation(cluster_center_label, manual_confidence[cluster_num])
+            cluster = Cluster(cluster_id=cluster_num,
+                              name=f"cluster_{cluster_num}",
+                              cluster_details=cluster_details,
+                              level=1,
+                              manual_annotation = manual_annotation
+                             )
+            if "unknown_cluster" in cluster_groups_dict.keys():
+                print("Adding to ",cluster_groups_dict["unknown_cluster"])
                 cluster_groups_dict["unknown_cluster"].add_cluster(cluster)
             else:
                 cluster_groups_dict["unknown_cluster"] = ClusterGroup("unknown_cluster", [cluster])
             # unknown cluster
         else:
             # good/average/low confidence
+            print("pure cluster")
             manual_annotation = ManualAnnotation(cluster_center_label, manual_confidence[cluster_num])
             cluster = Cluster(cluster_id=cluster_num,
                               name="cluster_".format(cluster_num),

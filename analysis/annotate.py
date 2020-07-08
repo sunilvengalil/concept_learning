@@ -13,9 +13,9 @@ N_3 = 32
 N_2 = 128
 N_1 = 64
 Z_DIM = 10
-run_id = 5
+run_id = 2
 
-ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
+ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_unsupervised/"
 exp_config = ExperimentConfig(ROOT_PATH,
                               4,
                               Z_DIM,
