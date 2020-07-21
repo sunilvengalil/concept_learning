@@ -10,8 +10,8 @@ eval_interval = 300
 
 
 ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
-config1 = ExperimentConfig(ROOT_PATH, 4, 10, [64, 128, 32])
-config2 = ExperimentConfig(ROOT_PATH, 4, 20, [64, 128, 32])
+config1 = ExperimentConfig(ROOT_PATH, 4, 10, [64, 128, 32], )
+config2 = ExperimentConfig(ROOT_PATH, 4, 20, [64, 128, 32], )
 
 
 exp_config = config2

@@ -4,7 +4,7 @@ from analysis.encode_images import encode_images
 import json
 import os
 
-from generative_models.vae import VAE
+from classify.classifier import ClassifierModel
 from common.data_loader import TrainValDataIterator
 from utils.utils import show_all_variables
 from config import ExperimentConfig
@@ -95,7 +95,8 @@ class Experiment:
             else:
                 _train_val_data_iterator = TrainValDataIterator.from_existing_split(self.config.split_name,
                                                                                     self.config.DATASET_PATH,
-                                                                                    self.config.BATCH_SIZE)
+                                                                                    self.config.BATCH_SIZE,
+                                                                                    manual_labels_config= exp.config.manual_labels_config)
         self.model.train(_train_val_data_iterator)
         print(" [*] Training finished!")
 
@@ -115,16 +116,20 @@ if __name__ == '__main__':
     N_3 = 32
     N_2 = 128
     N_1 = 64
-    Z_DIM = 10
-    run_id = 2
-    num_epochs = 5
+    Z_DIM = 20
+    run_id = 5
+    num_epochs = 6
+    manual_labels_config = TrainValDataIterator.USE_CLUSTER_CENTER  # Possible values "USE_ACTUAL" and "USE_CLUSTER_CENTER"
 
-    ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_supervised/"
+    ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
     _config = ExperimentConfig(ROOT_PATH, 4, Z_DIM, [N_1, N_2, N_3],
-                               ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW,
+                               None,
                                confidence_decay_factor=5,
                                supervise_weight=150,
-                               num_val_samples=128
+                               reconstruction_weight=1,
+                               beta=5,
+                               num_val_samples=128,
+                               manual_labels_config=manual_labels_config
                                )
     _config.check_and_create_directories(run_id)
     BATCH_SIZE = _config.BATCH_SIZE
@@ -157,22 +162,24 @@ if __name__ == '__main__':
         train_val_data_iterator = TrainValDataIterator.from_existing_split(exp.config.split_name,
                                                                            exp.config.DATASET_PATH,
                                                                            exp.config.BATCH_SIZE,
-                                                                           manual_annotation_file)
+                                                                           manual_labels_config=exp.config.manual_labels_config,
+                                                                           manual_annotation_file=None)
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
-        model = VAE(sess,
-                    epoch=num_epochs,
-                    batch_size=_config.BATCH_SIZE,
-                    z_dim=_config.Z_DIM,
-                    dataset_name=DATASET_NAME,
-                    beta=_config.beta,
-                    num_units_in_layer=_config.num_units,
-                    train_val_data_iterator=train_val_data_iterator,
-                    log_dir=exp.config.LOG_PATH,
-                    checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
-                    result_dir=exp.config.PREDICTION_RESULTS_PATH,
-                    supervise_weight=exp.config.supervise_weight
-                    )
+        model = ClassifierModel(sess,
+                                epoch=num_epochs,
+                                batch_size=_config.BATCH_SIZE,
+                                z_dim=_config.Z_DIM,
+                                dataset_name=DATASET_NAME,
+                                beta=_config.beta,
+                                num_units_in_layer=_config.num_units,
+                                train_val_data_iterator=train_val_data_iterator,
+                                log_dir=exp.config.LOG_PATH,
+                                checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
+                                result_dir=exp.config.PREDICTION_RESULTS_PATH,
+                                supervise_weight=exp.config.supervise_weight,
+                                reconstruction_weight=exp.config.reconstruction_weight
+                                )
         exp.model = model
         # show network architecture
         show_all_variables()

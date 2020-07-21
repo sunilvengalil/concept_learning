@@ -3,25 +3,25 @@ import cv2
 import argparse
 import os
 from config import ExperimentConfig
+from utils.dir_utils import get_eval_result_dir
 
-annotator = "ARYA"
+#annotator = "ARYA"
 # annotator = "MANJU"
-# annotator = "SUNIL"
+annotator = "SUNIL"
 eval_interval = 300
 
 N_3 = 32
 N_2 = 128
 N_1 = 64
 Z_DIM = 10
-run_id = 2
-
-ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_unsupervised/"
+run_id = 1
+ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
 exp_config = ExperimentConfig(ROOT_PATH,
                               4,
                               Z_DIM,
                               [N_1, N_2, N_3],
-                              None)
-exp_config.check_and_create_directories(run_id)
+                              None
+                              )
 BATCH_SIZE = exp_config.BATCH_SIZE
 DATASET_NAME = exp_config.dataset_name
 exp_config.check_and_create_directories(run_id, create=False)
@@ -33,15 +33,17 @@ ANNOTATED_CSV = "annotation.csv"
 last_epoch = 50
 
 ANNOTATED_PATH = exp_config.BASE_PATH + "manual_annotation"
-# if annotator == "SUNIL":
-#     ANNOTATED_PATH = exp_config.BASE_PATH + "manual_annotation_sunil"
-# elif annotator == "MANJU":
-#     BASE_PATH = "/home/test/"
-#     ANNOTATED_PATH = exp_config.BASE_PATH + "manual_annotation_manju"
-# elif annotator == "ARYA":
-#     ANNOTATED_PATH = exp_config.BASE_PATH + "manual_annotation_arya"
-# else:
-#     raise Exception("Only two annotators {} and {} are allowed now".format("SUNIL", "VIJAY"))
+if annotator == "SUNIL":
+    ANNOTATED_PATH = exp_config.BASE_PATH + "manual_annotation_sunil"
+elif annotator == "MANJU":
+    BASE_PATH = "/home/test/"
+    ANNOTATED_PATH = exp_config.BASE_PATH + "manual_annotation_manju"
+elif annotator == "ARYA":
+    ANNOTATED_PATH = exp_config.BASE_PATH + "manual_annotation_arya"
+else:
+    raise Exception("Only two annotators {} and {} are allowed now".format("SUNIL", "VIJAY"))
+
+ANNOTATED_PATH = exp_config.BASE_PATH + "manual_annotation_set1"
 
 # Initialize variables
 counter_start = 2
@@ -55,19 +57,6 @@ num_batches_per_epoch = num_samples // batch_size
 number_of_evaluation_per_epoch = num_batches_per_epoch // eval_interval
 num_eval_batches = 2
 start_eval_batch = 0
-
-
-def check_folder(log_dir):
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-    return log_dir
-
-
-def get_eval_result_dir(result_path, _epoch=0, idx=0, orig_or_reconstructed="reconstructed"):
-    orig_dir = check_folder(
-        result_path + "/"
-        + orig_or_reconstructed + '_{:02d}_{:04}/'.format(_epoch, idx))
-    return orig_dir
 
 
 def parse_args():
@@ -84,8 +73,7 @@ start_batch_id = args.batch
 print(exp_config.PREDICTION_RESULTS_PATH)
 reconstructed_dir = get_eval_result_dir(exp_config.PREDICTION_RESULTS_PATH,
                                         start_epoch + 1,
-                                        start_batch_id + 1,
-                                        "reconstructed")
+                                        start_batch_id + 1)
 cv2.namedWindow("Image")
 stop_annotation = False
 left, top = (0, 0)
@@ -123,7 +111,7 @@ with open(annotation_csv, "a")as outfile:
             reconstructed_dir = get_eval_result_dir(exp_config.PREDICTION_RESULTS_PATH,
                                                     epoch+1,
                                                     (step * eval_interval) - 1,
-                                                    "reconstructed")
+                                                    )
             print(reconstructed_dir)
             for _idx in range(start_eval_batch, num_eval_batches):
                 left, top = (0, 0)

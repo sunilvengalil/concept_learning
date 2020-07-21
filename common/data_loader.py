@@ -13,7 +13,7 @@ def load_images(_config, dataset_type="train", manual_annotation_file=None):
                                                                        _config.BATCH_SIZE,
                                                                        manual_annotation_file=manual_annotation_file
                                                                        )
-    num_images = train_val_data_iterator.get_num_samples("train")
+    num_images = train_val_data_iterator.get_num_samples(dataset_type)
     feature_shape = list(train_val_data_iterator.get_feature_shape())
     num_images = (num_images // _config.BATCH_SIZE) * _config.BATCH_SIZE
     feature_shape.insert(0, num_images)
@@ -36,6 +36,8 @@ def load_images(_config, dataset_type="train", manual_annotation_file=None):
 
 
 class TrainValDataIterator:
+    USE_ACTUAL = "USE_ACTUAL"
+    USE_CLUSTER_CENTER = "USE_CLUSTER_CENTER"
     VALIDATION_Y_RAW = "validation_y_raw"
     VALIDATION_Y_ONE_HOT = "validation_y"
     VALIDATION_X = "validation_x"
@@ -92,11 +94,26 @@ class TrainValDataIterator:
                 TrainValDataIterator.VALIDATION_Y_ONE_HOT: _val_y,
                 TrainValDataIterator.VALIDATION_Y_RAW: val_y}
 
+    """
+    Creates and initialize an instance of TrainValDataIterator
+    @param: init_config:list A list of attributes that needs to be initialized
+    """
     @classmethod
-    def from_existing_split(cls, split_name, split_location, batch_size=None,
-                            manual_annotation_file=None):
+    def from_existing_split(cls,
+                            split_name,
+                            split_location,
+                            batch_size=None,
+                            manual_labels_config=USE_CLUSTER_CENTER,
+                            manual_annotation_file=None,
+                            init_config=None):
         instance = cls()
         instance.batch_size = batch_size
+        # TODO convert this to lazy loading
+        dataset_dict = cls.load_train_val_existing_split(split_name, split_location)
+
+        if init_config is not None and "val_y" in init_config:
+            instance.val_y = dataset_dict[TrainValDataIterator.VALIDATION_Y_ONE_HOT]
+        instance.dataset_dict = dataset_dict
         instance.dataset_dict = cls.load_train_val_existing_split(split_name, split_location)
 
         instance.train_x = instance.dataset_dict[TrainValDataIterator.TRAIN_X]
@@ -104,25 +121,31 @@ class TrainValDataIterator:
         instance.val_x = instance.dataset_dict[TrainValDataIterator.VALIDATION_X]
         instance.val_y = instance.dataset_dict[TrainValDataIterator.VALIDATION_Y_ONE_HOT]
         instance.unique_labels = np.unique(instance.dataset_dict[TrainValDataIterator.VALIDATION_Y_RAW])
+        instance.manual_labels_config = manual_labels_config
+        if manual_labels_config == TrainValDataIterator.USE_CLUSTER_CENTER:
+            if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
+                _manual_annotation = cls._load_manual_annotation(manual_annotation_file)
+                print("Loaded manual annotation")
+                print(f"Number of samples with manual confidence {sum(_manual_annotation[:, 1] > 0)}")
+                instance.manual_annotation = np.zeros((len(_manual_annotation), 11), dtype=np.float)
+                for i, label in enumerate(_manual_annotation):
+                    instance.manual_annotation[i, int(_manual_annotation[i, 0])] = 1.0
+                    instance.manual_annotation[i, 10] = _manual_annotation[i, 1]
+            else:
+                # TODO if we are using random prior with uniform distribution, do we need to keep
+                # manual confidence as 0.5 or 0
+                print("Warning", "{} path does not exist. Creating random prior with uniform distribution".
+                      format(manual_annotation_file))
+                _manual_annotation = np.random.choice(instance.unique_labels, len(instance.train_x))
+                instance.manual_annotation = np.zeros((len(_manual_annotation), 11), dtype=np.float)
+                for i, label in enumerate(_manual_annotation):
+                    instance.manual_annotation[i, _manual_annotation[i]] = 1.0
+                    instance.manual_annotation[i, 10] = 0
+        elif manual_labels_config == TrainValDataIterator.USE_ACTUAL:
+            instance.manual_annotation = np.zeros((len(instance.train_x), 11), dtype=np.float)
 
-        if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
-            _manual_annotation = cls._load_manual_annotation(manual_annotation_file)
-            print("Loaded manual annotation")
-            print("Number of samples with manual confidence", sum(_manual_annotation[:, 1] > 0))
-            instance.manual_annotation = np.zeros((len(_manual_annotation), 11), dtype=np.float)
-            for i, label in enumerate(_manual_annotation):
-                instance.manual_annotation[i, int(_manual_annotation[i, 0])] = 1.0
-                instance.manual_annotation[i, 10] = _manual_annotation[i, 1]
-        else:
-            #TODO if we are using random prior with uniform distribution, do we need to keep
-            # manual confidence as 0.5 or 0
-            print("Warning", "{} path does not exist. Creating random prior with uniform distribution".
-                  format(manual_annotation_file))
-            _manual_annotation = np.random.choice(instance.unique_labels, len(instance.train_x))
-            instance.manual_annotation = np.zeros((len(_manual_annotation), 11), dtype=np.float)
-            for i, label in enumerate(_manual_annotation):
-                instance.manual_annotation[i, _manual_annotation[i]] = 1.0
-                instance.manual_annotation[i, 10] = 0
+            instance.manual_annotation[:, 0:10] = instance.train_y
+            instance.manual_annotation[:, 10] = 1
 
         instance.train_idx = 0
         instance.val_idx = 0
@@ -219,7 +242,7 @@ class TrainValDataIterator:
 
 def load_train(data_dir, directory_for_sample_images = None,
                shuffle=True):
-    data_dir = os.path.join(data_dir , "images/")
+    data_dir = os.path.join(data_dir, "images/")
 
     def extract_data(filename, num_data, head_size, data_size):
         with gzip.open(filename) as bytestream:

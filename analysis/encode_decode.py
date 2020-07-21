@@ -24,13 +24,12 @@ def encode(model, images, batch_size, z_dim):
     latent_vectors = np.zeros([len(images), z_dim])
     num_images = images.shape[0]
     num_batches = num_images // batch_size
-    batch_num = 0
     for batch_num in range(num_batches):
         mu, sigma, z = model.encode(images[batch_num * batch_size: (batch_num + 1) * batch_size])
         latent_vectors[batch_num * batch_size: (batch_num + 1) * batch_size] = z
     left_out = num_images % batch_size
     if left_out != 0:
-        # TODO remove this hardcoding
+        # TODO remove this hard coding
         feature_dimension = [batch_size, 28, 28, 1]
         last_batch = np.zeros(feature_dimension)
         last_batch[0:left_out] = images[num_batches * batch_size:]
@@ -38,7 +37,8 @@ def encode(model, images, batch_size, z_dim):
         latent_vectors[num_batches * batch_size:] = z[0:left_out]
     return latent_vectors
 
-def encode_and_get_features(model, images,batch_size):
+
+def encode_and_get_features(model, images, batch_size):
     num_images = images.shape[0]
     num_batches = num_images // batch_size
     batch_num = 0
