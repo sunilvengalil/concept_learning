@@ -11,7 +11,7 @@ annotator = "SUNIL"
 N_3 = 32
 N_2 = 128
 N_1 = 64
-z_dim = 10
+z_dim = 5
 run_id = 3
 ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
 exp_config = ExperimentConfig(ROOT_PATH,
@@ -36,8 +36,18 @@ num_batches_per_epoch = exp_config.num_train_samples // exp_config.BATCH_SIZE
 number_of_evaluation_per_epoch = num_batches_per_epoch // exp_config.eval_interval
 
 # keys = [f"annotated_by_{annotator_id}" for annotator_id in annotators()]
-number_of_keys = 2
-keys = [f"manual_annotation_set_{k+1}" for k in range(number_of_keys)]
+# keys = [f"manual_annotation_{k+1}" for k in range(number_of_keys)]
+keys = ["manual_annotation_sunil",
+        "manual_annotation_set_1",
+        "manual_annotation_arya"
+        ]
+# keys = ["manual_annotation_corrected",
+#         "manual_annotation_set_1",
+#         "manual_annotation_set_2",
+#         "manual_annotation_sunil"
+#         ]
+number_of_keys = len(keys)
+
 max_epoch = 5
 
 # Read all the individual data frames into a dictionary of format {"annotator_id"}
@@ -48,6 +58,11 @@ base_path = get_base_path(exp_config.root_path,
                           exp_config.num_cluster_config,
                           run_id=run_id
                           )
+for key in keys:
+    annotation_path = base_path + key
+    if not os.listdir(annotation_path):
+        print(f"No csv files found in directory. Skipping the directory")
+        keys.remove(key)
 data_dict = combine_annotation_sessions(keys=keys,
                                         base_path = base_path,
                                         max_epoch=max_epoch)

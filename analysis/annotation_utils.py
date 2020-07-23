@@ -72,7 +72,7 @@ def get_annotations(annotated_path, batches=None):
     print("Reading annotation from ", annotated_path)
     if os.path.isfile(annotated_path + "/manual_annotation_corrected.csv"):
         # TODO check why f-string formatting is not working here
-        #print(f"Loading annotation from {annotated_path}")
+        # print(f"Loading annotation from {annotated_path}")
         df = pd.read_csv(os.path.join(annotated_path, "manual_annotation_corrected.csv"))
         unique = df.groupby(["epoch", "step"]).size().reset_index().rename(columns={0: 'count'})
         df["epoch"] = df["epoch"].astype(int)
@@ -82,7 +82,7 @@ def get_annotations(annotated_path, batches=None):
         df["batch"] = df["batch"].astype(int)
         print("Corrected annotation exists", df.shape)
     else:
-        #print(f"Loading annotation from {annotated_path}")
+        # print(f"Loading annotation from {annotated_path}")
         df = None
         for annotation_file in os.listdir(annotated_path):
             if annotation_file.rsplit(".", 1)[1] == "csv":
@@ -387,6 +387,7 @@ def show_image_and_get_annotations(epoch_step_dict, exp_config, start_eval_batch
             image_to_show = im.copy()
             cv2.rectangle(image_to_show, (left, top), (right, bottom), (0, 0, 255), 2)
             cv2.imshow("Image", image_to_show)
+            k = 0
             text_list = []
             for num_rows_annotated in rows_to_annotate:
                 image_to_show = im.copy()
@@ -415,14 +416,9 @@ def show_image_and_get_annotations(epoch_step_dict, exp_config, start_eval_batch
                     text = "xxxx"
                 print(f"Full Text for row {num_rows_annotated:01d}:{text}")
                 text_list.append(text)
-                stop_annotation = k == ord('q')
                 if k == ord('q'):
                     break
-            if stop_annotation:
-                break
             corrected_text_all_images[_batch].append(text_list)
-        if stop_annotation:
-            break
     return corrected_text_all_images
 
 
@@ -433,6 +429,9 @@ def combine_annotation_sessions(keys: list, base_path: str, max_epoch: int):
     data_dict = dict()
     for key in keys:
         annotation_path = base_path + key
+        if not os.listdir(annotation_path):
+            print(f"No csv files found in directory {annotation_path}")
+            return data_dict
         df, _ = get_annotations(annotation_path, batches=None)
         df = df[df["epoch"] < max_epoch]
         # TODO Add code to fix invalid character in annotation
@@ -442,6 +441,8 @@ def combine_annotation_sessions(keys: list, base_path: str, max_epoch: int):
         #
         # df, unique = get_annotations(ANNOTATED_PATH, batches=batch)
         # df = df.rename(columns={"text": f"text_run_id_{run_id}"})
+        if "text" not in df.columns:
+            print(f"Files in  {annotation_path} does not have a column called text")
 
         group_by_columns = [CSV_COL_NAME_EPOCH, CSV_COL_NAME_STEP, CSV_COL_NAME_IMAGE_ID,
                             CSV_COL_NAME_ROW_ID_WITHIN_IMAGE]
