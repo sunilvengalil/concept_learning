@@ -74,23 +74,23 @@ class ResolveDuplicate(unittest.TestCase):
                                                 base_path=base_path,
                                                 max_epoch=self.max_epoch)
 
-        df = data_dict["manual_annotation_set_1"]["data_frame"]
-        df = df[df["has_multiple_value"]]
-        self.assertEquals(df.shape[0], 0)
+        df_set_1 = data_dict["manual_annotation_set_1"]["data_frame"]
+        df_set_1 = df_set_1[df_set_1["has_multiple_value"]]
+        self.assertEqual(df_set_1.shape[0], 0)
 
-        df = data_dict["manual_annotation_set_2"]["data_frame"]
-        df = df[df["has_multiple_value"]]
-        self.assertEquals(df.shape[0], 9)
+        df_set_2 = data_dict["manual_annotation_set_2"]["data_frame"]
+        df_set_2 = df_set_2[df_set_2["has_multiple_value"]]
+        self.assertEqual(df_set_2.shape[0], 9)
 
-        data_dict = combine_multiple_annotations(data_dict, exp_config, run_id)
+        combine_multiple_annotations(data_dict, exp_config, run_id)
 
-        df = data_dict["manual_annotation_set_1"]["data_frame"]
-        df = df[df["has_multiple_value"]]
-        self.assertEquals(df.shape[0], 0)
+        df_set_1 = data_dict["manual_annotation_set_1"]["data_frame"]
+        df_set_1 = df_set_1[df_set_1["has_multiple_value"]]
+        self.assertEqual(df_set_1.shape[0], 0)
 
-        df = data_dict["manual_annotation_set_2"]["data_frame"]
-        df = df[df["has_multiple_value"]]
-        self.assertEquals(df.shape[0], 9)
+        df_set_2 = data_dict["manual_annotation_set_2"]["data_frame"]
+        df_set_2 = df_set_2[df_set_2["has_multiple_value"]]
+        self.assertEqual(df_set_2.shape[0], 9)
 
 
 if __name__ == '__main__':

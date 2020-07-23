@@ -35,7 +35,6 @@ def space_separated_string(x):
             return x_as_list[0]
         else:
             x_as_list = x.values.tolist()
-            print(x_as_list, " ".join(x_as_list))
             return " ".join(x_as_list)
     else:
         return x

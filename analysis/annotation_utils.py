@@ -351,61 +351,6 @@ def get_corrections_for_de_duping(df, exp_config):
     print(epoch_step_dict)
 
     corrected_text_all_images = show_image_and_get_annotations(epoch_step_dict, exp_config)
-    #
-    # for _batch in epoch_step_dict.keys():
-    #     epoch = _batch // 935
-    #     step = (_batch % 935 // 300)
-    #     print(epoch, step)
-    #     reconstructed_dir = get_eval_result_dir(exp_config.PREDICTION_RESULTS_PATH,
-    #                                             epoch + 1,
-    #                                             (step * eval_interval) - 1)
-    #     print(reconstructed_dir)
-    #     for _idx in [0, 1]:
-    #         rows_to_annotate = epoch_step_dict[_batch][_idx]
-    #         left, top = (0, 0)
-    #         right, bottom = (222, 28)
-    #         height = bottom - top
-    #         file = reconstructed_dir + "im_" + str(_idx) + ".png"
-    #         if not os.path.isfile(file):
-    #             raise Exception("File does not exist {}".format(file))
-    #
-    #         im = cv2.imread(file)
-    #         print(file)
-    #         image_to_show = im.copy()
-    #         cv2.rectangle(image_to_show, (left, top), (right, bottom), (0, 0, 255), 2)
-    #         cv2.imshow("Image", image_to_show)
-    #         k = 0
-    #         text_list = []
-    #         for num_rows_annotated in rows_to_annotate:
-    #             image_to_show = im.copy()
-    #             top = (num_rows_annotated - 1) * height
-    #             bottom = top + height
-    #             cv2.rectangle(image_to_show, (left, top), (right, bottom), (0, 0, 255), 2)
-    #             cv2.imshow("Image", image_to_show)
-    #             print(str(num_rows_annotated), end=':', flush=True)
-    #             text = ""
-    #             k = 0
-    #             # for each row
-    #             while k != "\n":
-    #                 k = cv2.waitKey(0)
-    #                 if k == 13 or k == ord('q'):
-    #                     break
-    #                 k = chr(k)
-    #                 if k != 113:
-    #                     if len(text) < 4:
-    #                         text = text + k
-    #                         print(k, end='', flush=True)
-    #                     elif k == 8:
-    #                         text = text[:-1]
-    #                         print("\nBack space pressed\n", text)
-    #                         print(k, end='', flush=True)
-    #             if len(text) == 0:
-    #                 text = "xxxx"
-    #             print(f"Full Text for row {num_rows_annotated:01d}:{text}")
-    #             text_list.append(text)
-    #         print(k, ord('q'))
-    #         corrected_text_all_images[_batch].append(text_list)
-    #
     return corrected_text_all_images, batches_with_duplicate, rows_to_fix_for_duplicate, epoch_step_dict
 
 
@@ -417,7 +362,7 @@ Get the annotations for highlighted rows and return the result
 """
 
 
-def show_image_and_get_annotations(epoch_step_dict, exp_config):
+def show_image_and_get_annotations(epoch_step_dict, exp_config, start_eval_batch=0, end_eval_batch=2):
     corrected_text_all_images = defaultdict(list)
 
     for _batch in epoch_step_dict.keys():
@@ -442,7 +387,6 @@ def show_image_and_get_annotations(epoch_step_dict, exp_config):
             image_to_show = im.copy()
             cv2.rectangle(image_to_show, (left, top), (right, bottom), (0, 0, 255), 2)
             cv2.imshow("Image", image_to_show)
-            k = 0
             text_list = []
             for num_rows_annotated in rows_to_annotate:
                 image_to_show = im.copy()
@@ -471,8 +415,14 @@ def show_image_and_get_annotations(epoch_step_dict, exp_config):
                     text = "xxxx"
                 print(f"Full Text for row {num_rows_annotated:01d}:{text}")
                 text_list.append(text)
-            print(k, ord('q'))
+                stop_annotation = k == ord('q')
+                if k == ord('q'):
+                    break
+            if stop_annotation:
+                break
             corrected_text_all_images[_batch].append(text_list)
+        if stop_annotation:
+            break
     return corrected_text_all_images
 
 
@@ -519,14 +469,8 @@ def combine_multiple_annotations(data_dict, exp_config, run_id):
                                   run_id=run_id
                                   )
         annotation_path = base_path + key
-        file_name = exp_config.get_annotation_result_path(base_path) + f"/{key}.csv"
         df = data_dict[key][KEY_FOR_DATA_FRAME]
         # See if manually de-duped file already exists. If yes go to the next annotator
-
-        de_duped_file_name = os.path.join(file_name)
-        if os.path.isfile(de_duped_file_name):
-            df_de_duped = pd.read_csv(de_duped_file_name)
-            continue
 
         manually_de_duped_file = os.path.join(annotation_path, "manually_de_duped.json")
         if os.path.isfile(manually_de_duped_file):
@@ -558,8 +502,8 @@ def combine_multiple_annotations(data_dict, exp_config, run_id):
             with open(manually_de_duped_file, "w") as json_file:
                 json.dump(manually_de_duped, json_file)
 
-        if epoch_step_dict is None or len(epoch_step_dict) == 0:
-            df.to_csv(file_name, index=False)
+        # If no manual correction, return the data_dict as it is
+        if epoch_step_dict is None or len(epoch_step_dict) > 0:
             continue
 
         # Update the corrected text in the data frame
@@ -573,8 +517,7 @@ def combine_multiple_annotations(data_dict, exp_config, run_id):
                 df.loc[(df["has_multiple_value"]) & (df["epoch"] == epoch) & (df["step"] == step) & (
                 df["num_rows_annotated"].isin(num_rows_annotated)) & (
                        df["_idx"] == image_no), column_name] = corrected_text
-                df.loc[(df["has_multiple_value"]) & (df["epoch"] == epoch) & (df["step"] == step) & (
-                df["num_rows_annotated"].isin(num_rows_annotated)) & (
+                df.loc[(df["has_multiple_value"]) & (df["epoch"] == epoch) & (df["step"] == step) & (df["num_rows_annotated"].isin(num_rows_annotated)) & (
                        df["_idx"] == image_no), "has_multiple_value"] = False
 
         # put the de-duped data frame back into data_dict
@@ -583,7 +526,7 @@ def combine_multiple_annotations(data_dict, exp_config, run_id):
         data_dict[key]["batch_with_duplicate"] = batches_with_duplicate
 
         # Save the de-duped data frame
-        data_dict[key][KEY_FOR_DATA_FRAME].to_csv(file_name, index=False)
+        # data_dict[key][KEY_FOR_DATA_FRAME].to_csv(file_name, index=False)
 
     return data_dict
 
