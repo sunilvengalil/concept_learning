@@ -11,9 +11,13 @@ def get_base_path(root_path: str,
                   z_dim: int,
                   n_3: int,
                   n_2: int,
-                  cluster_config,
+                  cluster_config: str,
                   run_id: int = 0
                   ) -> str:
+    """
+
+    :rtype:
+    """
     if cluster_config is None:
         return os.path.join(root_path, f"Exp_{z_dim:02d}_{n_3:03}_{n_2:03d}_{run_id}/")
     else:

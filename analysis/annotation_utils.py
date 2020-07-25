@@ -40,7 +40,6 @@ def get_label_reconstructed(_df, num_rows_per_image, num_digits_per_row):
         row_text_ = row[1]["text"]
         # print("row_text_", row_text_)
         if isinstance(row_text_, float):
-            print("Converting float to string")
             row_text_ = str(row_text_)
         row_text_ = row_text_.strip()
         if len(row_text_) != 0:
@@ -72,7 +71,6 @@ def get_annotations(annotated_path, batches=None):
     print("Reading annotation from ", annotated_path)
     if os.path.isfile(annotated_path + "/manual_annotation_corrected.csv"):
         # TODO check why f-string formatting is not working here
-        # print(f"Loading annotation from {annotated_path}")
         df = pd.read_csv(os.path.join(annotated_path, "manual_annotation_corrected.csv"))
         unique = df.groupby(["epoch", "step"]).size().reset_index().rename(columns={0: 'count'})
         df["epoch"] = df["epoch"].astype(int)
@@ -80,9 +78,7 @@ def get_annotations(annotated_path, batches=None):
         df["_idx"] = df["_idx"].astype(int)
         df["num_rows_annotated"] = df["num_rows_annotated"].astype(int)
         df["batch"] = df["batch"].astype(int)
-        print("Corrected annotation exists", df.shape)
     else:
-        # print(f"Loading annotation from {annotated_path}")
         df = None
         for annotation_file in os.listdir(annotated_path):
             if annotation_file.rsplit(".", 1)[1] == "csv":
@@ -100,7 +96,6 @@ def get_annotations(annotated_path, batches=None):
         df["num_rows_annotated"] = df["num_rows_annotated"].astype(int)
         df["batch"] = df["epoch"] * 935 + (df["step"] * 300)
         df["batch"] = df["batch"].astype(int)
-    print("Read annotation ", df.shape)
     if batches is None:
         return df, unique
     else:
@@ -251,16 +246,10 @@ def get_images_dict(keys, exp_config, epoch, step, run_id, eval_interval=300):
         images_for_batch[key] = {"images": _images_dict}
     return images_for_batch
 
-
+""" 
+Join all dataframes in dictionary into a single dataframe
+"""
 def get_combined_data_frame(data_dict):
-    # first_key = get_first_key(data_dict)
-    # if first_key is None or len(first_key) == 0:
-    #     return None
-
-    # iterable = iter(data_dict)
-    # print(f"Shape of individual data frames {data_dict[first_key][KEY_FOR_DATA_FRAME].shape}")
-    # df_combined = data_dict[next(iterable)][KEY_FOR_DATA_FRAME]
-
     df_combined = None
     for key in data_dict.keys():
         if df_combined is None:
@@ -283,41 +272,41 @@ def get_combined_annotation(row, column_names):
     return all_same
 
 
-def get_mismatching_rows(keys: list,
-                         df_combined: DataFrame,
-                         epoch: int,
-                         step: int,
-                         eval_interval: int=300):
-
-    batch = epoch * 935 + step * eval_interval
-    # batch_filter = df_combined["batch"] == batch
-
-    # print("Number of elements filtered by batch index", sum(batch_filter))
-    # df_combined_for_batch = df_combined[batch_filter]
-
-    # num_cols = len(df_combined_for_batch.columns)
-    # df_combined_for_batch.insert(num_cols, "labels", labels_list)
-
-    # print(f"Data frame shape for batch {df_combined_for_batch.shape}")
-    col_names = [f"text_{_k}" for _k in keys]
-    annotation_same = df_combined.apply(lambda x: get_combined_annotation(x, col_names),
-                                                        axis=1)
-
-    print(f"Number of rows with same annotation {sum(annotation_same)}")
-    df_combined.insert(len(df_combined.columns), column="annotations_same", value=annotation_same)
-
-    # filter_condition = (batch_filter & (df_combined["annotations_same"] == False) & (df_combined["_idx"] == image_no))
-    filter_condition = ( (df_combined["annotations_same"]==False) )
-    rows_to_annotate_all_images = list()
-
-    for image_no in [0, 1]:
-        rows_to_correct = df_combined["num_rows_annotated"][filter_condition & (df_combined["_idx"] == image_no)].values
-        rows_to_annotate_all_images.append(rows_to_correct)
-
-    # images_for_batch = get_images_dict(epoch, step, run_id)
-    # df_combined_for_batch[df_combined_for_batch["annotations_same"] == False]
-    return rows_to_annotate_all_images
-
+# def get_mismatching_rows(keys: list,
+#                          df_combined: DataFrame,
+#                          epoch: int,
+#                          step: int,
+#                          eval_interval: int=300):
+#
+#     batch = epoch * 935 + step * eval_interval
+#     # batch_filter = df_combined["batch"] == batch
+#
+#     # print("Number of elements filtered by batch index", sum(batch_filter))
+#     # df_combined_for_batch = df_combined[batch_filter]
+#
+#     # num_cols = len(df_combined_for_batch.columns)
+#     # df_combined_for_batch.insert(num_cols, "labels", labels_list)
+#
+#     # print(f"Data frame shape for batch {df_combined_for_batch.shape}")
+#     col_names = [f"text_{_k}" for _k in keys]
+#     annotation_same = df_combined.apply(lambda x: get_combined_annotation(x, col_names),
+#                                                         axis=1)
+#
+#     print(f"Number of rows with same annotation {sum(annotation_same)}")
+#     df_combined.insert(len(df_combined.columns), column="annotations_same", value=annotation_same)
+#
+#     # filter_condition = (batch_filter & (df_combined["annotations_same"] == False) & (df_combined["_idx"] == image_no))
+#     filter_condition = ( (df_combined["annotations_same"]==False) )
+#     rows_to_annotate_all_images = list()
+#
+#     for image_no in [0, 1]:
+#         rows_to_correct = df_combined["num_rows_annotated"][filter_condition & (df_combined["_idx"] == image_no)].values
+#         rows_to_annotate_all_images.append(rows_to_correct)
+#
+#     # images_for_batch = get_images_dict(epoch, step, run_id)
+#     # df_combined_for_batch[df_combined_for_batch["annotations_same"] == False]
+#     return rows_to_annotate_all_images
+#
 
 def get_corrections_for_de_duping(df, exp_config):
     batches_with_duplicate = [[], []]
@@ -344,11 +333,8 @@ def get_corrections_for_de_duping(df, exp_config):
         for _batch in rows_dict.keys():
             epoch_step_dict[_batch] = [[], []]
 
-        print("epoch_step_dict", epoch_step_dict)
         for _batch, rows in rows_dict.items():
             epoch_step_dict[_batch][image_no] = rows
-
-    print(epoch_step_dict)
 
     corrected_text_all_images = show_image_and_get_annotations(epoch_step_dict, exp_config)
     return corrected_text_all_images, batches_with_duplicate, rows_to_fix_for_duplicate, epoch_step_dict
@@ -368,11 +354,9 @@ def show_image_and_get_annotations(epoch_step_dict, exp_config, start_eval_batch
     for _batch in epoch_step_dict.keys():
         epoch = _batch // 935
         step = (_batch % 935 // 300)
-        print(epoch, step)
         reconstructed_dir = get_eval_result_dir(exp_config.PREDICTION_RESULTS_PATH,
                                                 epoch + 1,
                                                 (step * exp_config.eval_interval) - 1)
-        print(reconstructed_dir)
         for _idx in [0, 1]:
             rows_to_annotate = epoch_step_dict[_batch][_idx]
             left, top = (0, 0)
@@ -383,7 +367,6 @@ def show_image_and_get_annotations(epoch_step_dict, exp_config, start_eval_batch
                 raise Exception("File does not exist {}".format(file))
 
             im = cv2.imread(file)
-            print(file)
             image_to_show = im.copy()
             cv2.rectangle(image_to_show, (left, top), (right, bottom), (0, 0, 255), 2)
             cv2.imshow("Image", image_to_show)
@@ -460,7 +443,8 @@ def combine_annotation_sessions(keys: list, base_path: str, max_epoch: int):
 """ Verify if there is duplicate annotations for the same combination of ( batch, image_no, row_number_with_image )"""
 
 
-def combine_multiple_annotations(data_dict, exp_config, run_id):
+def combine_multiple_annotations(data_dict, exp_config, num_rows, run_id):
+    keys_to_remove = []
     for key in data_dict.keys():
         base_path = get_base_path(exp_config.root_path,
                                   exp_config.Z_DIM,
@@ -505,6 +489,8 @@ def combine_multiple_annotations(data_dict, exp_config, run_id):
 
         # If no manual correction, return the data_dict as it is
         if epoch_step_dict is None or len(epoch_step_dict) > 0:
+            if df.shape[0] != num_rows:
+                keys_to_remove.append(key)
             continue
 
         # Update the corrected text in the data frame
@@ -522,11 +508,17 @@ def combine_multiple_annotations(data_dict, exp_config, run_id):
                        df["_idx"] == image_no), "has_multiple_value"] = False
 
         # put the de-duped data frame back into data_dict
-        data_dict[key][KEY_FOR_DATA_FRAME] = df
-        data_dict[key]["rows_to_fix_for_duplicate"] = rows_to_fix_for_duplicate
-        data_dict[key]["batch_with_duplicate"] = batches_with_duplicate
+        if df.shape[0] == num_rows:
+            data_dict[key][KEY_FOR_DATA_FRAME] = df
+            data_dict[key]["rows_to_fix_for_duplicate"] = rows_to_fix_for_duplicate
+            data_dict[key]["batch_with_duplicate"] = batches_with_duplicate
+        else:
+            print(f"Key {key} have {df.shape[0]} rows. Expected {num_rows} rows. Skipping this key")
+            keys_to_remove.append(key)
+    for key in keys_to_remove:
+        del data_dict[key]
 
-        # Save the de-duped data frame
+            # Save the de-duped data frame
         # data_dict[key][KEY_FOR_DATA_FRAME].to_csv(file_name, index=False)
 
     return data_dict
