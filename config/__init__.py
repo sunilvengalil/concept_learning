@@ -7,6 +7,15 @@ BIAS = "Bias"
 LAYER_NAME_PREFIX = "Layer"
 
 
+def get_keys(base_path,key_prefix):
+    keys = []
+    for file in os.listdir(base_path):
+        if os.path.isdir(base_path+file):
+            if file.startswith(key_prefix):
+                keys.append(file)
+    return keys
+
+
 def get_base_path(root_path: str,
                   z_dim: int,
                   n_3: int,

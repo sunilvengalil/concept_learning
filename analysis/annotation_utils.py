@@ -249,6 +249,8 @@ def get_images_dict(keys, exp_config, epoch, step, run_id, eval_interval=300):
 """ 
 Join all dataframes in dictionary into a single dataframe
 """
+
+
 def get_combined_data_frame(data_dict):
     df_combined = None
     for key in data_dict.keys():
@@ -268,76 +270,26 @@ def get_combined_annotation(row, column_names):
     for column_name in column_names[1:]:
         all_same = all_same and (row[column_name] == text_0)
         if not all_same:
-            return False
-    return all_same
+            return True
+    return not all_same
 
 
-# def get_mismatching_rows(keys: list,
-#                          df_combined: DataFrame,
-#                          epoch: int,
-#                          step: int,
-#                          eval_interval: int=300):
-#
-#     batch = epoch * 935 + step * eval_interval
-#     # batch_filter = df_combined["batch"] == batch
-#
-#     # print("Number of elements filtered by batch index", sum(batch_filter))
-#     # df_combined_for_batch = df_combined[batch_filter]
-#
-#     # num_cols = len(df_combined_for_batch.columns)
-#     # df_combined_for_batch.insert(num_cols, "labels", labels_list)
-#
-#     # print(f"Data frame shape for batch {df_combined_for_batch.shape}")
-#     col_names = [f"text_{_k}" for _k in keys]
-#     annotation_same = df_combined.apply(lambda x: get_combined_annotation(x, col_names),
-#                                                         axis=1)
-#
-#     print(f"Number of rows with same annotation {sum(annotation_same)}")
-#     df_combined.insert(len(df_combined.columns), column="annotations_same", value=annotation_same)
-#
-#     # filter_condition = (batch_filter & (df_combined["annotations_same"] == False) & (df_combined["_idx"] == image_no))
-#     filter_condition = ( (df_combined["annotations_same"]==False) )
-#     rows_to_annotate_all_images = list()
-#
-#     for image_no in [0, 1]:
-#         rows_to_correct = df_combined["num_rows_annotated"][filter_condition & (df_combined["_idx"] == image_no)].values
-#         rows_to_annotate_all_images.append(rows_to_correct)
-#
-#     # images_for_batch = get_images_dict(epoch, step, run_id)
-#     # df_combined_for_batch[df_combined_for_batch["annotations_same"] == False]
-#     return rows_to_annotate_all_images
-#
-
-def get_corrections_for_de_duping(df, exp_config):
-    batches_with_duplicate = [[], []]
-    rows_to_fix_for_duplicate = [None, None]
-
-    for image_no in [0, 1]:
-        filter_condition = (df["has_multiple_value"]) & (df["_idx"] == image_no)
-        print(np.sum(filter_condition))
-        batches_with_duplicate[image_no] = df["batch"][filter_condition].values.tolist()
-        rows_to_fix_for_duplicate[image_no] = df["num_rows_annotated"][filter_condition].values.tolist()
-        print(f"Number of batches with duplicate in image {image_no} {len(batches_with_duplicate[image_no])} ")
-        print(f"Number of rows for image {image_no} {rows_to_fix_for_duplicate[image_no]}")
-
-    if len(batches_with_duplicate[0]) + len(batches_with_duplicate[1]) == 0:
-        return None, None, None, None
-
-    epoch_step_dict = dict()
-    for image_no in [0, 1]:
-        rows_dict=defaultdict(list)
-        for _batch, row in zip(batches_with_duplicate[image_no], rows_to_fix_for_duplicate[image_no]):
-            rows_dict[_batch].append(row)
-
-        # Initialize the dictionary
-        for _batch in rows_dict.keys():
-            epoch_step_dict[_batch] = [[], []]
-
-        for _batch, rows in rows_dict.items():
-            epoch_step_dict[_batch][image_no] = rows
+def get_corrections_for_de_duping(df, exp_config, filter_column):
+    epoch_step_dict = defaultdict()
+    for _epoch in range(5):
+        for _step in range(3):
+            _batch = _epoch * 935 + _step * 300
+            batch_filter = df["batch"] == _batch
+            rows_to_annotate_all_images = list()
+            for image_no in [0, 1]:
+                filter_condition = (batch_filter & (df[filter_column]) & (df["_idx"] == image_no))
+                rows_to_correct = df["num_rows_annotated"][filter_condition].values.tolist()
+                rows_to_annotate_all_images.append(rows_to_correct)
+            if len(rows_to_annotate_all_images[0]) + len(rows_to_annotate_all_images[1]) > 0:
+                epoch_step_dict[_batch] = rows_to_annotate_all_images
 
     corrected_text_all_images = show_image_and_get_annotations(epoch_step_dict, exp_config)
-    return corrected_text_all_images, batches_with_duplicate, rows_to_fix_for_duplicate, epoch_step_dict
+    return corrected_text_all_images, epoch_step_dict
 
 
 """
@@ -348,7 +300,7 @@ Get the annotations for highlighted rows and return the result
 """
 
 
-def show_image_and_get_annotations(epoch_step_dict, exp_config, start_eval_batch=0, end_eval_batch=2):
+def show_image_and_get_annotations(epoch_step_dict, exp_config):
     corrected_text_all_images = defaultdict(list)
 
     for _batch in epoch_step_dict.keys():
@@ -358,7 +310,9 @@ def show_image_and_get_annotations(epoch_step_dict, exp_config, start_eval_batch
                                                 epoch + 1,
                                                 (step * exp_config.eval_interval) - 1)
         for _idx in [0, 1]:
+            print(_idx)
             rows_to_annotate = epoch_step_dict[_batch][_idx]
+            print(f"batch {_batch}  image {_idx} {rows_to_annotate}")
             left, top = (0, 0)
             right, bottom = (222, 28)
             height = bottom - top
@@ -370,7 +324,6 @@ def show_image_and_get_annotations(epoch_step_dict, exp_config, start_eval_batch
             image_to_show = im.copy()
             cv2.rectangle(image_to_show, (left, top), (right, bottom), (0, 0, 255), 2)
             cv2.imshow("Image", image_to_show)
-            k = 0
             text_list = []
             for num_rows_annotated in rows_to_annotate:
                 image_to_show = im.copy()
@@ -443,6 +396,48 @@ def combine_annotation_sessions(keys: list, base_path: str, max_epoch: int):
 """ Verify if there is duplicate annotations for the same combination of ( batch, image_no, row_number_with_image )"""
 
 
+def save_manually_de_duped_json(manually_de_duped_file,
+                                corrected_text_all_images,
+                                epoch_step_dict):
+    # Save manually corrected results to a json file
+    manually_de_duped = dict()
+    if corrected_text_all_images is not None:
+        manually_de_duped["corrected_text_all_images"] = corrected_text_all_images
+    # if batches_with_duplicate is not None:
+    #     manually_de_duped["batches_with_duplicate"] = batches_with_duplicate
+    # if rows_to_fix_for_duplicate is not None:
+    #     manually_de_duped["rows_to_fix_for_duplicate"] = rows_to_fix_for_duplicate
+    # epoch_step_dict key is batch number  and value is list of list
+    if epoch_step_dict is not None:
+        manually_de_duped["epoch_step_dict"] = epoch_step_dict
+    with open(manually_de_duped_file, "w") as json_file:
+        json.dump(manually_de_duped, json_file)
+    return manually_de_duped
+
+
+def get_manual_annotation(manually_de_duped_file, df, exp_config, filter_column):
+    if os.path.isfile(manually_de_duped_file):
+
+        with open(manually_de_duped_file, "r") as json_file:
+            manually_de_duped = json.load(json_file)
+
+        if manually_de_duped is not None and len(manually_de_duped) > 0:
+            corrected_text_all_images = manually_de_duped["corrected_text_all_images"]
+            epoch_step_dict = manually_de_duped["epoch_step_dict"]
+        else:
+            corrected_text_all_images = None
+            epoch_step_dict = None
+    else:
+        corrected_text_all_images, epoch_step_dict = get_corrections_for_de_duping(
+            df,
+            exp_config,
+            filter_column)
+        save_manually_de_duped_json(manually_de_duped_file,
+                                    corrected_text_all_images,
+                                    epoch_step_dict)
+    return corrected_text_all_images, epoch_step_dict
+
+
 def combine_multiple_annotations(data_dict, exp_config, num_rows, run_id):
     keys_to_remove = []
     for key in data_dict.keys():
@@ -455,38 +450,13 @@ def combine_multiple_annotations(data_dict, exp_config, num_rows, run_id):
                                   )
         annotation_path = base_path + key
         df = data_dict[key][KEY_FOR_DATA_FRAME]
+
         # See if manually de-duped file already exists. If yes go to the next annotator
-
         manually_de_duped_file = os.path.join(annotation_path, "manually_de_duped.json")
-        if os.path.isfile(manually_de_duped_file):
-
-            with open(manually_de_duped_file, "r") as json_file:
-                manually_de_duped = json.load(json_file)
-
-            if manually_de_duped is not None and len(manually_de_duped) > 0:
-                corrected_text_all_images = manually_de_duped["corrected_text_all_images"]
-                batches_with_duplicate = manually_de_duped["batches_with_duplicate"]
-                rows_to_fix_for_duplicate = manually_de_duped["rows_to_fix_for_duplicate"]
-                epoch_step_dict = manually_de_duped["epoch_step_dict"]
-            else:
-                epoch_step_dict = None
-        else:
-            corrected_text_all_images, batches_with_duplicate, rows_to_fix_for_duplicate, epoch_step_dict = get_corrections_for_de_duping(
-                df, exp_config)
-            # Save manually corrected results to a json file
-            manually_de_duped = dict()
-            if corrected_text_all_images is not None:
-                manually_de_duped["corrected_text_all_images"] = corrected_text_all_images
-            if batches_with_duplicate is not None:
-                manually_de_duped["batches_with_duplicate"] = batches_with_duplicate
-            if rows_to_fix_for_duplicate is not None:
-                manually_de_duped["rows_to_fix_for_duplicate"] = rows_to_fix_for_duplicate
-            # epoch_step_dict key is batch number  and value is list of list
-            if epoch_step_dict is not None:
-                manually_de_duped["epoch_step_dict"] = epoch_step_dict
-            with open(manually_de_duped_file, "w") as json_file:
-                json.dump(manually_de_duped, json_file)
-
+        corrected_text_all_images, epoch_step_dict = get_manual_annotation(manually_de_duped_file,
+                                                                           df,
+                                                                           exp_config,
+                                                                           "has_multiple_value")
         # If no manual correction, return the data_dict as it is
         if epoch_step_dict is None or len(epoch_step_dict) > 0:
             if df.shape[0] != num_rows:
@@ -499,7 +469,7 @@ def combine_multiple_annotations(data_dict, exp_config, num_rows, run_id):
             step = (int(_batch) % 935 // 300)
             for image_no in [0, 1]:
                 column_name = f"text_{key}"
-                num_rows_annotated = rows_to_fix_for_duplicate[image_no]
+                num_rows_annotated = epoch_step_dict[_batch][image_no]
                 corrected_text = corrected_text_all_images[_batch][image_no]
                 df.loc[(df["has_multiple_value"]) & (df["epoch"] == epoch) & (df["step"] == step) & (
                 df["num_rows_annotated"].isin(num_rows_annotated)) & (
@@ -510,16 +480,11 @@ def combine_multiple_annotations(data_dict, exp_config, num_rows, run_id):
         # put the de-duped data frame back into data_dict
         if df.shape[0] == num_rows:
             data_dict[key][KEY_FOR_DATA_FRAME] = df
-            data_dict[key]["rows_to_fix_for_duplicate"] = rows_to_fix_for_duplicate
-            data_dict[key]["batch_with_duplicate"] = batches_with_duplicate
         else:
             print(f"Key {key} have {df.shape[0]} rows. Expected {num_rows} rows. Skipping this key")
             keys_to_remove.append(key)
     for key in keys_to_remove:
         del data_dict[key]
-
-            # Save the de-duped data frame
-        # data_dict[key][KEY_FOR_DATA_FRAME].to_csv(file_name, index=False)
 
     return data_dict
 
