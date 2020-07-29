@@ -1,11 +1,12 @@
 import os
-from clearn.analysis import combine_annotation_sessions, combine_multiple_annotations
-from clearn.analysis import KEY_FOR_DATA_FRAME, get_combined_data_frame
-from clearn.analysis import get_manual_annotation, get_combined_annotation
+from clearn.utils.annotation_utils import combine_annotation_sessions, combine_multiple_annotations
+from clearn.utils.annotation_utils import KEY_FOR_DATA_FRAME, get_combined_data_frame
+from clearn.utils.annotation_utils import get_manual_annotation, get_combined_annotation
 from clearn.config import get_base_path, ExperimentConfig, check_and_create_folder, get_keys
 
 
 # Initialize variables
+
 debug = False
 annotator = "SUNIL"
 
