@@ -43,18 +43,17 @@ def cluster_and_decode_latent_vectors(num_clusters, latent_vectors, exp_config):
 
 def display_cluster_center_images(decoded_images,
                                   image_filename,
-                                  cluster_centers,
-                                  exp_config,
-                                  run_id):
+                                  cluster_centers
+                                  ):
     colormap = "Greys"
     fig = plt.figure()
     fig.tight_layout()
     num_cols = 4
     num_clusters = cluster_centers.shape[0]
     num_rows = math.ceil(num_clusters / num_cols)
-    fig.suptitle(
-        f"Decoded Cluster Centers. \nClustered the latent vectors of training set N_3={exp_config.num_units[2]}"
-        f" z_dim={exp_config.Z_DIM} run_id={run_id + 1}")
+    # fig.suptitle(
+    #     f"Decoded Cluster Centers. \nClustered the latent vectors of training set N_3={exp_config.num_units[2]}"
+    #     f" z_dim={exp_config.Z_DIM} run_id={run_id + 1}")
     for i in range(cluster_centers.shape[0]):
         ax = fig.add_subplot(num_rows, num_cols, i + 1)
         ax.imshow(np.squeeze(decoded_images[i]), cmap=colormap)
@@ -92,14 +91,12 @@ def assign_manual_label_and_confidence(df,
         if isinstance(manual_label, tuple) or isinstance(manual_label, list):
             _, cluster = get_cluster(annotate_cluster, cluster_group_dict)
             for _cluster in cluster.next_level_clusters["good_clusters"]:
-                print(cluster.id, _cluster.id)
                 _distance_df = df[f"distance_level_2_{cluster.id}_{_cluster.id}"]
                 _manual_label = _cluster.manual_annotation.label
                 if isinstance(_manual_label, tuple) or isinstance(_manual_label, list):
                     # TODO add this code
                     pass
                 elif _manual_label != -1:
-                    print("Manual_label", manual_label)
                     indices = np.where((np.asarray(cluster_labels) == cluster.id)
                                        & (df[cluster_column_name_2].values == _cluster.id))[0]
                     df["manual_annotation"].iloc[indices] = _manual_label
@@ -125,12 +122,10 @@ def assign_manual_label_and_confidence(df,
             # unknown, check if second level clustering is done or not
             _, cluster = get_cluster(annotate_cluster, cluster_group_dict)
             print(type(cluster.next_level_clusters))
-            print(list(cluster.next_level_clusters.keys() ))
+            print(list(cluster.next_level_clusters.keys()))
 
             for cluster_group_name, cluster_group in cluster.next_level_clusters.items():
-                print(len(cluster_group.cluster_list))
                 for _cluster in cluster_group:
-                    print(_cluster.id, _cluster.id,_cluster.manual_annotation)
                     _distance_df = df[f"distance_level_2_{cluster.id}_{_cluster.id}"]
                     _manual_label = _cluster.manual_annotation.label
                     if isinstance(_manual_label, tuple) or isinstance(_manual_label, list):
@@ -183,7 +178,6 @@ def get_cluster_groups(manual_labels,
 
     cluster_groups_dict = dict()
     for cluster_num, cluster_center_label in enumerate(manual_labels):
-        print(cluster_num)
         if parent_indices is None:
             _df = get_samples_for_cluster(df, cluster_num, cluster_column_name)
             indices = np.where(df[cluster_column_name].values == cluster_num)
@@ -198,11 +192,9 @@ def get_cluster_groups(manual_labels,
             "cluster_data_frame": _df,
             "whole_data_frame": df
            }
-        print(f"cluster_center_label {cluster_center_label} confidence {manual_confidence[cluster_num]}")
         if isinstance(cluster_center_label, tuple) or isinstance(cluster_center_label, list):
             # impure cluster
             # create an impure clusterGroup
-            print("Impure cluster")
             manual_annotation = ManualAnnotation(cluster_center_label,
                                                  manual_confidence[cluster_num])
             cluster = Cluster(cluster_id=cluster_num,
@@ -215,24 +207,21 @@ def get_cluster_groups(manual_labels,
             else:
                 cluster_groups_dict["impure_cluster"] = ClusterGroup("impure_cluster", [cluster])
         elif cluster_center_label == -1:
-            print("unknown cluster")
             # unknown cluster
             manual_annotation = ManualAnnotation(cluster_center_label, manual_confidence[cluster_num])
             cluster = Cluster(cluster_id=cluster_num,
                               name=f"cluster_{cluster_num}",
                               cluster_details=cluster_details,
                               level=1,
-                              manual_annotation = manual_annotation
-                             )
+                              manual_annotation=manual_annotation
+                              )
             if "unknown_cluster" in cluster_groups_dict.keys():
-                print("Adding to ",cluster_groups_dict["unknown_cluster"])
                 cluster_groups_dict["unknown_cluster"].add_cluster(cluster)
             else:
                 cluster_groups_dict["unknown_cluster"] = ClusterGroup("unknown_cluster", [cluster])
             # unknown cluster
         else:
             # good/average/low confidence
-            print("pure cluster")
             manual_annotation = ManualAnnotation(cluster_center_label, manual_confidence[cluster_num])
             cluster = Cluster(cluster_id=cluster_num,
                               name="cluster_".format(cluster_num),

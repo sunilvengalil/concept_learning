@@ -4,7 +4,10 @@
       <w>dataset</w>
       <w>datasets</w>
       <w>kmeans</w>
+      <w>loglikelihood</w>
       <w>orthogonalize</w>
+      <w>pred</w>
+      <w>tensorflow</w>
     </words>
   </dictionary>
 </component>

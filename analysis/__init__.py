@@ -1,3 +1,10 @@
+#Column names in annotated csv file
+CSV_COL_NAME_EPOCH = "epoch"
+CSV_COL_NAME_STEP = "step"
+CSV_COL_NAME_IMAGE_ID = "_idx"
+CSV_COL_NAME_ROW_ID_WITHIN_IMAGE = "num_rows_annotated"
+
+
 class ManualAnnotation:
     # All intervals are half open which is closed on lower bound and open on upper bound
     confidence_intervals = {"low_confidences_clusters": (0, 0.35),
@@ -41,11 +48,12 @@ class Cluster:
         self.next_level_clusters = ClusterGroup("Clusters_level_{}".format(level))
 
     def set_next_level_clusters(self, cluster_group_dict):
+        #TODO ***IMPORTANT***  Create  Cluster Group object from dict.
         self.next_level_clusters = cluster_group_dict
 
     def next_lever_cluster_count(self):
         num_clusters = 0
-        for k,v in self.next_level_clusters.items():
+        for k, v in self.next_level_clusters.items():
             num_clusters += len(v.cluster_list)
         return num_clusters
 
