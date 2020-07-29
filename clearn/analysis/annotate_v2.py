@@ -4,8 +4,8 @@ import argparse
 import os
 import json
 
-from config import ExperimentConfig
-from utils.dir_utils import get_eval_result_dir
+from clearn.config import ExperimentConfig
+from clearn.utils.dir_utils import get_eval_result_dir
 
 # annotator = "ARYA"
 # annotator = "MANJU"

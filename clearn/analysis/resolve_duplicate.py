@@ -1,8 +1,8 @@
 import os
 
-from analysis.annotation_utils import combine_annotation_sessions, combine_multiple_annotations
-from analysis.annotation_utils import KEY_FOR_DATA_FRAME
-from config import get_base_path, ExperimentConfig, check_and_create_folder
+from clearn.analysis import combine_annotation_sessions, combine_multiple_annotations
+from clearn.analysis import KEY_FOR_DATA_FRAME
+from clearn.config import get_base_path, ExperimentConfig, check_and_create_folder
 
 # Initialize variables
 debug = False

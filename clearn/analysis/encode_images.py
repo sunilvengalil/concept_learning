@@ -1,8 +1,8 @@
 import os
 import pandas as pd
 import numpy as np
-from utils.utils import get_latent_vector_column
-from config.common_path import get_encoded_csv_file
+from clearn.utils.utils import get_latent_vector_column
+from clearn.config.common_path import get_encoded_csv_file
 
 
 def encode_images(model, train_val_data_iterator, exp_config, epoch, dataset_type="train"):

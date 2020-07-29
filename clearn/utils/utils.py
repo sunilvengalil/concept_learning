@@ -12,7 +12,7 @@ import cv2
 import os
 import imageio
 from collections import defaultdict
-from common.data_loader import load_test_raw_data
+from clearn.utils.data_loader import load_test_raw_data
 
 
 def load_docs_train(size):

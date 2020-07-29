@@ -368,7 +368,7 @@ def load_train_val(data_dir, shuffle=False,
 
 if __name__ == "__main__":
     # Test cases for load_images
-    from config import ExperimentConfig
+    from clearn.config import ExperimentConfig
     N_3 = 16
     N_2 = 128
     Z_DIM = 20

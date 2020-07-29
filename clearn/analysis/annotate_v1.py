@@ -2,7 +2,7 @@ import csv
 import cv2
 import argparse
 import os
-from config import ExperimentConfig
+from clearn.config import ExperimentConfig
 import json
 #annotator = "ARYA"
 # annotator = "MANJU"

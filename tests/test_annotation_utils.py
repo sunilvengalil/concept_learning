@@ -1,6 +1,6 @@
 import unittest
-from config import ExperimentConfig, get_base_path
-from analysis.annotation_utils import combine_annotation_sessions, combine_multiple_annotations
+from clearn.config import ExperimentConfig, get_base_path
+from clearn.utils.annotation_utils import combine_annotation_sessions, combine_multiple_annotations
 
 
 class ResolveDuplicate(unittest.TestCase):

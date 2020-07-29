@@ -1,5 +1,4 @@
 import pandas as pd
-from pandas import DataFrame
 import numpy as np
 from sklearn.metrics import accuracy_score
 import os
@@ -9,14 +8,12 @@ import matplotlib
 from matplotlib import pyplot as plt
 from collections import defaultdict
 
-from config import ExperimentConfig
-
-from analysis import CSV_COL_NAME_EPOCH, CSV_COL_NAME_STEP, CSV_COL_NAME_IMAGE_ID, CSV_COL_NAME_ROW_ID_WITHIN_IMAGE
+from clearn.analysis import CSV_COL_NAME_EPOCH, CSV_COL_NAME_STEP, CSV_COL_NAME_IMAGE_ID, CSV_COL_NAME_ROW_ID_WITHIN_IMAGE
 # import ROOT_PATH, z_dim, N_3, N_2, exp_config, run_id, max_epoch
 
-from config import get_base_path
-from utils.dir_utils import get_eval_result_dir
-from utils.pandas_utils import space_separated_string, has_multiple_value
+from clearn.config import get_base_path
+from clearn.utils.dir_utils import get_eval_result_dir
+from clearn.utils.pandas_utils import space_separated_string, has_multiple_value
 
 KEY_FOR_DATA_FRAME = "data_frame"
 

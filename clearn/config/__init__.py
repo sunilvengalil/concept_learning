@@ -1,6 +1,6 @@
 import os
-from utils.dir_utils import check_and_create_folder
-from common.data_loader import TrainValDataIterator
+from clearn.utils.dir_utils import check_and_create_folder
+from clearn.utils.data_loader import TrainValDataIterator
 
 WEIGHTS = "Weights"
 BIAS = "Bias"

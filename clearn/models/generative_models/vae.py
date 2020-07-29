@@ -5,16 +5,16 @@ import time
 import numpy as np
 
 import pandas as pd
-from utils import prior_factory as prior
-from utils.utils import save_image
-from utils.dir_utils import get_eval_result_dir
+from clearn.utils import prior_factory as prior
+from clearn.utils.utils import save_image
+from clearn.utils.dir_utils import get_eval_result_dir
 
 import tensorflow as tf
-from tensorflow_wrappers.layers import conv2d, linear, deconv2d, lrelu
+from clearn.utils.tensorflow_wrappers import conv2d, linear, deconv2d, lrelu
 
 
-class ClassifierModel(object):
-    _model_name = "ClassifierModel"
+class VAE(object):
+    _model_name = "VAE"
 
     def __init__(self, sess, epoch, batch_size,
                  z_dim, dataset_name, beta=5,
@@ -25,8 +25,7 @@ class ClassifierModel(object):
                  train_val_data_iterator=None,
                  read_from_existing_checkpoint=True,
                  check_point_epochs=None,
-                 supervise_weight=0,
-                 reconstruction_weight=1
+                 supervise_weight=0
                  ):
         self.sess = sess
         self.dataset_name = dataset_name
@@ -38,7 +37,6 @@ class ClassifierModel(object):
         self.result_dir = result_dir
         self.beta = beta
         self.supervise_weight = supervise_weight
-        self.reconstruction_weight = reconstruction_weight
         if dataset_name == 'mnist' or dataset_name == 'fashion-mnist':
             # parameters
             self.label_dim = 10  # one hot encoding for 10 classes
@@ -74,9 +72,9 @@ class ClassifierModel(object):
         self.sample_z = prior.gaussian(self.batch_size, self.z_dim)
         self.max_to_keep = 20
 
-        self.counter, self.start_batch_id, self.start_epoch = self._initialize(train_val_data_iterator,
-                                                                               read_from_existing_checkpoint,
-                                                                               check_point_epochs)
+        self.counter, self.start_batch_id, self.start_epoch = self.initialize(train_val_data_iterator,
+                                                                              read_from_existing_checkpoint,
+                                                                              check_point_epochs)
 
 #   Gaussian Encoder
     def _encoder(self, x, reuse=False):
@@ -158,20 +156,20 @@ class ClassifierModel(object):
         # loss
         marginal_likelihood = tf.reduce_sum(self.inputs * tf.log(self.out) +
                                             (1 - self.inputs) * tf.log(1 - self.out),
-                                            [1, 2])
-        kl = 0.5 * tf.reduce_sum(tf.square(self.mu) +
-                                 tf.square(self.sigma) -
-                                 tf.log(1e-8 + tf.square(self.sigma)) - 1, [1])
+                                             [1, 2])
+        # marginal_likelihood = -tf.losses.mean_squared_error(self.inputs, self.out)
+        # marginal_likelihood = tf.reduce_sum(tf.losses.mean_squared_error(self.inputs, self.out), [1, 2])
+        kl_divergence = 0.5 * tf.reduce_sum(tf.square(self.mu) +
+                                            tf.square(self.sigma) -
+                                            tf.log(1e-8 + tf.square(self.sigma)) - 1,
+                                            [1])
 
         self.neg_loglikelihood = -tf.reduce_mean(marginal_likelihood)
-        self.KL_divergence = tf.reduce_mean(kl)
+        self.KL_divergence = tf.reduce_mean(kl_divergence)
 
-        # evidence_lower_bound = -self.neg_loglikelihood - self.beta * self.KL_divergence
+        evidence_lower_bound = -self.neg_loglikelihood - self.beta * self.KL_divergence
 
-        self.loss = self.reconstruction_weight * self.neg_loglikelihood + \
-                    self.beta * self.KL_divergence + \
-                    self.supervise_weight * self.supervised_loss
-        # self.loss = -evidence_lower_bound + self.supervise_weight * self.supervised_loss
+        self.loss = -evidence_lower_bound + self.supervise_weight * self.supervised_loss
 
         """ Training """
         # optimizers
@@ -185,12 +183,13 @@ class ClassifierModel(object):
         # for test
         self.fake_images = self.decoder(self.standard_normal, reuse=True)
 
-        """ Summary """
-        tf.summary.scalar("Negative Log Likelihood", self.neg_loglikelihood)
-        tf.summary.scalar("K L Divergence", self.KL_divergence)
-        tf.summary.scalar("Supervised Loss", self.supervised_loss)
 
-        tf.summary.scalar("Total Loss", self.loss)
+        """ Summary """
+        nll_sum = tf.summary.scalar("Negative Log Likelihood", self.neg_loglikelihood)
+        kl_sum = tf.summary.scalar("K L Divergence", self.KL_divergence)
+        supervised_loss = tf.summary.scalar("Supervised Loss", self.supervised_loss)
+
+        loss_sum = tf.summary.scalar("Total Loss", self.loss)
 
         # final summary operations
         self.merged_summary_op = tf.summary.merge_all()
@@ -226,7 +225,7 @@ class ClassifierModel(object):
                                self.is_manual_annotated: manual_labels[:, 10],
                                self.standard_normal: batch_z})
 
-                print("Epoch: [%2d] [%4d/%4d] time: %4.4f, loss: %.8f, nll: %.8f, kl: %.8f, supervised_loss: %.4f"
+                print("Epoch: [%2d] [%4d/%4d] time: %4.4f, loss: %.8f, nll: %.8f, kl: %.8f, supervised_loss: %.4f"\
                       % (epoch, idx, num_batches_train, time.time() - start_time, loss, nll_loss, kl_loss,
                          supervised_loss))
                 counter += 1
@@ -251,9 +250,9 @@ class ClassifierModel(object):
         # save model for final step
         self.save(self.checkpoint_dir, counter)
 
-    def _initialize(self, train_val_data_iterator=None,
-                    restore_from_existing_checkpoint=True,
-                    check_point_epochs=None):
+    def initialize(self, train_val_data_iterator=None,
+                   restore_from_existing_checkpoint=True,
+                   check_point_epochs=None):
         # saver to save model
         self.saver = tf.train.Saver(max_to_keep=50)
         # summary writer
@@ -265,38 +264,35 @@ class ClassifierModel(object):
         if train_val_data_iterator is not None:
             num_batches_train = train_val_data_iterator.get_num_samples("train") // self.batch_size
 
+        could_load = False
         if restore_from_existing_checkpoint:
             # restore check-point if it exits
-            could_load, checkpoint_counter = self._load(self.checkpoint_dir,
-                                                        check_point_epochs=check_point_epochs)
-            if could_load:
-                if train_val_data_iterator is not None:
-                    start_epoch = int(checkpoint_counter / num_batches_train)
-                    start_batch_id = checkpoint_counter - start_epoch * num_batches_train
-                else:
-                    start_epoch = -1
-                    start_batch_id = -1
-                counter = checkpoint_counter
-                print(" [*] Load SUCCESS")
+            could_load, checkpoint_counter = self.load(self.checkpoint_dir,
+                                                       check_point_epochs=check_point_epochs)
+        if could_load:
+            if train_val_data_iterator is not None:
+                start_epoch = int(checkpoint_counter / num_batches_train)
+                start_batch_id = checkpoint_counter - start_epoch * num_batches_train
             else:
-                start_epoch = 0
-                start_batch_id = 0
-                counter = 1
-                print(" [!] Load failed...")
+                start_epoch = -1
+                start_batch_id = -1
+            counter = checkpoint_counter
+            print(" [*] Load SUCCESS")
         else:
-            counter = 1
             start_epoch = 0
             start_batch_id = 0
+            counter = 1
+            print(" [!] Load failed...")
         return counter, start_batch_id, start_epoch
 
-    def evaluate(self, epoch, step, counter, val_data_iterator):
+    def evaluate(self, epoch, step, counter, val_data_iterator ):
         print("Running evaluation after epoch:{:02d} and step:{:04d} ".format(epoch, step))
         # evaluate reconstruction loss
         start_eval_batch = 0
         reconstructed_images = []
         num_eval_batches = val_data_iterator.get_num_samples("val") // self.batch_size
         for _idx in range(start_eval_batch, num_eval_batches):
-            batch_eval_images, batch_eval_labels, manual_labels = val_data_iterator.get_next_batch("val")
+            batch_eval_images, batch_eval_labels,manual_labels = val_data_iterator.get_next_batch("val")
             integer_label = np.asarray([np.where(r == 1)[0][0] for r in batch_eval_labels]).reshape([64, 1])
             batch_eval_labels = np.concatenate([batch_eval_labels, integer_label], axis=1)
             columns = [str(i) for i in range(10)]
@@ -307,12 +303,11 @@ class ClassifierModel(object):
                         index=False)
 
             batch_z = prior.gaussian(self.batch_size, self.z_dim)
-            reconstructed_image, summary = self.sess.run([self.out,
-                                                          self.merged_summary_op],
-                                                         feed_dict={self.inputs: batch_eval_images,
-                                                                    self.labels: manual_labels[:, :10],
-                                                                    self.is_manual_annotated: manual_labels[:, 10],
-                                                                    self.standard_normal: batch_z})
+            reconstructed_image, summary = self.sess.run([self.out, self.merged_summary_op],
+                                                        feed_dict={self.inputs: batch_eval_images,
+                                                                   self.labels: manual_labels[:, :10],
+                                                                   self.is_manual_annotated: manual_labels[:, 10],
+                                                        self.standard_normal: batch_z})
 
             self.writer_v.add_summary(summary, counter)
 
@@ -320,7 +315,7 @@ class ClassifierModel(object):
             tot_num_samples = min(self.sample_num, self.batch_size)
             manifold_h = tot_num_samples // manifold_w
             reconstructed_images.append(reconstructed_image[:manifold_h * manifold_w, :, :, :])
-        print(f"epoch:{epoch} step:{step}")
+        print("epoch:{} step:{}".format(epoch,step))
         reconstructed_dir = get_eval_result_dir(self.result_dir, epoch, step)
         print(reconstructed_dir)
 
@@ -340,7 +335,7 @@ class ClassifierModel(object):
     def save(self, checkpoint_dir, step):
         self.saver.save(self.sess, os.path.join(checkpoint_dir, self._model_name + '.model'), global_step=step)
 
-    def _load(self, checkpoint_dir, check_point_epochs=None):
+    def load(self, checkpoint_dir, check_point_epochs=None):
         import re
         # saver to save model
         self.saver = tf.train.Saver(max_to_keep=20)
@@ -361,6 +356,25 @@ class ClassifierModel(object):
             print(" [*] Failed to find a checkpoint")
             return False, 0
 
+    def restore_from_checkpoint(self):
+
+        # initialize all variables
+        tf.global_variables_initializer().run()
+
+        # graph inputs for visualize training results
+        # saver to save model
+        self.saver = tf.train.Saver(max_to_keep=self.max_to_keep)
+
+        # summary writer
+        self.writer = tf.summary.FileWriter(self.log_dir + '/' + self._model_name, self.sess.graph)
+
+        # restore check-point if it exits
+        could_load, checkpoint_counter = self.load(self.checkpoint_dir)
+        if could_load:
+            print(" [*] Load SUCCESS")
+        else:
+            print(" [!] Load failed...")
+
     def generate_image(self, mu, sigma):
         self.inference()
         # original_samples = self.sess.run(self.images, feed_dict={self.mu: mu,self.sigma:sigma})
@@ -368,11 +382,17 @@ class ClassifierModel(object):
         return original_samples
 
     def encode(self, images):
-        mu, sigma, z = self.sess.run([self.mu, self.sigma, self.z],
-                                     feed_dict={self.inputs: images})
+        mu, sigma,z = self.sess.run([self.mu, self.sigma, self.z], feed_dict={self.inputs: images})
         return mu, sigma, z
 
     def get_encoder_weights_bias(self):
+
+        #     #TODO new naming format change after migrating models
+        layer_param_names = []
+        # for layer in range(self.num_encoder_units):
+        #     layer_names.append("{}_{:2d}_{}".format(LAYER_NAME_PREFIX,layer,WEIGHTS))
+        #     layer_names.append("{}_{:2d}_{}".format(LAYER_NAME_PREFIX, layer, BIAS))
+
         name_w_1 = "encoder/en_conv1/w:0"
         name_w_2 = "encoder/en_conv2/w:0"
         name_w_3 = "encoder/en_fc3/Matrix:0"
@@ -383,15 +403,7 @@ class ClassifierModel(object):
         name_b_3 = "encoder/en_fc3/bias:0"
         name_b_4 = "encoder/en_fc4/bias:0"
 
-        layer_param_names = [name_w_1,
-                             name_b_1,
-                             name_w_2,
-                             name_b_2,
-                             name_w_3,
-                             name_b_3,
-                             name_w_4,
-                             name_b_4
-                             ]
+        layer_param_names =[name_w_1, name_b_1, name_w_2, name_b_2, name_w_3, name_b_3, name_w_4, name_b_4]
 
         default_graph = tf.get_default_graph()
         params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
@@ -427,7 +439,7 @@ class ClassifierModel(object):
         self.sample_z = prior.gaussian(self.batch_size, self.z_dim)
 
         # restore check-point if it exits
-        could_load, checkpoint_counter = self._load(self.checkpoint_dir)
+        could_load, checkpoint_counter = self.load(self.checkpoint_dir)
         if could_load:
             print(" [*] Load SUCCESS")
         else:

@@ -1,13 +1,13 @@
 import tensorflow as tf
 import argparse
-from analysis.encode_images import encode_images
+from clearn.analysis.encode_images import encode_images
 import json
 import os
 
-from classify.classifier import ClassifierModel
-from common.data_loader import TrainValDataIterator
-from utils.utils import show_all_variables
-from config import ExperimentConfig
+from clearn.models.classify.classifier import ClassifierModel
+from clearn.utils.data_loader import TrainValDataIterator
+from clearn.utils.utils import show_all_variables
+from clearn.config import ExperimentConfig
 create_split = False
 
 
@@ -118,10 +118,10 @@ if __name__ == '__main__':
     N_1 = 64
     Z_DIM = 20
     run_id = 5
-    num_epochs = 6
+    num_epochs = 1
     manual_labels_config = TrainValDataIterator.USE_CLUSTER_CENTER  # Possible values "USE_ACTUAL" and "USE_CLUSTER_CENTER"
 
-    ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
+    ROOT_PATH = "/Users/prathyushsp/concept_learning_old/"
     _config = ExperimentConfig(ROOT_PATH, 4, Z_DIM, [N_1, N_2, N_3],
                                None,
                                confidence_decay_factor=5,

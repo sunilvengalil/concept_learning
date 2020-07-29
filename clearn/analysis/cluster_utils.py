@@ -1,13 +1,13 @@
 from sklearn.cluster import KMeans
 import tensorflow as tf
 import numpy as np
-from generative_models.vae import VAE
-from analysis.encode_decode import decode
+from clearn.models.generative_models.vae import VAE
+from clearn.analysis.encode_decode import decode
 import math
 from matplotlib import pyplot as plt
-from analysis import Cluster
-from analysis import ClusterGroup
-from analysis import ManualAnnotation
+from clearn.analysis import Cluster
+from clearn.analysis import ClusterGroup
+from clearn.analysis import ManualAnnotation
 
 
 def decode_latent_vectors(cluster_centers, exp_config):
