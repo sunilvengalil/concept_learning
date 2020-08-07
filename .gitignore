@@ -130,3 +130,6 @@ dmypy.json
 .idea/*
 /bin/
 /deactivate/
+.vscode
+.mypy_cache
+docker-stack.yml

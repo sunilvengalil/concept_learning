@@ -93,7 +93,7 @@
 
     <v-app-bar dark color="primary" app>
       <v-app-bar-nav-icon @click.stop="switchShowDrawer"></v-app-bar-nav-icon>
-      <v-toolbar-title v-text="appName"></v-toolbar-title>
+      <v-toolbar-title class="text-uppercase" style="letter-spacing: 0.1em" v-text="appName"></v-toolbar-title>
 
       <v-spacer></v-spacer>
 
@@ -188,3 +188,13 @@
     }
   }
 </script>
+
+<style>
+
+
+  /*.v-application .primary{*/
+  /*  background-color: #B01514!important;*/
+  /*  border-color: #B01514!important;*/
+  /*}*/
+
+</style>
