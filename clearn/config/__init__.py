@@ -122,6 +122,7 @@ class ExperimentConfig:
 
         self.TRAINED_MODELS_PATH = os.path.join(self.BASE_PATH, "trained_models/")
         self.PREDICTION_RESULTS_PATH = os.path.join(self.BASE_PATH, "prediction_results/")
+        self.reconstructed_images_path = os.path.join(self.PREDICTION_RESULTS_PATH,"reconstructed_images/")
         self.LOG_PATH = os.path.join(self.BASE_PATH, "logs/")
         self.ANALYSIS_PATH = os.path.join(self.BASE_PATH, "analysis/")
         paths = [self.root_path,
@@ -131,6 +132,7 @@ class ExperimentConfig:
                  self.DATASET_PATH,
                  self.TRAINED_MODELS_PATH,
                  self.PREDICTION_RESULTS_PATH,
+                 self.reconstructed_images_path,
                  self.LOG_PATH]
 
         if create:
