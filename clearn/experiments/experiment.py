@@ -116,12 +116,13 @@ if __name__ == '__main__':
     N_3 = 32
     N_2 = 128
     N_1 = 64
-    Z_DIM = 20
-    run_id = 5
-    num_epochs = 1
+    Z_DIM = 8
+    run_id = 1
+    num_epochs = 5
     manual_labels_config = TrainValDataIterator.USE_CLUSTER_CENTER  # Possible values "USE_ACTUAL" and "USE_CLUSTER_CENTER"
 
     ROOT_PATH = "/Users/prathyushsp/concept_learning_old/"
+    #ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
     _config = ExperimentConfig(ROOT_PATH, 4, Z_DIM, [N_1, N_2, N_3],
                                None,
                                confidence_decay_factor=5,
@@ -178,7 +179,8 @@ if __name__ == '__main__':
                                 checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
                                 result_dir=exp.config.PREDICTION_RESULTS_PATH,
                                 supervise_weight=exp.config.supervise_weight,
-                                reconstruction_weight=exp.config.reconstruction_weight
+                                reconstruction_weight=exp.config.reconstruction_weight,
+                                reconstructed_image_dir=exp.config.reconstructed_images_path
                                 )
         exp.model = model
         # show network architecture

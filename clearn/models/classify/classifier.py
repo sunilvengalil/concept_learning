@@ -6,7 +6,7 @@ import numpy as np
 
 import pandas as pd
 from clearn.utils import prior_factory as prior
-from clearn.utils.utils import save_image
+from clearn.utils.utils import save_image, save_single_image
 from clearn.utils.dir_utils import get_eval_result_dir
 
 import tensorflow as tf
@@ -26,7 +26,8 @@ class ClassifierModel(object):
                  read_from_existing_checkpoint=True,
                  check_point_epochs=None,
                  supervise_weight=0,
-                 reconstruction_weight=1
+                 reconstruction_weight=1,
+                 reconstructed_image_dir = None
                  ):
         self.sess = sess
         self.dataset_name = dataset_name
@@ -36,6 +37,7 @@ class ClassifierModel(object):
         self.log_dir = log_dir
         self.checkpoint_dir = checkpoint_dir
         self.result_dir = result_dir
+        self.reconstructed_image_dir = reconstructed_image_dir
         self.beta = beta
         self.supervise_weight = supervise_weight
         self.reconstruction_weight = reconstruction_weight
@@ -196,8 +198,6 @@ class ClassifierModel(object):
         self.merged_summary_op = tf.summary.merge_all()
 
     def train(self, train_val_data_iterator):
-
-        # counter, start_batch_id, start_epoch = self.initialize(train_val_data_iterator)
         counter = self.counter
         start_batch_id = self.start_batch_id
         start_epoch = self.start_epoch
@@ -295,6 +295,7 @@ class ClassifierModel(object):
         start_eval_batch = 0
         reconstructed_images = []
         num_eval_batches = val_data_iterator.get_num_samples("val") // self.batch_size
+        reconstructed_dir = get_eval_result_dir(self.result_dir, epoch, step)
         for _idx in range(start_eval_batch, num_eval_batches):
             batch_eval_images, batch_eval_labels, manual_labels = val_data_iterator.get_next_batch("val")
             integer_label = np.asarray([np.where(r == 1)[0][0] for r in batch_eval_labels]).reshape([64, 1])
@@ -313,6 +314,8 @@ class ClassifierModel(object):
                                                                     self.labels: manual_labels[:, :10],
                                                                     self.is_manual_annotated: manual_labels[:, 10],
                                                                     self.standard_normal: batch_z})
+            training_batch = epoch * 935 + _idx * self.batch_size
+            save_single_image(reconstructed_image, self.reconstructed_image_dir, epoch, step, training_batch,  _idx, self.batch_size)
 
             self.writer_v.add_summary(summary, counter)
 
@@ -327,6 +330,7 @@ class ClassifierModel(object):
         for _idx in range(start_eval_batch, num_eval_batches):
             file = "im_" + str(_idx) + ".png"
             save_image(reconstructed_images[_idx], [manifold_h, manifold_w], reconstructed_dir + file)
+
         val_data_iterator.reset_counter("val")
 
         print("Evaluation completed")
