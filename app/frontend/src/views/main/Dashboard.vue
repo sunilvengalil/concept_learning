@@ -8,116 +8,136 @@
                 <v-row>
                     <v-col class="text-center" cols="4">
                         <div>
-                            <img id="clip" src="@/assets/im_1.png"/>
-<!--                            <div id="rectangle"></div>-->
+                            <img id="clip" :src="currentImage"/>
+                            <!--                            <div id="rectangle"></div>-->
                         </div>
                     </v-col>
                     <v-col>
-                        <v-row><h2>Setting</h2></v-row>
-                        <v-form ref="form">
+                        <v-form ref="form" v-for="characterAnnotation in characterAnnotations"
+                                :key="characterAnnotation.id">
                             <v-row>
                                 <v-col cols="2">
-                                    <v-text-field v-model="first" label="Character" filled></v-text-field>
+                                    <v-text-field v-model="characterAnnotation.character" label="Character"
+                                                  filled></v-text-field>
                                 </v-col>
                                 <v-col>
                                     <v-slider
-                                            v-model="max"
+                                            v-model="characterAnnotation.probability"
                                             label="Probability"
                                             thumb-label="always"
                                     ></v-slider>
                                 </v-col>
 
                                 <v-col>
-                                    <v-slider v-model="max" label="Clarity" thumb-label="always">
+                                    <v-slider v-model="characterAnnotation.clarity" label="Clarity"
+                                              thumb-label="always">
                                     </v-slider>
-                                </v-col>
-                            </v-row>
-                            <v-row>
-                                <v-col cols="2">
-                                    <v-text-field v-model="first" label="Character" filled></v-text-field>
-                                </v-col>
-                                <v-col>
-                                    <v-slider
-                                            v-model="max"
-                                            label="Probability"
-                                            thumb-label="always"
-                                    ></v-slider>
                                 </v-col>
 
                                 <v-col>
-                                    <v-slider v-model="max" label="Clarity" thumb-label="always">
-                                    </v-slider>
-                                </v-col>
-                            </v-row>
-                            <v-row>
-                                <v-col cols="2">
-                                    <v-text-field v-model="first" label="Character" filled></v-text-field>
-                                </v-col>
-                                <v-col>
-                                    <v-slider
-                                            v-model="max"
-                                            label="Probability"
-                                            thumb-label="always"
-                                    ></v-slider>
-                                </v-col>
-
-                                <v-col>
-                                    <v-slider v-model="max" label="Clarity" thumb-label="always">
-                                    </v-slider>
-                                </v-col>
-                            </v-row>
-                            <v-row>
-                                <v-col cols="2">
-                                    <v-text-field v-model="first" label="Character" filled></v-text-field>
-                                </v-col>
-                                <v-col>
-                                    <v-slider
-                                            v-model="max"
-                                            label="Probability"
-                                            thumb-label="always"
-                                    ></v-slider>
-                                </v-col>
-
-                                <v-col>
-                                    <v-slider v-model="max" label="Clarity" thumb-label="always">
-                                    </v-slider>
+                                    <i v-if="characterAnnotation.showDelete" class="button-style mdi mdi-delete"
+                                       style="color: darkred"
+                                       v-on:click="deleteFn(characterAnnotation.id)"></i>
+                                    <i v-if="characterAnnotation.showAdd" class="button-style mdi mdi-plus-circle"
+                                       style="color: dodgerblue"
+                                       v-on:click="addFn(characterAnnotation.id)"></i>
                                 </v-col>
                             </v-row>
                         </v-form>
+
                     </v-col>
                 </v-row>
 
                 <!--                <div class="headline font-weight-light ma-5">Welcome {{ greetedUser }}</div>-->
             </v-card-text>
             <v-card-actions>
-                <v-btn to="/main/profile/view">Previous Image</v-btn>
-                <v-btn to="/main/profile/edit">Next Image</v-btn>
+                <!--                <v-btn to="/main/profile/view">Previous Image</v-btn>-->
+                <v-btn v-on:click="nextImage()">Next Image</v-btn>
                 <!--                <v-btn to="/main/profile/password">Change Password</v-btn>-->
             </v-card-actions>
         </v-card>
-
-        <!--    <v-card class="ma-3 pa-3">-->
-        <!--      <v-card-title primary-title>-->
-        <!--        <div class="headline primary&#45;&#45;text">Dashboard</div>-->
-        <!--      </v-card-title>-->
-        <!--      <v-card-text>-->
-        <!--        <div class="headline font-weight-light ma-5">Welcome {{ greetedUser }}</div>-->
-        <!--      </v-card-text>-->
-        <!--      <v-card-actions>-->
-        <!--        <v-btn to="/main/profile/view">View Profile</v-btn>-->
-        <!--        <v-btn to="/main/profile/edit">Edit Profile</v-btn>-->
-        <!--        <v-btn to="/main/profile/password">Change Password</v-btn>-->
-        <!--      </v-card-actions>-->
-        <!--    </v-card>-->
     </v-container>
 </template>
 
 <script lang="ts">
+  import uniqueId from "lodash.uniqueid";
   import { Component, Vue } from "vue-property-decorator";
   import { mainStore } from "@/store";
 
-  @Component
+  @Component({
+    components: {},
+    data() {
+      return {
+        characterAnnotations: [
+          { id: uniqueId(), character: "", probability: 100, clarity: 100, showDelete: false, showAdd: true },
+        ],
+        currentImage: require("@/assets/im1.png"),
+        currentImageCounter: 0,
+        imageFiles: [
+          require("@/assets/im1.png"),
+          require("@/assets/im2.png"),
+          require("@/assets/im3.png"),
+          require("@/assets/im4.png"),
+          require("@/assets/im5.png"),
+          require("@/assets/im6.png"),
+          require("@/assets/im7.png"),
+          require("@/assets/im8.png"),
+          require("@/assets/im9.png"),
+          require("@/assets/im10.png"),
+          require("@/assets/im11.png"),
+        ],
+      };
+    },
+  })
   export default class Dashboard extends Vue {
+    characterAnnotations: any;
+    currentImageCounter: any;
+    currentImage: any;
+    imageFiles: any;
+
+    addFn() {
+      if (this.characterAnnotations.length == 1) {
+        this.characterAnnotations[0].showDelete = true;
+      }
+      this.characterAnnotations[this.characterAnnotations.length - 1].showAdd = false;
+      this.characterAnnotations.push({
+        id: uniqueId(),
+        character: "",
+        probability: 100,
+        clarity: 100,
+        showDelete: true,
+        showAdd: true,
+      });
+    }
+
+    deleteFn(id) {
+      if (this.characterAnnotations.length > 1) {
+        this.characterAnnotations = this.characterAnnotations.filter(item => item.id !== id);
+      }
+      if (this.characterAnnotations.length == 1) {
+        this.characterAnnotations[0].showDelete = false;
+        this.characterAnnotations[0].showAdd = true;
+      }
+    }
+
+    nextImage() {
+      if (this.currentImageCounter >= this.imageFiles.length - 1) {
+        this.currentImageCounter = 0;
+      } else {
+        this.currentImageCounter += 1;
+      }
+      this.currentImage = this.imageFiles[this.currentImageCounter];
+      this.$notify({
+        group: "global",
+        type: "success",
+        title: "Info",
+        text: "Record Successfully stored",
+      });
+      this.characterAnnotations = [
+        { id: uniqueId(), character: "", probability: 100, clarity: 100, showDelete: false, showAdd: true },
+      ]
+    }
+
     get greetedUser() {
       const userProfile = mainStore.userProfile;
       if (userProfile && userProfile.full_name) {
@@ -147,11 +167,19 @@
 
 
     #clip {
-        position: absolute;
-        clip: rect(0, 120px, 30px, 0);
-        background-repeat: no-repeat;
-        background-size: 300px 100px;
+        position: relative;
+        max-width: 250px;
+        max-height: 150px;
+        /*clip: rect(0, 30px, 30px, 0);*/
+        /*background-repeat: no-repeat;*/
+        /*background-size: 300px 100px;*/
+        zoom: 200%;
         /* clip: shape(top, right, bottom, left); NB 'rect' is the only available option */
+    }
+
+    .button-style {
+        font-size: 2em;
+        padding: 10px
     }
 
 </style>

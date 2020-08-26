@@ -117,7 +117,7 @@ if __name__ == '__main__':
     N_2 = 128
     N_1 = 64
     Z_DIM = 8
-    run_id = 1
+    run_id = 7
     num_epochs = 5
     manual_labels_config = TrainValDataIterator.USE_CLUSTER_CENTER  # Possible values "USE_ACTUAL" and "USE_CLUSTER_CENTER"
 

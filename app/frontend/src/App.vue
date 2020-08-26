@@ -1,6 +1,7 @@
 <template>
   <div id="app">
     <v-app>
+      <notifications group="global" />
       <v-content v-if="loggedIn === null">
         <v-container class="fill-height">
           <v-row align="center" justify="center">
@@ -27,6 +28,9 @@
   import { Component, Vue } from "vue-property-decorator";
   import NotificationsManager from "@/components/NotificationsManager.vue";
   import { mainStore } from "@/store";
+  import Notifications from 'vue-notification';
+
+  Vue.use(Notifications);
 
   @Component({
     components: {
