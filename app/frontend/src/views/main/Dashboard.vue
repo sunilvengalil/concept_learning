@@ -79,8 +79,9 @@
     characterAnnotations: any;
 
     addFn() {
-      console.log(this.characterAnnotations.length)
-      console.log(this.characterAnnotations)
+      if (this.characterAnnotations.length == 1) {
+        this.characterAnnotations[0].showDelete=true;
+      }
       this.characterAnnotations[this.characterAnnotations.length-1].showAdd = false;
       this.characterAnnotations.push({
         id: uniqueId(),
