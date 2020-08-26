@@ -13,6 +13,7 @@
     "axios": "^0.19.2",
     "core-js": "^3.6.4",
     "http-status-codes": "^1.4.0",
+    "lodash.uniqueid": "^4.0.1",
     "register-service-worker": "^1.6.2",
     "roboto-fontface": "*",
     "vee-validate": "^3.2.5",
