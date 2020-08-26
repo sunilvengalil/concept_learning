@@ -61,13 +61,9 @@
   import uniqueId from "lodash.uniqueid";
   import { Component, Vue } from "vue-property-decorator";
   import { mainStore } from "@/store";
-  import CharacterForm from "../../components/CharacterForm.vue";
-
-
 
   @Component({
     components: {
-      CharacterForm,
     },
     data() {
       console.log(uniqueId);
