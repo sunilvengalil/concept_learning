@@ -201,7 +201,7 @@ class ClassifierModel(object):
         counter = self.counter
         start_batch_id = self.start_batch_id
         start_epoch = self.start_epoch
-        self.evaluate(start_epoch, start_batch_id, 0, val_data_iterator=train_val_data_iterator)
+        #self.evaluate(start_epoch, start_batch_id, 0, val_data_iterator=train_val_data_iterator)
         num_batches_train = train_val_data_iterator.get_num_samples("train") // self.batch_size
 
         # loop for epoch
@@ -226,12 +226,12 @@ class ClassifierModel(object):
                                self.is_manual_annotated: manual_labels[:, 10],
                                self.standard_normal: batch_z})
 
-                print("Epoch: [%2d] [%4d/%4d] time: %4.4f, loss: %.8f, nll: %.8f, kl: %.8f, supervised_loss: %.4f"
-                      % (epoch, idx, num_batches_train, time.time() - start_time, loss, nll_loss, kl_loss,
-                         supervised_loss))
+                # print("Epoch: [%2d] [%4d/%4d] time: %4.4f, loss: %.8f, nll: %.8f, kl: %.8f, supervised_loss: %.4f"
+                #       % (epoch, idx, num_batches_train, time.time() - start_time, loss, nll_loss, kl_loss,
+                #          supervised_loss))
                 counter += 1
-                if np.mod(idx, self.eval_interval) == 0:
-                    self.evaluate(epoch + 1, idx - 1, counter - 1, val_data_iterator=train_val_data_iterator)
+                if np.mod(idx, self.eval_interval) == self.eval_interval - 1:
+                    self.evaluate(epoch, idx + 1, counter - 1, val_data_iterator=train_val_data_iterator)
                     self.writer.add_summary(summary_str, counter-1)
                 else:
                     self.writer.add_summary(summary_str, counter-1)
@@ -314,7 +314,7 @@ class ClassifierModel(object):
                                                                     self.labels: manual_labels[:, :10],
                                                                     self.is_manual_annotated: manual_labels[:, 10],
                                                                     self.standard_normal: batch_z})
-            training_batch = epoch * 935 + _idx * self.batch_size
+            training_batch = epoch * 935 + step
             save_single_image(reconstructed_image, self.reconstructed_image_dir, epoch, step, training_batch,  _idx, self.batch_size)
 
             self.writer_v.add_summary(summary, counter)
