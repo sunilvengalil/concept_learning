@@ -1,7 +1,7 @@
 import os
 
-from clearn.analysis import combine_annotation_sessions, combine_multiple_annotations
-from clearn.analysis import KEY_FOR_DATA_FRAME
+from clearn.utils.annotation_utils import combine_annotation_sessions, combine_multiple_annotations
+from clearn.utils.annotation_utils import KEY_FOR_DATA_FRAME
 from clearn.config import get_base_path, ExperimentConfig, check_and_create_folder
 
 # Initialize variables
@@ -11,9 +11,9 @@ annotator = "SUNIL"
 N_3 = 32
 N_2 = 128
 N_1 = 64
-z_dim = 5
-run_id = 3
-ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
+z_dim = 10
+run_id = 1
+ROOT_PATH = "/home/sunilv/concept_learning_data/"
 exp_config = ExperimentConfig(ROOT_PATH,
                               4,
                               z_dim,

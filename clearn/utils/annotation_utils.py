@@ -59,6 +59,28 @@ def get_label_reconstructed(_df, num_rows_per_image, num_digits_per_row):
     return labels
 
 
+def get_combined_and_corrected_annotations(annotated_path, batches=None):
+    print("Reading annotation from ", annotated_path)
+    combined_and_corrected_annotation_file_name = "combined_corrected.csv"
+    if os.path.isfile(annotated_path + combined_and_corrected_annotation_file_name):
+        df = pd.read_csv(os.path.join(annotated_path, combined_and_corrected_annotation_file_name))
+        unique = df.groupby(["epoch", "step"]).size().reset_index().rename(columns={0: 'count'})
+        df["epoch"] = df["epoch"].astype(int)
+        df["step"] = df["step"].astype(int)
+        df["_idx"] = df["_idx"].astype(int)
+        df["num_rows_annotated"] = df["num_rows_annotated"].astype(int)
+        df["batch"] = df["batch"].astype(int)
+    else:
+        raise Exception("File does not exist", annotated_path + combined_and_corrected_annotation_file_name)
+    if batches is None:
+        return df, unique
+    else:
+        df = df[df["batch"] == batches]
+        unique = df.groupby(["epoch", "step"]).size().reset_index().rename(columns={0: 'count'})
+        return df, unique
+
+
+
 """
 If reviewed annotation exist get that, otherwise get un-reviewed annotation
 """
@@ -138,9 +160,7 @@ def compute_accuracy(labels, gt_dir,
                      eval_interval,
                      corrected_annotation_file=None
                      ):
-    df, unique = get_annotations(gt_dir, corrected_annotation_file)
-    unique = unique[unique["count"] > 10]
-
+    df, unique = get_combined_and_corrected_annotations(gt_dir, corrected_annotation_file)
     accuracies = []
     total_batches_finished = []
     for unique_combination in unique.iterrows():
@@ -181,20 +201,15 @@ def plot_reconstructed_image(images_dict, im_name):
     dpi = matplotlib.rcParams['figure.dpi']
     keys = [k for k in images_dict.keys()]
     im_1 = images_dict[keys[0]][im_name]
-    im_2 = images_dict[keys[1]][im_name]
-
     height, width = im_1.shape[0], im_1.shape[1]
-    figsize = 2 * 2 * width / float(dpi), 2 * height / float(dpi)
+    figsize = 2 * len(keys) * width / float(dpi), 2 * height / float(dpi)
     fig = plt.figure(figsize=figsize)
     fig.suptitle(im_name)
-    ax = fig.add_subplot(1, 2, 1)
-    ax.imshow(im_1, cmap="Greys")
-    plt.title(keys[0])
 
-    ax = fig.add_subplot(1, 2, 2)
-    ax.imshow(im_2, cmap="Greys")
-    plt.title(keys[1])
-
+    for i in range(len(keys)):
+        ax = fig.add_subplot(1, len(keys), i +1)
+        ax.imshow(images_dict[keys[i]][im_name], cmap="Greys")
+        plt.title(keys[i])
     fig.tight_layout()
 
 
@@ -307,9 +322,8 @@ def show_image_and_get_annotations(epoch_step_dict, exp_config):
                                                 epoch + 1,
                                                 (step * exp_config.eval_interval) - 1)
         for _idx in [0, 1]:
-            print(_idx)
             rows_to_annotate = epoch_step_dict[_batch][_idx]
-            print(f"batch {_batch}  image {_idx} {rows_to_annotate}")
+            print(f"batch {_batch}  image {_idx}:{rows_to_annotate}")
             left, top = (0, 0)
             right, bottom = (222, 28)
             height = bottom - top
@@ -318,9 +332,6 @@ def show_image_and_get_annotations(epoch_step_dict, exp_config):
                 raise Exception("File does not exist {}".format(file))
 
             im = cv2.imread(file)
-            image_to_show = im.copy()
-            cv2.rectangle(image_to_show, (left, top), (right, bottom), (0, 0, 255), 2)
-            cv2.imshow("Image", image_to_show)
             text_list = []
             for num_rows_annotated in rows_to_annotate:
                 image_to_show = im.copy()
@@ -328,31 +339,33 @@ def show_image_and_get_annotations(epoch_step_dict, exp_config):
                 bottom = top + height
                 cv2.rectangle(image_to_show, (left, top), (right, bottom), (0, 0, 255), 2)
                 cv2.imshow("Image", image_to_show)
-                print(str(num_rows_annotated), end=':', flush=True)
-                text = ""
-                k = 0
-                # for each row
-                while k != "\n":
-                    k = cv2.waitKey(0)
-                    if k == 13 or k == ord('q'):
-                        break
-                    k = chr(k)
-                    if k != 113:
-                        if len(text) < 4:
-                            text = text + k
-                            print(k, end='', flush=True)
-                        elif k == 8:
-                            text = text[:-1]
-                            print("\nBack space pressed\n", text)
-                            print(k, end='', flush=True)
+                cv2.waitKey(0)
+                text = input(str(num_rows_annotated)+":")
                 if len(text) == 0:
                     text = "xxxx"
                 print(f"Full Text for row {num_rows_annotated:01d}:{text}")
                 text_list.append(text)
-                if k == ord('q'):
+                if text == 'q':
                     break
             corrected_text_all_images[_batch].append(text_list)
     return corrected_text_all_images
+
+
+def get_annotations_for_keys(keys: dict, max_epoch: int, use_corrected=False):
+    data_dict = dict()
+    for key in keys:
+        annotation_path = keys[key]
+        if not os.listdir(annotation_path):
+            print(f"No csv files found in directory {annotation_path}")
+            return data_dict
+        if use_corrected:
+            df, _ = get_combined_and_corrected_annotations(annotation_path)
+        else:
+            df, _ = get_annotations(annotation_path, batches=None)
+        df = df[df["epoch"] < max_epoch]
+        data_dict[key] = {KEY_FOR_DATA_FRAME: df}
+    return data_dict
+
 
 
 """ Read all the individual data frames from location  into a dictionary of format {"annotator_id"}"""
@@ -455,7 +468,7 @@ def combine_multiple_annotations(data_dict, exp_config, num_rows, run_id):
                                                                            exp_config,
                                                                            "has_multiple_value")
         # If no manual correction, return the data_dict as it is
-        if epoch_step_dict is None or len(epoch_step_dict) > 0:
+        if epoch_step_dict is None or len(epoch_step_dict) == 0:
             if df.shape[0] != num_rows:
                 keys_to_remove.append(key)
             continue
