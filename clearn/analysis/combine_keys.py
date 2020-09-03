@@ -3,26 +3,14 @@ from clearn.utils.annotation_utils import combine_annotation_sessions, combine_m
 from clearn.utils.annotation_utils import KEY_FOR_DATA_FRAME, get_combined_data_frame
 from clearn.utils.annotation_utils import get_manual_annotation, get_combined_annotation
 from clearn.config import get_base_path, ExperimentConfig, check_and_create_folder, get_keys
-
+from clearn.config import RUN_ID
+from clearn.utils.annotation_utils import ANNOTATION_FOLDER_NAME_PREFIX
 
 # Initialize variables
 
 debug = False
-annotator = "SUNIL"
-
-N_3 = 32
-N_2 = 128
-N_1 = 64
-z_dim = 10
-run_id = 1
-ROOT_PATH = "/home/sunilv/concept_learning_data/"
-exp_config = ExperimentConfig(ROOT_PATH,
-                              4,
-                              z_dim,
-                              [N_1, N_2, N_3],
-                              None
-                              )
-exp_config.check_and_create_directories(run_id)
+exp_config = ExperimentConfig.get_exp_config()
+exp_config.check_and_create_directories(RUN_ID)
 
 NUMBER_OF_ROWS = 16
 NUM_DIGITS_PER_ROW = 4
@@ -38,7 +26,7 @@ num_batches_per_epoch = exp_config.num_train_samples // exp_config.BATCH_SIZE
 number_of_evaluation_per_epoch = num_batches_per_epoch // exp_config.eval_interval
 
 num_val_images = 2
-max_epoch = 5
+max_epoch = 20
 num_rows = max_epoch * number_of_evaluation_per_epoch * NUMBER_OF_ROWS * num_val_images
 
 # Read all the individual data frames into a dictionary of format {"annotator_id"}
@@ -47,9 +35,9 @@ base_path = get_base_path(exp_config.root_path,
                           exp_config.num_units[2],
                           exp_config.num_units[1],
                           exp_config.num_cluster_config,
-                          run_id=run_id
+                          run_id=RUN_ID
                           )
-keys = get_keys(base_path, "manual_annotation_set_")
+keys = get_keys(base_path, ANNOTATION_FOLDER_NAME_PREFIX)
 print("keys", keys)
 number_of_keys = len(keys)
 
@@ -63,7 +51,7 @@ data_dict = combine_annotation_sessions(keys=keys,
                                         max_epoch=max_epoch)
 
 # Verify if there is duplicate annotations for the same combination of ( batch, image_no, row_number_with_image )
-data_dict = combine_multiple_annotations(data_dict, exp_config, num_rows, run_id)
+data_dict = combine_multiple_annotations(data_dict, exp_config, num_rows, RUN_ID)
 keys = [k for k in data_dict.keys()]
 # Save the de-duped data frame
 for key in keys:
@@ -72,7 +60,7 @@ for key in keys:
                               exp_config.num_units[2],
                               exp_config.num_units[1],
                               exp_config.num_cluster_config,
-                              run_id=run_id
+                              run_id=RUN_ID
                               )
     file_name = exp_config.get_annotation_result_path(base_path) + f"/{key}.csv"
 

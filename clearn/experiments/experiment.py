@@ -8,6 +8,7 @@ from clearn.models.classify.classifier import ClassifierModel
 from clearn.utils.data_loader import TrainValDataIterator
 from clearn.utils.utils import show_all_variables
 from clearn.config import ExperimentConfig
+from clearn.config import RUN_ID
 create_split = False
 
 
@@ -96,7 +97,7 @@ class Experiment:
                 _train_val_data_iterator = TrainValDataIterator.from_existing_split(self.config.split_name,
                                                                                     self.config.DATASET_PATH,
                                                                                     self.config.BATCH_SIZE,
-                                                                                    manual_labels_config= exp.config.manual_labels_config)
+                                                                                    manual_labels_config=exp.config.manual_labels_config)
         self.model.train(_train_val_data_iterator)
         print(" [*] Training finished!")
 
@@ -112,37 +113,20 @@ class Experiment:
 if __name__ == '__main__':
     # parse arguments
     args = parse_args()
+    num_epochs = 1
 
-    N_3 = 32
-    N_2 = 128
-    N_1 = 64
-    Z_DIM = 8
-    run_id = 10
-    num_epochs = 5
-    manual_labels_config = TrainValDataIterator.USE_CLUSTER_CENTER  # Possible values "USE_ACTUAL" and "USE_CLUSTER_CENTER"
-
-    ROOT_PATH = "/Users/prathyushsp/concept_learning_old/"
-    #ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
-    _config = ExperimentConfig(ROOT_PATH, 4, Z_DIM, [N_1, N_2, N_3],
-                               None,
-                               confidence_decay_factor=5,
-                               supervise_weight=150,
-                               reconstruction_weight=1,
-                               beta=5,
-                               num_val_samples=128,
-                               manual_labels_config=manual_labels_config
-                               )
-    _config.check_and_create_directories(run_id)
+    _config = ExperimentConfig.get_exp_config()
+    _config.check_and_create_directories(RUN_ID)
     BATCH_SIZE = _config.BATCH_SIZE
     DATASET_NAME = _config.dataset_name
-    _config.check_and_create_directories(run_id, create=False)
+    _config.check_and_create_directories(RUN_ID, create=False)
 
     # TODO make this a configuration
     # to change output type from sigmoid to leaky relu, do the following
     # 1. In vae.py change the output layer type in decode()
     # 2. Change the loss function in build_model
 
-    exp = Experiment(1, "VAE_MNIST", 128, _config, run_id)
+    exp = Experiment(1, "VAE_MNIST", 128, _config, RUN_ID)
 
     print(exp.as_json())
     with open(_config.BASE_PATH + "config.json", "w") as config_file:
@@ -167,7 +151,8 @@ if __name__ == '__main__':
                                                                            manual_annotation_file=None)
 
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
-        model = ClassifierModel(sess,
+        model = ClassifierModel(exp_config=_config,
+                                sess=sess,
                                 epoch=num_epochs,
                                 batch_size=_config.BATCH_SIZE,
                                 z_dim=_config.Z_DIM,

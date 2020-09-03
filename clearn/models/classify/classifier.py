@@ -16,7 +16,7 @@ from clearn.utils.tensorflow_wrappers import conv2d, linear, deconv2d, lrelu
 class ClassifierModel(object):
     _model_name = "ClassifierModel"
 
-    def __init__(self, sess, epoch, batch_size,
+    def __init__(self, exp_config, sess, epoch, batch_size,
                  z_dim, dataset_name, beta=5,
                  num_units_in_layer=None,
                  log_dir=None,
@@ -27,7 +27,7 @@ class ClassifierModel(object):
                  check_point_epochs=None,
                  supervise_weight=0,
                  reconstruction_weight=1,
-                 reconstructed_image_dir = None
+                 reconstructed_image_dir=None
                  ):
         self.sess = sess
         self.dataset_name = dataset_name
@@ -41,6 +41,7 @@ class ClassifierModel(object):
         self.beta = beta
         self.supervise_weight = supervise_weight
         self.reconstruction_weight = reconstruction_weight
+        self.exp_config = exp_config
         if dataset_name == 'mnist' or dataset_name == 'fashion-mnist':
             # parameters
             self.label_dim = 10  # one hot encoding for 10 classes
@@ -86,11 +87,18 @@ class ClassifierModel(object):
         # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
         # Architecture : (64)4c2s-(128)4c2s_BL-FC1024_BL-FC62*4
         with tf.variable_scope("encoder", reuse=reuse):
-            self.conv1 = lrelu(conv2d(x, self.n[0], 3, 3, 2, 2, name='en_conv1'))
-            self.conv2 = lrelu((conv2d(self.conv1, self.n[1], 3, 3, 2, 2, name='en_conv2')))
-            self.reshaped_en = tf.reshape(self.conv2, [self.batch_size, -1])
-            self.dense2_en = lrelu(linear(self.reshaped_en, self.n[2], scope='en_fc3'))
-            # net_before_gauss = tf.print('shape of net is ', tf.shape(net))
+            if self.exp_config.activation_hidden_layer == "RELU":
+                self.conv1 = lrelu(conv2d(x, self.n[0], 3, 3, 2, 2, name='en_conv1'))
+                self.conv2 = lrelu((conv2d(self.conv1, self.n[1], 3, 3, 2, 2, name='en_conv2')))
+                self.reshaped_en = tf.reshape(self.conv2, [self.batch_size, -1])
+                self.dense2_en = lrelu(linear(self.reshaped_en, self.n[2], scope='en_fc3'))
+            elif self.exp_config.activation_hidden_layer == "LINEAR":
+                self.conv1 = conv2d(x, self.n[0], 3, 3, 2, 2, name='en_conv1')
+                self.conv2 = (conv2d(self.conv1, self.n[1], 3, 3, 2, 2, name='en_conv2'))
+                self.reshaped_en = tf.reshape(self.conv2, [self.batch_size, -1])
+                self.dense2_en = linear(self.reshaped_en, self.n[2], scope='en_fc3')
+            else:
+                raise Exception(f"Activation {self.exp_config.activation} not supported")
 
             # with tf.control_dependencies([net_before_gauss]):
             gaussian_params = linear(self.dense2_en, 2 * self.z_dim, scope='en_fc4')
@@ -108,13 +116,27 @@ class ClassifierModel(object):
         # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
         # Architecture : FC1024_BR-FC7x7x128_BR-(64)4dc2s_BR-(1)4dc2s_S
         with tf.variable_scope("decoder", reuse=reuse):
-            dense1 = lrelu((linear(z, self.n[2], scope='de_fc1')))
-            dense2 = lrelu((linear(dense1, self.n[1] * 7 * 7)))
-            reshaped = tf.reshape(dense2, [self.batch_size, 7, 7, self.n[1]])
-            deconv1 = lrelu(
-                deconv2d(reshaped, [self.batch_size, 14, 14, self.n[0]], 3, 3, 2, 2, name='de_dc3'))
-
-            out = tf.nn.sigmoid(deconv2d(deconv1, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4'))
+            if self.exp_config.activation_hidden_layer == "RELU":
+                self.dense1_de = lrelu((linear(z, self.n[2], scope='de_fc1')))
+                self.dense2_de = lrelu((linear(self.dense1_de, self.n[1] * 7 * 7)))
+                self.reshaped_de = tf.reshape(self.dense2_de, [self.batch_size, 7, 7, self.n[1]])
+                self.deconv1_de = lrelu(
+                    deconv2d(self.reshaped_de, [self.batch_size, 14, 14, self.n[0]], 3, 3, 2, 2, name='de_dc3'))
+                if self.exp_config.activation_output_layer == "SIGMOID":
+                    out = tf.nn.sigmoid(deconv2d(self.deconv1_de, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4'))
+                elif self.exp_config.activation_output_layer == "LINEAR":
+                    out = deconv2d(self.deconv1_de, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4')
+            elif self.exp_config.activation_hidden_layer == "LINEAR":
+                self.dense1_de = linear(z, self.n[2], scope='de_fc1')
+                self.dense2_de = linear(self.dense1_de, self.n[1] * 7 * 7)
+                self.reshaped_de = tf.reshape(self.dense2_de , [self.batch_size, 7, 7, self.n[1]])
+                self.deconv1_de = deconv2d(self.reshaped_de, [self.batch_size, 14, 14, self.n[0]], 3, 3, 2, 2, name='de_dc3')
+                if self.exp_config.activation_output_layer == "SIGMOID":
+                    out = tf.nn.sigmoid(deconv2d(self.deconv1_de, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4'))
+                elif self.exp_config.activation_output_layer == "LINEAR":
+                    out = deconv2d(self.deconv1_de, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4')
+            else:
+                raise Exception(f"Activation {self.exp_config.activation} not supported")
             # out = lrelu(deconv2d(deconv1, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4'))
             return out
 
@@ -170,8 +192,8 @@ class ClassifierModel(object):
 
         # evidence_lower_bound = -self.neg_loglikelihood - self.beta * self.KL_divergence
 
-        self.loss = self.reconstruction_weight * self.neg_loglikelihood + \
-                    self.beta * self.KL_divergence + \
+        self.loss = self.reconstruction_weight * self.neg_loglikelihood +\
+                    self.beta * self.KL_divergence +\
                     self.supervise_weight * self.supervised_loss
         # self.loss = -evidence_lower_bound + self.supervise_weight * self.supervised_loss
 
@@ -197,16 +219,16 @@ class ClassifierModel(object):
         # final summary operations
         self.merged_summary_op = tf.summary.merge_all()
 
+    def get_trainable_vars(self):
+        return tf.trainable_variables()
     def train(self, train_val_data_iterator):
         counter = self.counter
         start_batch_id = self.start_batch_id
         start_epoch = self.start_epoch
-        #self.evaluate(start_epoch, start_batch_id, 0, val_data_iterator=train_val_data_iterator)
+        # self.evaluate(start_epoch, start_batch_id, 0, val_data_iterator=train_val_data_iterator)
         num_batches_train = train_val_data_iterator.get_num_samples("train") // self.batch_size
 
         # loop for epoch
-        start_time = time.time()
-
         for epoch in range(start_epoch, self.epoch):
             # get batch data
             for idx in range(start_batch_id, num_batches_train):
@@ -295,7 +317,10 @@ class ClassifierModel(object):
         start_eval_batch = 0
         reconstructed_images = []
         num_eval_batches = val_data_iterator.get_num_samples("val") // self.batch_size
-        reconstructed_dir = get_eval_result_dir(self.result_dir, epoch, step)
+        manifold_w = 4
+        tot_num_samples = min(self.sample_num, self.batch_size)
+        manifold_h = tot_num_samples // manifold_w
+
         for _idx in range(start_eval_batch, num_eval_batches):
             batch_eval_images, batch_eval_labels, manual_labels = val_data_iterator.get_next_batch("val")
             integer_label = np.asarray([np.where(r == 1)[0][0] for r in batch_eval_labels]).reshape([64, 1])
@@ -315,13 +340,12 @@ class ClassifierModel(object):
                                                                     self.is_manual_annotated: manual_labels[:, 10],
                                                                     self.standard_normal: batch_z})
             training_batch = epoch * 935 + step
-            save_single_image(reconstructed_image, self.reconstructed_image_dir, epoch, step, training_batch,  _idx, self.batch_size)
+            save_single_image(reconstructed_image,
+                              self.reconstructed_image_dir,
+                              epoch, step, training_batch,
+                              _idx, self.batch_size)
 
             self.writer_v.add_summary(summary, counter)
-
-            manifold_w = 4
-            tot_num_samples = min(self.sample_num, self.batch_size)
-            manifold_h = tot_num_samples // manifold_w
             reconstructed_images.append(reconstructed_image[:manifold_h * manifold_w, :, :, :])
         print(f"epoch:{epoch} step:{step}")
         reconstructed_dir = get_eval_result_dir(self.result_dir, epoch, step)
@@ -376,6 +400,28 @@ class ClassifierModel(object):
                                      feed_dict={self.inputs: images})
         return mu, sigma, z
 
+    def get_decoder_weights_bias(self):
+        name_w_1 = "decoder/de_fc1/Matrix:0"
+        name_w_2 = "decoder/de_dc3/w:0"
+        name_w_3 = "decoder/de_dc4/w:0"
+
+        name_b_1 = "decoder/de_fc1/bias:0"
+        name_b_2 = "decoder/de_dc3/biases:0"
+        name_b_3 = "decoder/de_dc4/biases:0"
+
+        layer_param_names = [name_w_1,
+                             name_b_1,
+                             name_w_2,
+                             name_b_2,
+                             name_w_3,
+                             name_b_3,
+                             ]
+
+        default_graph = tf.get_default_graph()
+        params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
+        param_values = self.sess.run(params)
+        return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
+
     def get_encoder_weights_bias(self):
         name_w_1 = "encoder/en_conv1/w:0"
         name_w_2 = "encoder/en_conv2/w:0"
@@ -414,9 +460,31 @@ class ClassifierModel(object):
 
         return mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en
 
+    def decode_and_get_features(self, z):
+        batch_z = prior.gaussian(self.batch_size, self.z_dim)
+
+        images, dense1_de, dense2_de, reshaped_de, deconv1_de = self.sess.run([self.out,
+                                                                               self.dense1_de,
+                                                                               self.dense2_de,
+                                                                               self.reshaped_de,
+                                                                               self.deconv1_de
+                                                                               ],
+                                                                              feed_dict={self.z: z,
+                                                                                         self.standard_normal: z
+                                                                                         })
+
+        return images, dense1_de, dense2_de, reshaped_de, deconv1_de
+
     def decode(self, z):
         images = self.sess.run(self.out, feed_dict={self.z: z})
         return images
+
+    def decode_layer1(self, z):
+        batch_z = prior.gaussian(self.batch_size, self.z_dim)
+        dense1_de = self.sess.run(self.dense1_de, feed_dict={self.z: z,
+                                                             self.standard_normal: z
+                                                             })
+        return dense1_de
 
     def set_result_directories(self, log_dir, checkpoint_dir, result_dir):
         self.log_dir = log_dir
