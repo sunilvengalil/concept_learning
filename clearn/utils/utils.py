@@ -81,20 +81,22 @@ def get_image(image_path, input_height, input_width, resize_height=64, resize_wi
     image = imread(image_path, grayscale)
     return transform(image, input_height, input_width, resize_height, resize_width, crop)
 
-"""
-Save all the reconstructed images in a particular validation batch
-@:param all the reconstructed images in current batch
-@:param path path for saving the image
-@:param epoch number of training epochs completed
-@:param step number of steps within the epoch
-@:param batch validation batch in which the image belongs to
-"""
+
 def save_single_image(images, path, epoch, step, training_batch, eval_batch, eval_batch_size):
+    """
+    Save all the reconstructed images in a particular validation batch
+    @:param images the reconstructed images in current batch
+    @:param path path for saving the image
+    @:param epoch number of training epochs completed
+    @:param step number of steps within the epoch
+    @:param eval_batch validation batch in which the image belongs to
+    """
     for i in range(images.shape[0]):
         file = f"im_epoch_{epoch}_step_{step}_batch_{training_batch}_eval_image_id_{eval_batch * eval_batch_size + i }.png"
         image = inverse_transform(images[i])
         image = np.squeeze(image)
-        imageio.imwrite(path + file, image, )
+        imageio.imwrite(path + file, image )
+
 
 def save_image(image, size, image_file_name):
     return imsave(inverse_transform(image), size, image_file_name)
