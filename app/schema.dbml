@@ -1,0 +1,32 @@
+Table RawImages as RI {
+  rawImageId int [pk, increment]
+  experiment varchar
+  run int
+  epoch int
+  step int
+  batch int
+  uniqueId varchar
+  image blob
+  timestamp timestamp
+  avgProbability float [default:0]
+  avgClarity float [default:0]
+  annotationScore float [default:0]
+}
+
+Table Users as U {
+  userId int [pk, increment]
+  userName varchar
+  userEmail varchar
+  totalAnnotations int
+}
+
+Table AnnotatedImages {
+  annotationId int [pk, increment]
+  rawImageId int [ref: > RI.rawImageId]
+  uniqueId varchar [ref: > RI.uniqueId]
+  label varchar
+  probability float
+  clarity float
+  userId int [ref: > U.userId]
+  timestamp timestamp
+}
