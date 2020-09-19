@@ -1,0 +1,40 @@
+# -*- coding: utf-8 -*-
+"""
+| **@created on:** 9/18/20,
+| **@author:** prathyushsp,
+| **@version:** v0.0.1
+|
+| **Description:**
+| 
+|
+| **Sphinx Documentation Status:** 
+"""
+
+from typing import Any, List
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from app import crud, models, schemas
+from app.api import deps
+
+router = APIRouter()
+
+
+@router.get("/", response_model=List[schemas.RawImages])
+def read_raw_images(
+    db: Session = Depends(deps.get_db),
+    skip: int = 0,
+    limit: int = 100,
+    current_user: models.User = Depends(deps.get_current_active_user),
+) -> Any:
+    """
+    Retrieve items.
+    """
+    # if crud.user.is_superuser(current_user):
+    raw_images = crud.raw_images.get_multi(db, skip=skip, limit=limit)
+    # else:
+    #     items = crud.item.get_multi_by_owner(
+    #         db=db, owner_id=current_user.id, skip=skip, limit=limit
+    #     )
+    return raw_images
