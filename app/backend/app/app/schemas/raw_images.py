@@ -18,6 +18,9 @@ from pydantic import BaseModel
 class RawImagesBase(BaseModel):
     experiment: Optional[str] = None
     uniqueId: Optional[str] = None
+    epoch:Optional[int]=None
+    batch:Optional[int]=None
+
 
 
 # Properties shared by models stored in DB

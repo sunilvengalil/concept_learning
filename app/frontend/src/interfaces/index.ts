@@ -27,3 +27,8 @@ export interface IAppNotification {
   color?: string;
   showProgress?: boolean;
 }
+
+export interface IRawImages {
+  experiment:string;
+  uniqueId:string;
+}

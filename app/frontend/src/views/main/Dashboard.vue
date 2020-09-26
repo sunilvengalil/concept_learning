@@ -169,7 +169,7 @@
 <script lang="ts">
   import uniqueId from "lodash.uniqueid";
   import { Component, Vue } from "vue-property-decorator";
-  import { mainStore } from "@/store";
+  import { mainStore, rawImagesStore } from "@/store";
   import VueAutosuggest from "vue-autosuggest";
   // import JsonViewer from "vue-json-viewer";
   import vJsonTree from "v-json-tree";
@@ -185,6 +185,7 @@
       return {
         options: ["EExp_08_032_128_10", "EExp_08_032_128_10-r0", "EExp_08_032_128_10-r1", "EExp_08_032_128_10-R1-e0", "EExp_08_032_128_10-R1-e0-s0", "EExp_08_032_128_10-R1-e0-s1", "EExp_08_032_128_10-R1-e0-s2", "EExp_08_032_128_10-R1-e1", "EExp_08_032_128_10-R1-e1-s0", "EExp_08_032_128_10-R1-e1-s1", "EExp_08_032_128_10-R1-e2", "EExp_08_032_128_10-R1-e2-s0", "EExp_08_032_128_10-r2", "EExp_08_032_128_10-R2-e0", "EExp_08_032_128_10-R2-e0-s0", "EExp_08_032_128_10-R2-e0-s1", "EExp_08_032_128_10-R2-e0-s2", "EExp_08_032_128_10-R2-e0-s3", "EExp_08_032_128_10-r3", "EExp_08_032_128_10-R3-e0", "EExp_08_032_128_10-R3-e0-s0", "EExp_08_032_128_10-R3-e0-s1", "EExp_08_032_128_10-R3-e0-s2", "EExp_08_032_128_10-R3-e0-s3", "EExp_08_032_128_10-R3-e1", "EExp_08_032_128_10-R3-e1-s0", "EExp_08_032_128_10-R3-e1-s1", "EExp_08_032_128_10-r4", "EExp_08_032_128_10-R4-e0", "EExp_08_032_128_10-R4-e0-s0", "EExp_08_032_128_10-R4-e0-s1", "EExp_08_032_128_10-R4-e1", "EExp_08_032_128_10-R4-e1-s0", "EExp_08_032_128_10-R4-e1-s1", "EExp_08_032_128_10-R4-e1-s2", "EExp_12_016_256_20", "EExp_12_016_256_20-r0", "EExp_12_016_256_20-r1", "EExp_12_016_256_20-R1-e0", "EExp_12_016_256_20-R1-e0-s0", "EExp_12_016_256_20-R1-e0-s1", "EExp_12_016_256_20-R1-e0-s2", "EExp_12_016_256_20-R1-e0-s3", "EExp_12_016_256_20-R1-e0-s4", "EExp_12_016_256_20-R1-e1", "EExp_12_016_256_20-R1-e1-s0", "EExp_12_016_256_20-R1-e1-s1", "EExp_12_016_256_20-R1-e1-s2", "EExp_12_016_256_20-r2", "EExp_12_016_256_20-R2-e0", "EExp_12_016_256_20-R2-e0-s0", "EExp_12_016_256_20-R2-e0-s1", "EExp_12_016_256_20-R2-e1", "EExp_12_016_256_20-R2-e1-s0", "EExp_12_016_256_20-R2-e1-s1", "EExp_14_032_256_5", "EExp_14_032_256_5-r0", "EExp_14_032_256_5-R0-e0", "EExp_14_032_256_5-R0-e0-s0", "EExp_14_032_256_5-R0-e0-s1", "EExp_14_032_256_5-R0-e1", "EExp_14_032_256_5-R0-e1-s0", "EExp_14_032_256_5-r1", "EExp_14_032_256_5-R1-e0", "EExp_14_032_256_5-R1-e1", "EExp_14_032_256_5-R1-e1-s0", "EExp_14_032_256_5-R1-e1-s1", "EExp_14_032_256_5-r2", "EExp_14_032_256_5-R2-e0", "EExp_14_032_256_5-r3", "EExp_14_032_256_5-R3-e0", "EExp_14_032_256_5-R3-e0-s0", "EExp_14_032_256_5-R3-e1", "EExp_14_032_256_5-R3-e2", "EExp_14_032_256_5-R3-e2-s0", "EExp_14_032_256_5-r4", "EExp_14_032_256_5-R4-e0", "EExp_14_032_256_5-R4-e1", "EExp_14_032_256_5-R4-e1-s0", "EExp_14_032_256_5-R4-e1-s1", "EExp_14_032_256_5-R4-e2", "EExp_14_032_256_5-R4-e2-s0", "EExp_14_032_256_5-R4-e2-s1", "EExp_14_032_256_5-R4-e2-s2", "EExp_14_032_256_5-r5", "EExp_14_032_256_5-r6", "EExp_14_032_256_5-R6-e0", "EExp_14_032_256_5-R6-e0-s0", "EExp_14_032_256_5-R6-e0-s1", "EExp_14_032_256_5-R6-e0-s2", "EExp_14_032_256_5-R6-e0-s3", "EExp_14_032_256_5-R6-e1", "EExp_14_032_256_5-R6-e1-s0", "EExp_14_032_256_5-R6-e1-s1", "EExp_14_032_256_5-R6-e1-s2", "EExp_14_032_256_5-R6-e1-s3", "EExp_14_032_256_5-R6-e2", "EExp_14_032_256_5-R6-e2-s0", "EExp_14_032_256_5-R6-e2-s1", "EExp_14_032_256_5-R6-e2-s2", "EExp_14_032_256_5-r7", "EExp_14_032_256_5-R7-e0", "EExp_14_032_256_5-R7-e0-s0", "EExp_14_032_256_5-R7-e0-s1"],
         searchQuery: "",
+        rawImages:[],
         jsonData: {
           "Exp_08_032_128_10": {
             "runs": [{
@@ -341,9 +342,17 @@
   })
   export default class Dashboard extends Vue {
     characterAnnotations: any;
+    rawImages:any;
     currentImageCounter: any;
     currentImage: any;
     imageFiles: any;
+
+    mounted() {
+      rawImagesStore.getImages().then(function() {
+        console.log(rawImagesStore.rawImages);
+      });
+
+    }
 
     addFn() {
       if (this.characterAnnotations.length == 1) {
@@ -400,6 +409,24 @@
         return "unknown user";
       }
     }
+
+    // get fetchRawImages() {
+    //   rawImagesStore.getImages().then(function() {
+    //
+    //   });
+    //   this.rawImages= rawImagesStore.rawImages;
+    //   return this.rawImages
+    // }
+
+    public goToEdit() {
+      this.$router.push("/main/profile/edit");
+    }
+
+    public goToPassword() {
+      this.$router.push("/main/profile/password");
+    }
+
+
   }
 </script>
 

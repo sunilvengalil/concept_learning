@@ -34,7 +34,7 @@ def insert_record(conn, rawImage: RawImages):
     try:
         cursor = conn.cursor()
         cursor.execute(
-            f'INSERT INTO "RawImages"(experiment, epoch, step, batch, "uniqueId", image, timestamp, "fileName", "evalImageId") ' +
+            f'INSERT INTO rawimages(experiment, epoch, step, batch, "uniqueId", image, timestamp, "fileName", "evalImageId") ' +
             f"VALUES('{rawImage.experiment}', '{rawImage.epoch}', '{rawImage.step}', '{rawImage.batch}', "
             f"'{rawImage.uniqueId}', {rawImage.image}, '{rawImage.timestamp}', '{rawImage.fileName}', "
             f"'{rawImage.evalImageId}')")
