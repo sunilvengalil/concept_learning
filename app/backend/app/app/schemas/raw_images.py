@@ -9,19 +9,26 @@
 |
 | **Sphinx Documentation Status:** 
 """
-from typing import Optional
+from typing import Optional, Callable
 
 from pydantic import BaseModel
+from datetime import datetime
+from sqlalchemy import Binary
+from pydantic.types import StrBytes
+from typing import BinaryIO
+from base64 import b64encode
 
 
 # Shared properties
 class RawImagesBase(BaseModel):
-    experiment: Optional[str] = None
     uniqueId: Optional[str] = None
+    experiment: Optional[str] = None
+    run: Optional[int] = None
     epoch:Optional[int]=None
+    step: Optional[int] = None
     batch:Optional[int]=None
-
-
+    timestamp:Optional[datetime]=None
+    image:Optional[bytes]=None
 
 # Properties shared by models stored in DB
 class RawImagesInDBBase(RawImagesBase):
