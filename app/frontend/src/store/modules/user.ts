@@ -1,11 +1,11 @@
-import { VuexModule, Module, Mutation, Action } from "vuex-module-decorators";
-import { IRawImages  } from "@/interfaces";
 import { api } from "@/api";
+import { VuexModule, Module, Mutation, Action } from "vuex-module-decorators";
+// import { IRawImages  } from "@/interfaces";
 import { mainStore } from "@/utils/store-accessor";
+import { IRawImages } from "@/interfaces";
 
-
-@Module({ name: "raw_images" })
-export default class RawImages extends VuexModule {
+@Module({ name: "user" })
+export default class UserModule extends VuexModule {
   rawImages: IRawImages[] = [];
 
   @Action
@@ -13,7 +13,6 @@ export default class RawImages extends VuexModule {
     try {
       const response = await api.getRawImages(mainStore.token);
       if (response) {
-        console.log(response)
         this.setRawImages(response.data);
       }
     } catch (error) {
@@ -22,7 +21,7 @@ export default class RawImages extends VuexModule {
   }
 
   @Mutation
-  setRawImages(payload: IRawImages[]) {
+  setRawImages(payload) {
     this.rawImages=payload;
   }
 }

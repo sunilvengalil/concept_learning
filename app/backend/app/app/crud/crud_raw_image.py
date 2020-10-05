@@ -19,16 +19,18 @@ from app.crud.base import CRUDBase
 from app.models.raw_images import RawImages
 from app.schemas.raw_images import RawImagesCreate, RawImagesUpdate
 from base64 import b64encode
+from  sqlalchemy.sql.expression import func, select
 
 
 class CRUDRawImages(CRUDBase[RawImages, RawImagesCreate, RawImagesUpdate]):
 
     def get_next_image(self, db: Session):
         # Fetch the least sample with annotation score (ascending order)
-        rm = db.query(self.model).order_by(self.model.annotationScore.asc()).first()
-
+        # rm = db.query(self.model).order_by(self.model.annotationScore.asc()).first()
+        # Random Fetch for testing
+        rm = db.query(self.model).order_by(func.random()).first()
         # Encode image to base64 string for JSON
-        rm.image = b64encode(rm.image).decode('utf-8')
+        rm.image = "data:image/png;base64,"+b64encode(rm.image).decode('utf-8')
         return rm
 
 

@@ -21,9 +21,8 @@ from base64 import b64encode
 
 # Shared properties
 class RawImagesBase(BaseModel):
-    uniqueId: Optional[str] = None
+    rawImageId: Optional[str] = None
     experiment: Optional[str] = None
-    run: Optional[int] = None
     epoch:Optional[int]=None
     step: Optional[int] = None
     batch:Optional[int]=None
