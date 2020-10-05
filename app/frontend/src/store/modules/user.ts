@@ -1,24 +1,27 @@
-import { VuexModule, Module, Mutation } from "vuex-module-decorators";
-
-export interface ImageAttribute {
-  character: string;
-  probability: boolean;
-  clarity: boolean;
-  id: number;
-}
+import { api } from "@/api";
+import { VuexModule, Module, Mutation, Action } from "vuex-module-decorators";
+// import { IRawImages  } from "@/interfaces";
+import { mainStore } from "@/utils/store-accessor";
+import { IRawImages } from "@/interfaces";
 
 @Module({ name: "user" })
 export default class UserModule extends VuexModule {
-  currentImageAttributes: ImageAttribute[] = [];
+  rawImages: IRawImages[] = [];
 
-  get imageAttributes() {
-    return () => {
-      return { ...this.currentImageAttributes };
-    };
+  @Action
+  async getImages() {
+    try {
+      const response = await api.getRawImages(mainStore.token);
+      if (response) {
+        this.setRawImages(response.data);
+      }
+    } catch (error) {
+      await mainStore.checkApiError(error);
+    }
   }
 
   @Mutation
-  addAttribute(attribute: ImageAttribute) {
-    this.currentImageAttributes.push(attribute);
+  setRawImages(payload) {
+    this.rawImages=payload;
   }
 }
