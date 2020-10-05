@@ -1,6 +1,6 @@
 import axios from "axios";
 import { apiUrl } from "@/env";
-import { IUserProfile, IUserProfileUpdate, IUserProfileCreate, IRawImages } from "./interfaces";
+import { IUserProfile, IUserProfileUpdate, IUserProfileCreate, IRawImages, IAnnotationImage } from "./interfaces";
 
 function authHeaders(token: string) {
   return {
@@ -48,5 +48,8 @@ export const api = {
   },
   async getRawImages(token: string) {
     return axios.get<IRawImages[]>(`${apiUrl}/api/v1/raw_images/`, authHeaders(token));
+  },
+  async createAnnotations(token: string, data: IAnnotationImage[]) {
+    return axios.post(`${apiUrl}/api/v1/annotated_images/`, data, authHeaders(token));
   },
 };

@@ -80,7 +80,7 @@ export default class MainModule extends VuexModule {
         this.setLogInError(false);
         await this.getUserProfile();
         await this.routeLoggedIn();
-        this.addNotification({ content: "Logged in", color: "success" });
+        this.addNotification({ content: "Logged in", color: "success", timeout:"6500" });
       } else {
         await this.logOut();
       }
@@ -105,7 +105,7 @@ export default class MainModule extends VuexModule {
   @Action
   async updateUserProfile(payload: IUserProfileUpdate) {
     try {
-      const loadingNotification = { content: "saving", showProgress: true };
+      const loadingNotification = { content: "saving", showProgress: true, timeout:"6500" };
       this.addNotification(loadingNotification);
       const response = (
         await Promise.all([
@@ -118,6 +118,7 @@ export default class MainModule extends VuexModule {
       this.addNotification({
         content: "Profile successfully updated",
         color: "success",
+        timeout:"6500"
       });
     } catch (error) {
       await this.checkApiError(error);
@@ -165,7 +166,7 @@ export default class MainModule extends VuexModule {
   @Action
   async userLogOut() {
     await this.logOut();
-    this.addNotification({ content: "Logged out", color: "success" });
+    this.addNotification({ content: "Logged out", color: "success", timeout:"6500" });
   }
 
   @Action
@@ -207,6 +208,7 @@ export default class MainModule extends VuexModule {
     const loadingNotification = {
       content: "Sending password recovery email",
       showProgress: true,
+      timeout:"6500"
     };
     try {
       this.addNotification(loadingNotification);
@@ -218,17 +220,18 @@ export default class MainModule extends VuexModule {
       this.addNotification({
         content: "Password recovery email sent",
         color: "success",
+        timeout:"6500"
       });
       await this.logOut();
     } catch (error) {
       this.removeNotification(loadingNotification);
-      this.addNotification({ color: "error", content: "Incorrect username" });
+      this.addNotification({ color: "error", content: "Incorrect username", timeout:"6500" });
     }
   }
 
   @Action
   async resetPassword(payload: { password: string; token: string }) {
-    const loadingNotification = { content: "Resetting password", showProgress: true };
+    const loadingNotification = { content: "Resetting password", showProgress: true, timeout:"6500" };
     try {
       this.addNotification(loadingNotification);
       await Promise.all([
@@ -239,6 +242,7 @@ export default class MainModule extends VuexModule {
       this.addNotification({
         content: "Password successfully reset",
         color: "success",
+        timeout:"6500"
       });
       await this.logOut();
     } catch (error) {
@@ -246,6 +250,7 @@ export default class MainModule extends VuexModule {
       this.addNotification({
         color: "error",
         content: "Error resetting password",
+        timeout:"6500"
       });
     }
   }

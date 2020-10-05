@@ -32,7 +32,7 @@
                                 <thead>
                                 <tr>
                                     <th class="tg-1wig">Image ID:</th>
-                                    <th class="tg-0lax">{{Image.rawImageId}}</th>
+                                    <th class="tg-0lax">{{Image.id}}</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -108,7 +108,7 @@
 <script lang="ts">
   import uniqueId from "lodash.uniqueid";
   import { Component, Vue } from "vue-property-decorator";
-  import {  mainStore, userStore } from "@/store";
+  import { userStore } from "@/store";
   import VueAutosuggest from "vue-autosuggest";
 
   Vue.use(VueAutosuggest);
@@ -179,23 +179,24 @@
         const postArgument = []
         this.characterAnnotations.forEach(elem => {
           postArgument.push({
-            rawImageId: this.Image.rawImageId,
+            rawImageId: this.Image.id,
             uniqueId: this.Image.uniqueId,
             label: elem.character,
-            probability: elem.probability,
-            clarity: elem.clarity,
-            userEmail: mainStore.userProfile?.email,
+            probability: elem.probability/100,
+            clarity: elem.clarity/100,
             timestamp: Date.now()
           })
+          console.log(JSON.stringify(postArgument));
         });
-        console.log(JSON.stringify(postArgument));
+        // console.log(JSON.stringify(postArgument));
+        await userStore.createAnnotation(postArgument)
         await userStore.getImages();
-        this.$notify({
-          group: "global",
-          type: "success",
-          title: "Info",
-          text: "Record Successfully stored",
-        });
+        // this.$notify({
+        //   group: "global",
+        //   type: "success",
+        //   title: "Info",
+        //   text: "Record Successfully stored",
+        // });
         this.characterAnnotations = [
           { id: uniqueId(), character: "", probability: 100, clarity: 100, showDelete: false, showAdd: true, rawImageId:this.Image.rawImageId},
         ];

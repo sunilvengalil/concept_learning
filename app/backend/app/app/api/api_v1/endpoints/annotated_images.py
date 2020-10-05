@@ -34,7 +34,7 @@ def push_annotated_images(
 
     ids = []
     try:
-        for annotation in annotations:
+        for e,annotation in enumerate(annotations):
             # Insert a record in annotated_images table
             annotation.userEmail = current_user.email
             annotated_image_response = crud.annotated_images.create(db=db, obj_in=annotation)
@@ -49,27 +49,27 @@ def push_annotated_images(
 
             # Update avgProbability
             if raw_image.avgProbability == 0:
-                raw_image.avgProbability = annotation.probability / 100
+                raw_image.avgProbability = annotation.probability
             else:
                 raw_image.avgProbability = running_average(previous_avg=raw_image.avgProbability,
-                                                           current_val=annotation.probability / 100,
+                                                           current_val=annotation.probability,
                                                            total_records=raw_image.totalAnnotations)
 
             # Update avgClarity
             if raw_image.avgClarity == 0:
-                raw_image.avgClarity = annotation.clarity / 100
+                raw_image.avgClarity = annotation.clarity
             else:
                 raw_image.avgClarity = running_average(previous_avg=raw_image.avgClarity,
-                                                       current_val=annotation.clarity / 100,
+                                                       current_val=annotation.clarity,
                                                        total_records=raw_image.totalAnnotations)
 
             # Moving average and equal weightage for probability and clarity
             if raw_image.totalAnnotations == 0:
-                current_avg_score = (1.0 * annotation.probability / 100) + (1.0 * annotation.clarity / 100)
+                current_avg_score = (1.0 * annotation.probability) + (1.0 * annotation.clarity)
                 raw_image.annotationScore = current_avg_score / 2
 
             else:
-                current_avg_score = ((1.0 * annotation.probability / 100) + (1.0 * annotation.clarity / 100)) / 2
+                current_avg_score = ((1.0 * annotation.probability) + (1.0 * annotation.clarity)) / 2
                 raw_image.annotationScore = running_average(previous_avg=raw_image.annotationScore,
                                                             current_val=current_avg_score,
                                                             total_records=raw_image.totalAnnotations)
@@ -78,4 +78,5 @@ def push_annotated_images(
             ids.append(annotated_image_response.id)
         return f"Annotations: {ids} Insertion successful"
     except Exception as e:
+        print(e.__str__())
         return e.__str__()
