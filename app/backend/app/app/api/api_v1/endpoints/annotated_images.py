@@ -35,8 +35,28 @@ def push_annotated_images(
     ids = []
     try:
         for annotation in annotations:
+            # Insert a record in annotated_images table
             annotated_image_response = crud.annotated_images.create(db=db, obj_in=annotation)
-            ids.append(annotated_image_response.annotationId)
+
+            # Update user annotations:
+            user = crud.user.get_by_email(db=db, email=current_user.email)
+            user.totalAnnotations += 1
+            db.commit()
+
+            # Update raw image annotation score and total annotations
+            raw_image = crud.raw_images.get(db=db, id=annotation.rawImageId)
+            # Moving average and equal weightage for probability and clarity
+
+            if raw_image.totalAnnotations != 0:
+                current_avg_score = ((1.0 * annotation.probability / 100) + (1.0 * annotation.clarity / 100))/2
+                raw_image.annotationScore = (raw_image.annotationScore * raw_image.totalAnnotations + current_avg_score) /  (raw_image.totalAnnotations + 1)
+                raw_image.totalAnnotations += 1
+            else:
+                current_avg_score = (1.0 * annotation.probability / 100) + (1.0 * annotation.clarity / 100)
+                raw_image.annotationScore = current_avg_score / 2
+                raw_image.totalAnnotations += 1
+            db.commit()
+            ids.append(annotated_image_response.id)
         return f"Annotations: {ids} Insertion successful"
     except Exception as e:
         return e.__str__()

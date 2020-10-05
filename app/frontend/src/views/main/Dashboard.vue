@@ -61,12 +61,13 @@
                         </div>
                     </v-col>
                     <v-col cols="6">
-                        <v-form ref="form" v-for="characterAnnotation in characterAnnotations"
-                                :key="characterAnnotation.id">
-                            <v-row>
+                        <v-form ref="form"  v-model="valid" >
+                            <v-row v-for="characterAnnotation in characterAnnotations"
+                                   :key="characterAnnotation.id">
                                 <v-col cols="2">
                                     <v-text-field v-model="characterAnnotation.character" label="Character"
-                                                  filled></v-text-field>
+                                                  :rules="nameRules"
+                                                  filled required></v-text-field>
                                 </v-col>
                                 <v-col>
                                     <v-slider
@@ -107,7 +108,7 @@
 <script lang="ts">
   import uniqueId from "lodash.uniqueid";
   import { Component, Vue } from "vue-property-decorator";
-  import { userStore } from "@/store";
+  import {  mainStore, userStore } from "@/store";
   import VueAutosuggest from "vue-autosuggest";
 
   Vue.use(VueAutosuggest);
@@ -116,6 +117,10 @@
     components: {},
     data() {
       return {
+        valid:true,
+        nameRules: [
+          v => !!v || 'Character is required',
+        ],
         values: [],
         options: ["EExp_08_032_128_10", "EExp_08_032_128_10-r0", "EExp_08_032_128_10-r1", "EExp_08_032_128_10-R1-e0", "EExp_08_032_128_10-R1-e0-s0", "EExp_08_032_128_10-R1-e0-s1", "EExp_08_032_128_10-R1-e0-s2", "EExp_08_032_128_10-R1-e1", "EExp_08_032_128_10-R1-e1-s0", "EExp_08_032_128_10-R1-e1-s1", "EExp_08_032_128_10-R1-e2", "EExp_08_032_128_10-R1-e2-s0", "EExp_08_032_128_10-r2", "EExp_08_032_128_10-R2-e0", "EExp_08_032_128_10-R2-e0-s0", "EExp_08_032_128_10-R2-e0-s1", "EExp_08_032_128_10-R2-e0-s2", "EExp_08_032_128_10-R2-e0-s3", "EExp_08_032_128_10-r3", "EExp_08_032_128_10-R3-e0", "EExp_08_032_128_10-R3-e0-s0", "EExp_08_032_128_10-R3-e0-s1", "EExp_08_032_128_10-R3-e0-s2", "EExp_08_032_128_10-R3-e0-s3", "EExp_08_032_128_10-R3-e1", "EExp_08_032_128_10-R3-e1-s0", "EExp_08_032_128_10-R3-e1-s1", "EExp_08_032_128_10-r4", "EExp_08_032_128_10-R4-e0", "EExp_08_032_128_10-R4-e0-s0", "EExp_08_032_128_10-R4-e0-s1", "EExp_08_032_128_10-R4-e1", "EExp_08_032_128_10-R4-e1-s0", "EExp_08_032_128_10-R4-e1-s1", "EExp_08_032_128_10-R4-e1-s2", "EExp_12_016_256_20", "EExp_12_016_256_20-r0", "EExp_12_016_256_20-r1", "EExp_12_016_256_20-R1-e0", "EExp_12_016_256_20-R1-e0-s0", "EExp_12_016_256_20-R1-e0-s1", "EExp_12_016_256_20-R1-e0-s2", "EExp_12_016_256_20-R1-e0-s3", "EExp_12_016_256_20-R1-e0-s4", "EExp_12_016_256_20-R1-e1", "EExp_12_016_256_20-R1-e1-s0", "EExp_12_016_256_20-R1-e1-s1", "EExp_12_016_256_20-R1-e1-s2", "EExp_12_016_256_20-r2", "EExp_12_016_256_20-R2-e0", "EExp_12_016_256_20-R2-e0-s0", "EExp_12_016_256_20-R2-e0-s1", "EExp_12_016_256_20-R2-e1", "EExp_12_016_256_20-R2-e1-s0", "EExp_12_016_256_20-R2-e1-s1", "EExp_14_032_256_5", "EExp_14_032_256_5-r0", "EExp_14_032_256_5-R0-e0", "EExp_14_032_256_5-R0-e0-s0", "EExp_14_032_256_5-R0-e0-s1", "EExp_14_032_256_5-R0-e1", "EExp_14_032_256_5-R0-e1-s0", "EExp_14_032_256_5-r1", "EExp_14_032_256_5-R1-e0", "EExp_14_032_256_5-R1-e1", "EExp_14_032_256_5-R1-e1-s0", "EExp_14_032_256_5-R1-e1-s1", "EExp_14_032_256_5-r2", "EExp_14_032_256_5-R2-e0", "EExp_14_032_256_5-r3", "EExp_14_032_256_5-R3-e0", "EExp_14_032_256_5-R3-e0-s0", "EExp_14_032_256_5-R3-e1", "EExp_14_032_256_5-R3-e2", "EExp_14_032_256_5-R3-e2-s0", "EExp_14_032_256_5-r4", "EExp_14_032_256_5-R4-e0", "EExp_14_032_256_5-R4-e1", "EExp_14_032_256_5-R4-e1-s0", "EExp_14_032_256_5-R4-e1-s1", "EExp_14_032_256_5-R4-e2", "EExp_14_032_256_5-R4-e2-s0", "EExp_14_032_256_5-R4-e2-s1", "EExp_14_032_256_5-R4-e2-s2", "EExp_14_032_256_5-r5", "EExp_14_032_256_5-r6", "EExp_14_032_256_5-R6-e0", "EExp_14_032_256_5-R6-e0-s0", "EExp_14_032_256_5-R6-e0-s1", "EExp_14_032_256_5-R6-e0-s2", "EExp_14_032_256_5-R6-e0-s3", "EExp_14_032_256_5-R6-e1", "EExp_14_032_256_5-R6-e1-s0", "EExp_14_032_256_5-R6-e1-s1", "EExp_14_032_256_5-R6-e1-s2", "EExp_14_032_256_5-R6-e1-s3", "EExp_14_032_256_5-R6-e2", "EExp_14_032_256_5-R6-e2-s0", "EExp_14_032_256_5-R6-e2-s1", "EExp_14_032_256_5-R6-e2-s2", "EExp_14_032_256_5-r7", "EExp_14_032_256_5-R7-e0", "EExp_14_032_256_5-R7-e0-s0", "EExp_14_032_256_5-R7-e0-s1"],
         characterAnnotations: [
@@ -129,7 +134,7 @@
           },
         ],
       };
-    },
+    }
   })
   export default class Dashboard extends Vue {
     characterAnnotations: any;
@@ -169,16 +174,32 @@
 
 
     async nextImage() {
-      await userStore.getImages();
-      this.$notify({
-        group: "global",
-        type: "success",
-        title: "Info",
-        text: "Record Successfully stored",
-      });
-      this.characterAnnotations = [
-        { id: uniqueId(), character: "", probability: 100, clarity: 100, showDelete: false, showAdd: true },
-      ];
+      if (this.$refs.form.validate()){
+        console.log(this.$refs.form)
+        const postArgument = []
+        this.characterAnnotations.forEach(elem => {
+          postArgument.push({
+            rawImageId: this.Image.rawImageId,
+            uniqueId: this.Image.uniqueId,
+            label: elem.character,
+            probability: elem.probability,
+            clarity: elem.clarity,
+            userEmail: mainStore.userProfile?.email,
+            timestamp: Date.now()
+          })
+        });
+        console.log(JSON.stringify(postArgument));
+        await userStore.getImages();
+        this.$notify({
+          group: "global",
+          type: "success",
+          title: "Info",
+          text: "Record Successfully stored",
+        });
+        this.characterAnnotations = [
+          { id: uniqueId(), character: "", probability: 100, clarity: 100, showDelete: false, showAdd: true, rawImageId:this.Image.rawImageId},
+        ];
+      }
     }
 
     // public goToEdit() {
@@ -312,4 +333,7 @@
         /*color:black!important;*/
     }
 
+    .v-text-field__details{
+        display: block;
+    }
 </style>

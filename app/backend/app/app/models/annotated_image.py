@@ -21,11 +21,11 @@ if TYPE_CHECKING:
 
 class AnnotatedImages(Base):
     __tablename__ = "annotated_images"
-    annotationId = Column(Integer, primary_key=True, index=True)
-    rawImageId = Column(Integer, ForeignKey("raw_images.rawImageId"))
+    id = Column(Integer, primary_key=True, index=True)
+    rawImageId = Column(Integer, ForeignKey("raw_images.id"))
     uniqueId = Column(String, ForeignKey("raw_images.uniqueId"))
     label = Column(String)
     probability = Column(Float)
     clarity = Column(Float)
     timestamp = Column(TIMESTAMP)
-    userId = Column(Integer, ForeignKey("user.id"))
+    userEmail = Column(String, ForeignKey("user.email"))

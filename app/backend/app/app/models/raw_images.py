@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 class RawImages(Base):
     __tablename__ = "raw_images"
-    rawImageId = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
     experiment = Column(String, index=True)
     epoch = Column(Integer)
     step = Column(Integer)
@@ -36,3 +36,4 @@ class RawImages(Base):
     annotationScore = Column(Float, default=0.0)
     fileName = Column(String)
     evalImageId = Column(Integer)
+    totalAnnotations = Column(Integer, default=0)

@@ -16,13 +16,15 @@ from datetime import datetime
 
 # Shared properties
 class RawImagesBase(BaseModel):
-    rawImageId: Optional[str] = None
+    id: Optional[str] = None
     experiment: Optional[str] = None
     epoch: Optional[int] = None
     step: Optional[int] = None
     batch: Optional[int] = None
     timestamp: Optional[datetime] = None
     image: Optional[bytes] = None
+    uniqueId: Optional[str]=None
+    totalAnnotations:Optional[int]=None
 
 
 # Properties shared by models stored in DB

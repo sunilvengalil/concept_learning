@@ -17,13 +17,13 @@ from datetime import datetime
 
 # Shared properties
 class AnnotatedImagesBase(BaseModel):
-    annotationId: Optional[int] = None
+    id: Optional[int] = None
     rawImageId: Optional[int] = None
     uniqueId: Optional[str] = None
     label: Optional[str] = None
     probability: Optional[float] = None
     clarity: Optional[float] = None
-    userId: Optional[int] = None
+    userEmail: Optional[str] = None
     timestamp: Optional[datetime] = None
 
 
