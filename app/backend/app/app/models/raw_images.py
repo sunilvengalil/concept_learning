@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
 
 class RawImages(Base):
+    __tablename__ = "raw_images"
     rawImageId = Column(Integer, primary_key=True, index=True)
     experiment = Column(String, index=True)
     epoch = Column(Integer)

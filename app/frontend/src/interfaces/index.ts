@@ -29,6 +29,12 @@ export interface IAppNotification {
 }
 
 export interface IRawImages {
-  experiment:string;
   uniqueId:string;
+  experiment: string;
+  rawImageId: string;
+  epoch:string;
+  step: string;
+  batch:string;
+  timestamp:string;
+  image:string;
 }

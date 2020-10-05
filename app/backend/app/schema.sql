@@ -1,4 +1,4 @@
-CREATE TABLE "RawImages" (
+CREATE TABLE raw_images (
   "rawImageId" SERIAL PRIMARY KEY,
   "experiment" varchar,
   "run" int,
@@ -14,14 +14,8 @@ CREATE TABLE "RawImages" (
   "fileName" varchar
 );
 
-CREATE TABLE "Users" (
-  "userId" SERIAL PRIMARY KEY,
-  "userName" varchar,
-  "userEmail" varchar,
-  "totalAnnotations" int
-);
 
-CREATE TABLE "AnnotatedImages" (
+CREATE TABLE annotated_images (
   "annotationId" SERIAL PRIMARY KEY,
   "rawImageId" int,
   "uniqueId" varchar,
@@ -32,19 +26,19 @@ CREATE TABLE "AnnotatedImages" (
   "timestamp" timestamp
 );
 
-CREATE TABLE "FilterOptions"
+CREATE TABLE filter_options
 (
 	option varchar not null
 );
 
 create unique index filteroptions_option_uindex
-	on "FilterOptions" (option);
+	on "filter_options" (option);
 
-ALTER TABLE "AnnotatedImages" ADD FOREIGN KEY ("rawImageId") REFERENCES "RawImages" ("rawImageId");
+ALTER TABLE annotated_images ADD FOREIGN KEY ("rawImageId") REFERENCES raw_images ("rawImageId");
 
-ALTER TABLE "AnnotatedImages" ADD FOREIGN KEY ("uniqueId") REFERENCES "RawImages" ("uniqueId");
+ALTER TABLE annotated_images ADD FOREIGN KEY ("uniqueId") REFERENCES raw_images ("uniqueId");
 
-ALTER TABLE "AnnotatedImages" ADD FOREIGN KEY ("userId") REFERENCES "user" ("id");
+ALTER TABLE annotated_images ADD FOREIGN KEY ("userId") REFERENCES "user" ("id");
 
 ALTER TABLE "user" ADD "totalAnnotations" int default 0;
 

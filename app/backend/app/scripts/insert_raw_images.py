@@ -34,7 +34,7 @@ def insert_record(conn, rawImage: RawImages):
     try:
         cursor = conn.cursor()
         cursor.execute(
-            f'INSERT INTO rawimages(experiment, epoch, step, batch, "uniqueId", image, timestamp, "fileName", "evalImageId") ' +
+            f'INSERT INTO raw_images(experiment, epoch, step, batch, "uniqueId", image, timestamp, "fileName", "evalImageId") ' +
             f"VALUES('{rawImage.experiment}', '{rawImage.epoch}', '{rawImage.step}', '{rawImage.batch}', "
             f"'{rawImage.uniqueId}', {rawImage.image}, '{rawImage.timestamp}', '{rawImage.fileName}', "
             f"'{rawImage.evalImageId}')")
@@ -49,7 +49,7 @@ def insert_options(conn, option):
     try:
         cursor = conn.cursor()
         cursor.execute(
-            f'INSERT INTO "FilterOptions"(option) ' +
+            f'INSERT INTO "filter_options"(option) ' +
             f"VALUES('{option}')")
         conn.commit()
         cursor.close()
