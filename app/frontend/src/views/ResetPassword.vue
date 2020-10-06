@@ -107,6 +107,7 @@
         mainStore.addNotification({
           content: "No token provided in the URL, start a new password recovery",
           color: "error",
+          timeout:"6500",
         });
         this.$router.push("/recover-password");
       } else {

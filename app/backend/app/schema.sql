@@ -12,7 +12,12 @@ CREATE TABLE raw_images (
   "avgClarity" float DEFAULT 0,
   "annotationScore" float DEFAULT 0,
   "fileName" varchar,
-  "totalAnnotations" int DEFAULT 0
+  "totalAnnotations" int DEFAULT 0,
+  "evalImageId" int,
+  "zdim" int,
+  "n_3" int,
+  "n_2" int,
+  "cluster_config" varchar
 );
 
 
@@ -29,6 +34,7 @@ CREATE TABLE annotated_images (
 
 CREATE TABLE filter_options
 (
+    "id" SERIAL PRIMARY KEY,
 	option varchar not null
 );
 
@@ -36,8 +42,6 @@ create unique index filteroptions_option_uindex
 	on "filter_options" (option);
 
 ALTER TABLE annotated_images ADD FOREIGN KEY ("rawImageId") REFERENCES raw_images ("id");
-
-ALTER TABLE annotated_images ADD FOREIGN KEY ("uniqueId") REFERENCES raw_images ("uniqueId");
 
 ALTER TABLE annotated_images ADD FOREIGN KEY ("userEmail") REFERENCES "user" ("email");
 

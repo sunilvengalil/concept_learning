@@ -7,7 +7,8 @@
 | **Description:**
 | 
 |
-| **Sphinx Documentation Status:** 
+| **Sphinx Documentation Status:**
+| https://github.com/tiangolo/pydantic-sqlalchemy
 """
 
 from typing import Optional

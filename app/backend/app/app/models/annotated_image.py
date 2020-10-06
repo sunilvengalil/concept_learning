@@ -23,7 +23,7 @@ class AnnotatedImages(Base):
     __tablename__ = "annotated_images"
     id = Column(Integer, primary_key=True, index=True)
     rawImageId = Column(Integer, ForeignKey("raw_images.id"))
-    uniqueId = Column(String, ForeignKey("raw_images.uniqueId"))
+    uniqueId = Column(String)
     label = Column(String)
     probability = Column(Float)
     clarity = Column(Float)

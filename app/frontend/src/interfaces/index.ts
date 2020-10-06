@@ -30,6 +30,7 @@ export interface IAppNotification {
 }
 
 export interface IRawImages {
+  id:string;
   uniqueId:string;
   experiment: string;
   rawImageId: string;

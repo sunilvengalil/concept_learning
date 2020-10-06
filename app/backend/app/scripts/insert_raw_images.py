@@ -17,10 +17,15 @@ import datetime
 
 
 class RawImages(object):
-    def __init__(self, file_path:str):
+    def __init__(self, file_path: str):
         self.experiment = file_path.split("/")[-4]
         self.fileName = file_path.split("/")[-1]
         tmp_split = self.fileName.split("_")
+        tmp_exp_split = self.experiment.split("_")
+        self.zdim = tmp_exp_split[1]
+        self.n_3 = tmp_exp_split[2]
+        self.n_2 = tmp_exp_split[3]
+        self.run = tmp_exp_split[-1]
         self.epoch = tmp_split[2]
         self.step = tmp_split[4]
         self.batch = tmp_split[6]
@@ -34,16 +39,18 @@ def insert_record(conn, rawImage: RawImages):
     try:
         cursor = conn.cursor()
         cursor.execute(
-            f'INSERT INTO raw_images(experiment, epoch, step, batch, "uniqueId", image, timestamp, "fileName", "evalImageId") ' +
+            f'INSERT INTO raw_images(experiment, epoch, step, batch, "uniqueId", image, timestamp, "fileName", "evalImageId",'
+            f'zdim, n_3, n_2, run) ' +
             f"VALUES('{rawImage.experiment}', '{rawImage.epoch}', '{rawImage.step}', '{rawImage.batch}', "
             f"'{rawImage.uniqueId}', {rawImage.image}, '{rawImage.timestamp}', '{rawImage.fileName}', "
-            f"'{rawImage.evalImageId}')")
+            f"'{rawImage.evalImageId}', '{rawImage.zdim}', '{rawImage.n_3}', '{rawImage.n_2}', '{rawImage.run}')")
         conn.commit()
         cursor.close()
         print(f"{rawImage.fileName} inserted successfully")
     except Exception as e:
         print(e)
         exit()
+
 
 def insert_options(conn, option):
     try:
@@ -53,7 +60,7 @@ def insert_options(conn, option):
             f"VALUES('{option}')")
         conn.commit()
         cursor.close()
-        print(f"{option} inserted successfully")
+        print(f"{option} option inserted successfully")
     except Exception as e:
         print(e)
         exit()
@@ -74,8 +81,8 @@ if __name__ == '__main__':
     fl = len(files)
 
     filter_options = set()
-    for e,file in enumerate(files):
-        print(f"Working on {e}/{fl} [{round(e/fl*100,2)}%]")
+    for e, file in enumerate(files):
+        print(f"Working on {e}/{fl} [{round(e / fl * 100, 2)}%]")
         rm = RawImages(file)
         filter_options.add(rm.experiment)
         filter_options.add(f"{rm.experiment}_E{rm.epoch}")

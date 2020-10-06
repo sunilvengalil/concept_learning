@@ -43,7 +43,7 @@ export default class AdminModule extends VuexModule {
   @Action
   async updateUser(payload: { id: number; user: IUserProfileUpdate }) {
     try {
-      const loadingNotification = { content: "saving", showProgress: true };
+      const loadingNotification = { content: "saving", showProgress: true, timeout:"6500" };
       mainStore.addNotification(loadingNotification);
       const response = (
         await Promise.all([
@@ -56,6 +56,7 @@ export default class AdminModule extends VuexModule {
       mainStore.addNotification({
         content: "User successfully updated",
         color: "success",
+        timeout:"6500"
       });
     } catch (error) {
       await mainStore.checkApiError(error);
@@ -65,7 +66,7 @@ export default class AdminModule extends VuexModule {
   @Action
   async createUser(payload: IUserProfileCreate) {
     try {
-      const loadingNotification = { content: "saving", showProgress: true };
+      const loadingNotification = { content: "saving", showProgress: true, timeout:"6500" };
       mainStore.addNotification(loadingNotification);
       const response = (
         await Promise.all([
@@ -78,6 +79,7 @@ export default class AdminModule extends VuexModule {
       mainStore.addNotification({
         content: "User successfully created",
         color: "success",
+        timeout:"6500"
       });
     } catch (error) {
       await mainStore.checkApiError(error);
