@@ -1,6 +1,7 @@
 from .crud_item import item
 from .crud_user import user
-
+from .crud_raw_image import raw_images
+from .crud_annotated_image import  annotated_images
 # For a new basic set of CRUD operations you could just do
 
 # from .base import CRUDBase

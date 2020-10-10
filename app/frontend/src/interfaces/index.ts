@@ -26,4 +26,26 @@ export interface IAppNotification {
   content: string;
   color?: string;
   showProgress?: boolean;
+  timeout: string;
+}
+
+export interface IRawImages {
+  id:string;
+  uniqueId:string;
+  experiment: string;
+  rawImageId: string;
+  epoch:string;
+  step: string;
+  batch:string;
+  timestamp:string;
+  image:string;
+}
+
+export interface IAnnotationImage {
+  rawImageId: string,
+  uniqueId: string,
+  label: string,
+  probability: string,
+  clarity: string,
+  timestamp: string
 }

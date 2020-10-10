@@ -19,58 +19,12 @@
                                     multiple
                             ></v-autocomplete>
                         </v-col>
-<!--                        <v-col cols="2">-->
-<!--                            <div class="autosuggest-container">-->
-<!--                                <vue-autosuggest-->
-<!--                                        :suggestions="[{data:options}]"-->
-<!--                                        :input-props="{id:'autosuggest__input', placeholder:'Experiment ID'}">-->
-<!--                                    <div slot-scope="{suggestion}"-->
-<!--                                         style="display: flex; align-items: center; position: absolute">-->
-<!--                                        <div style="display:flex; color:black">{{suggestion.item}}</div>-->
-<!--                                    </div>-->
-<!--                                </vue-autosuggest>-->
-<!--                            </div>-->
-<!--                        </v-col>-->
                     </v-row>
                 </v-row>
-
-                <!--                        <v-col cols="2">-->
-                <!--                            <vue-autosuggest-->
-                <!--                                    :suggestions="[{data:['Exp_08_032_128_10', 'Exp_02_016_128_10', 'Exp_14_032_128_10']}]"-->
-                <!--                                    :input-props="{id:'autosuggest__input', placeholder:'Run'}">-->
-                <!--                                <div slot-scope="{suggestion}"-->
-                <!--                                     style="display: flex; align-items: center; position: absolute">-->
-                <!--                                    <div style="display:flex; color:black">{{suggestion.item}}</div>-->
-                <!--                                </div>-->
-                <!--                            </vue-autosuggest>-->
-                <!--                        </v-col>-->
-                <!--                        <v-col cols="2">-->
-                <!--                            <vue-autosuggest-->
-                <!--                                    :suggestions="[{data:[]}]"-->
-                <!--                                    :input-props="{id:'autosuggest__input', placeholder:'Epoch'}">-->
-                <!--                                <div slot-scope="{suggestion}"-->
-                <!--                                     style="display: flex; align-items: center; position: absolute">-->
-                <!--                                    <div style="display:flex; color:black">{{suggestion.item}}</div>-->
-                <!--                                </div>-->
-                <!--                            </vue-autosuggest>-->
-                <!--                        </v-col>-->
-                <!--                        <v-col cols="2">-->
-                <!--                            <vue-autosuggest-->
-                <!--                                    :suggestions="[{data:['Exp_08_032_128_10', 'Exp_02_016_128_10', 'Exp_14_032_128_10']}]"-->
-                <!--                                    :input-props="{id:'autosuggest__input', placeholder:'Step'}">-->
-                <!--                                <div slot-scope="{suggestion}"-->
-                <!--                                     style="display: flex; align-items: center; position: absolute">-->
-                <!--                                    <div style="display:flex; color:black">{{suggestion.item}}</div>-->
-                <!--                                </div>-->
-                <!--                            </vue-autosuggest>-->
-                <!--                        </v-col>-->
-                <!--                    </v-row>-->
-                <!--                </v-row>-->
                 <v-row>
                     <v-col class="text-center" cols="3">
                         <div>
-                            <img id="clip" :src="currentImage.src"/>
-                            <!--                            <div id="rectangle"></div>-->
+                            <img id="clip" :src="Image.image"/>
                         </div>
                         <div class="text-left" style="padding: 20px;">
                             <h2 style="padding-bottom: 10px">Details:</h2>
@@ -78,47 +32,42 @@
                                 <thead>
                                 <tr>
                                     <th class="tg-1wig">Image ID:</th>
-                                    <th class="tg-0lax">{{currentImage.imageId}}</th>
+                                    <th class="tg-0lax">{{Image.id}}</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 <tr>
                                     <td class="tg-1wig">Experiment:</td>
-                                    <td class="tg-0lax">{{currentImage.experiment}}</td>
-                                </tr>
-                                <tr>
-                                    <td class="tg-1wig">Run:</td>
-                                    <td class="tg-0lax">{{currentImage.runid}}</td>
+                                    <td class="tg-0lax">{{Image.experiment}}</td>
                                 </tr>
                                 <tr>
                                     <td class="tg-1wig">Epoch:</td>
-                                    <td class="tg-0lax">{{currentImage.epoch}}</td>
+                                    <td class="tg-0lax">{{Image.epoch}}</td>
                                 </tr>
                                 <tr>
                                     <td class="tg-1wig">Step:</td>
-                                    <td class="tg-0lax">{{currentImage.step}}</td>
+                                    <td class="tg-0lax">{{Image.step}}</td>
                                 </tr>
                                 <tr>
                                     <td class="tg-1wig">Batch:</td>
-                                    <td class="tg-0lax">{{currentImage.batch}}</td>
+                                    <td class="tg-0lax">{{Image.batch}}</td>
                                 </tr>
                                 <tr>
                                     <td class="tg-1wig">Timestamp:</td>
-                                    <td class="tg-0lax">{{currentImage.timestamp}}</td>
+                                    <td class="tg-0lax">{{Image.timestamp}}</td>
                                 </tr>
                                 </tbody>
                             </table>
-
                         </div>
-
                     </v-col>
                     <v-col cols="6">
-                        <v-form ref="form" v-for="characterAnnotation in characterAnnotations"
-                                :key="characterAnnotation.id">
-                            <v-row>
+                        <v-form ref="form" v-model="valid">
+                            <v-row v-for="characterAnnotation in characterAnnotations"
+                                   :key="characterAnnotation.id">
                                 <v-col cols="2">
                                     <v-text-field v-model="characterAnnotation.character" label="Character"
-                                                  filled></v-text-field>
+                                                  :rules="nameRules"
+                                                  filled required></v-text-field>
                                 </v-col>
                                 <v-col>
                                     <v-slider
@@ -144,18 +93,8 @@
                                 </v-col>
                             </v-row>
                         </v-form>
-
-                    </v-col>
-                    <v-col>
-                        <form id="search">
-                            Search
-                            <input name="query" v-model="searchQuery">
-                        </form>
-                        <v-json-tree :json-data="jsonData" :filter-key="searchQuery"></v-json-tree>
                     </v-col>
                 </v-row>
-
-                <!--                <div class="headline font-weight-light ma-5">Welcome {{ greetedUser }}</div>-->
             </v-card-text>
             <v-card-actions>
                 <!--                <v-btn to="/main/profile/view">Previous Image</v-btn>-->
@@ -167,42 +106,26 @@
 </template>
 
 <script lang="ts">
+  // @ts-ignore
   import uniqueId from "lodash.uniqueid";
   import { Component, Vue } from "vue-property-decorator";
-  import { mainStore } from "@/store";
+  import { userStore } from "@/store";
+  // @ts-ignore
   import VueAutosuggest from "vue-autosuggest";
-  // import JsonViewer from "vue-json-viewer";
-  import vJsonTree from "v-json-tree";
-
-  Vue.component("v-json-tree", vJsonTree);
+  import { IAnnotationImage } from "@/interfaces";
 
   Vue.use(VueAutosuggest);
-  // Vue.use(JsonViewer);
 
   @Component({
     components: {},
     data() {
       return {
+        valid: true,
+        nameRules: [
+          v => !!v || "Character is required",
+        ],
+        values: [],
         options: ["EExp_08_032_128_10", "EExp_08_032_128_10-r0", "EExp_08_032_128_10-r1", "EExp_08_032_128_10-R1-e0", "EExp_08_032_128_10-R1-e0-s0", "EExp_08_032_128_10-R1-e0-s1", "EExp_08_032_128_10-R1-e0-s2", "EExp_08_032_128_10-R1-e1", "EExp_08_032_128_10-R1-e1-s0", "EExp_08_032_128_10-R1-e1-s1", "EExp_08_032_128_10-R1-e2", "EExp_08_032_128_10-R1-e2-s0", "EExp_08_032_128_10-r2", "EExp_08_032_128_10-R2-e0", "EExp_08_032_128_10-R2-e0-s0", "EExp_08_032_128_10-R2-e0-s1", "EExp_08_032_128_10-R2-e0-s2", "EExp_08_032_128_10-R2-e0-s3", "EExp_08_032_128_10-r3", "EExp_08_032_128_10-R3-e0", "EExp_08_032_128_10-R3-e0-s0", "EExp_08_032_128_10-R3-e0-s1", "EExp_08_032_128_10-R3-e0-s2", "EExp_08_032_128_10-R3-e0-s3", "EExp_08_032_128_10-R3-e1", "EExp_08_032_128_10-R3-e1-s0", "EExp_08_032_128_10-R3-e1-s1", "EExp_08_032_128_10-r4", "EExp_08_032_128_10-R4-e0", "EExp_08_032_128_10-R4-e0-s0", "EExp_08_032_128_10-R4-e0-s1", "EExp_08_032_128_10-R4-e1", "EExp_08_032_128_10-R4-e1-s0", "EExp_08_032_128_10-R4-e1-s1", "EExp_08_032_128_10-R4-e1-s2", "EExp_12_016_256_20", "EExp_12_016_256_20-r0", "EExp_12_016_256_20-r1", "EExp_12_016_256_20-R1-e0", "EExp_12_016_256_20-R1-e0-s0", "EExp_12_016_256_20-R1-e0-s1", "EExp_12_016_256_20-R1-e0-s2", "EExp_12_016_256_20-R1-e0-s3", "EExp_12_016_256_20-R1-e0-s4", "EExp_12_016_256_20-R1-e1", "EExp_12_016_256_20-R1-e1-s0", "EExp_12_016_256_20-R1-e1-s1", "EExp_12_016_256_20-R1-e1-s2", "EExp_12_016_256_20-r2", "EExp_12_016_256_20-R2-e0", "EExp_12_016_256_20-R2-e0-s0", "EExp_12_016_256_20-R2-e0-s1", "EExp_12_016_256_20-R2-e1", "EExp_12_016_256_20-R2-e1-s0", "EExp_12_016_256_20-R2-e1-s1", "EExp_14_032_256_5", "EExp_14_032_256_5-r0", "EExp_14_032_256_5-R0-e0", "EExp_14_032_256_5-R0-e0-s0", "EExp_14_032_256_5-R0-e0-s1", "EExp_14_032_256_5-R0-e1", "EExp_14_032_256_5-R0-e1-s0", "EExp_14_032_256_5-r1", "EExp_14_032_256_5-R1-e0", "EExp_14_032_256_5-R1-e1", "EExp_14_032_256_5-R1-e1-s0", "EExp_14_032_256_5-R1-e1-s1", "EExp_14_032_256_5-r2", "EExp_14_032_256_5-R2-e0", "EExp_14_032_256_5-r3", "EExp_14_032_256_5-R3-e0", "EExp_14_032_256_5-R3-e0-s0", "EExp_14_032_256_5-R3-e1", "EExp_14_032_256_5-R3-e2", "EExp_14_032_256_5-R3-e2-s0", "EExp_14_032_256_5-r4", "EExp_14_032_256_5-R4-e0", "EExp_14_032_256_5-R4-e1", "EExp_14_032_256_5-R4-e1-s0", "EExp_14_032_256_5-R4-e1-s1", "EExp_14_032_256_5-R4-e2", "EExp_14_032_256_5-R4-e2-s0", "EExp_14_032_256_5-R4-e2-s1", "EExp_14_032_256_5-R4-e2-s2", "EExp_14_032_256_5-r5", "EExp_14_032_256_5-r6", "EExp_14_032_256_5-R6-e0", "EExp_14_032_256_5-R6-e0-s0", "EExp_14_032_256_5-R6-e0-s1", "EExp_14_032_256_5-R6-e0-s2", "EExp_14_032_256_5-R6-e0-s3", "EExp_14_032_256_5-R6-e1", "EExp_14_032_256_5-R6-e1-s0", "EExp_14_032_256_5-R6-e1-s1", "EExp_14_032_256_5-R6-e1-s2", "EExp_14_032_256_5-R6-e1-s3", "EExp_14_032_256_5-R6-e2", "EExp_14_032_256_5-R6-e2-s0", "EExp_14_032_256_5-R6-e2-s1", "EExp_14_032_256_5-R6-e2-s2", "EExp_14_032_256_5-r7", "EExp_14_032_256_5-R7-e0", "EExp_14_032_256_5-R7-e0-s0", "EExp_14_032_256_5-R7-e0-s1"],
-        searchQuery: "",
-        jsonData: {
-          "Exp_08_032_128_10": {
-            "runs": [{
-              "run": 1,
-              "epochs": [
-                {
-                  "epoch": 5,
-                  "steps": [1, 5, 10, 15],
-                },
-                {
-                  "epoch": 10,
-                  "steps": [1, 5, 10, 15],
-                },
-              ],
-            }],
-          },
-        },
-
         characterAnnotations: [
           {
             id: uniqueId(),
@@ -213,137 +136,19 @@
             showAdd: true,
           },
         ],
-        currentImage: {
-          src: require("@/assets/im1.png"),
-          imageId: "1",
-          timestamp: "17:30 24 Aug, 2020",
-          experiment: "Exp_08_032_128_10",
-          runid: "5",
-          epoch: "3",
-          step: "399",
-          batch: "1394",
-        },
-        currentImageCounter: 0,
-        imageFiles: [
-          {
-            src: require("@/assets/im1.png"),
-            imageId: "1",
-            timestamp: "17:30 24 Aug, 2020",
-            experiment: "Exp_08_032_128_10",
-            runid: "5",
-            epoch: "3",
-            step: "399",
-            batch: "1394",
-          },
-          {
-            src: require("@/assets/im2.png"),
-            imageId: "2",
-            timestamp: "17:30 24 Aug, 2020",
-            experiment: "Exp_08_032_128_10",
-            runid: "5",
-            epoch: "3",
-            step: "399",
-            batch: "1394",
-          },
-          {
-            src: require("@/assets/im3.png"),
-            imageId: "3",
-            timestamp: "17:30 24 Aug, 2020",
-            experiment: "Exp_08_032_128_10",
-            runid: "5",
-            epoch: "3",
-            step: "399",
-            batch: "1394",
-          },
-          {
-            src: require("@/assets/im4.png"),
-            imageId: "4",
-            timestamp: "17:30 24 Aug, 2020",
-            experiment: "Exp_08_032_128_10",
-            runid: "5",
-            epoch: "3",
-            step: "399",
-            batch: "1394",
-          },
-          {
-            src: require("@/assets/im5.png"),
-            imageId: "5",
-            timestamp: "17:30 24 Aug, 2020",
-            experiment: "Exp_08_032_128_10",
-            runid: "5",
-            epoch: "3",
-            step: "399",
-            batch: "1394",
-          },
-          {
-            src: require("@/assets/im6.png"),
-            imageId: "6",
-            timestamp: "17:30 24 Aug, 2020",
-            experiment: "Exp_08_032_128_10",
-            runid: "5",
-            epoch: "3",
-            step: "399",
-            batch: "1394",
-          },
-          {
-            src: require("@/assets/im7.png"),
-            imageId: "7",
-            timestamp: "17:30 24 Aug, 2020",
-            experiment: "Exp_08_032_128_10",
-            runid: "5",
-            epoch: "3",
-            step: "399",
-            batch: "1394",
-          },
-          {
-            src: require("@/assets/im8.png"),
-            imageId: "8",
-            timestamp: "17:30 24 Aug, 2020",
-            experiment: "Exp_08_032_128_10",
-            runid: "5",
-            epoch: "3",
-            step: "399",
-            batch: "1394",
-          },
-          {
-            src: require("@/assets/im9.png"),
-            imageId: "9",
-            timestamp: "17:30 24 Aug, 2020",
-            experiment: "Exp_08_032_128_10",
-            runid: "5",
-            epoch: "3",
-            step: "399",
-            batch: "1394",
-          },
-          {
-            src: require("@/assets/im10.png"),
-            imageId: "10",
-            timestamp: "17:30 24 Aug, 2020",
-            experiment: "Exp_08_032_128_10",
-            runid: "5",
-            epoch: "3",
-            step: "399",
-            batch: "1394",
-          },
-          {
-            src: require("@/assets/im11.png"),
-            imageId: "11",
-            timestamp: "17:30 24 Aug, 2020",
-            experiment: "Exp_08_032_128_10",
-            runid: "5",
-            epoch: "3",
-            step: "399",
-            batch: "1394",
-          },
-        ],
       };
     },
   })
   export default class Dashboard extends Vue {
     characterAnnotations: any;
-    currentImageCounter: any;
-    currentImage: any;
-    imageFiles: any;
+
+    async mounted() {
+      await userStore.getImages();
+    }
+
+    get Image() {
+      return userStore.rawImages;
+    }
 
     addFn() {
       if (this.characterAnnotations.length == 1) {
@@ -370,36 +175,58 @@
       }
     }
 
-    nextImage() {
-      if (this.currentImageCounter >= this.imageFiles.length - 1) {
-        this.currentImageCounter = 0;
-      } else {
-        this.currentImageCounter += 1;
+
+    async nextImage() {
+
+      const form: any = this.$refs.form;
+      if (form.validate()) {
+        const postArgument: IAnnotationImage[] = [];
+        this.characterAnnotations.forEach(elem => {
+          const annotatedImage: IAnnotationImage = {
+            // @ts-ignore
+            uniqueId: this.Image.uniqueId,
+            // @ts-ignore
+            rawImageId: this.Image.id,
+            label: elem.character,
+            probability: (elem.probability / 100).toString(),
+            clarity: (elem.clarity / 100).toString(),
+            timestamp: Date.now().toString(),
+          };
+          postArgument.push(annotatedImage);
+        });
+        await userStore.createAnnotation(postArgument);
+        await userStore.getImages();
+        // this.$notify({
+        //   group: "global",
+        //   type: "success",
+        //   title: "Info",
+        //   text: "Record Successfully stored",
+        // });
+
+        this.characterAnnotations = [
+          {
+            id: uniqueId(),
+            character: "",
+            probability: 100,
+            clarity: 100,
+            showDelete: false,
+            showAdd: true,
+            // @ts-ignore
+            rawImageId: this.Image.rawImageId,
+          },
+        ];
       }
-      this.currentImage = this.imageFiles[this.currentImageCounter];
-      this.$notify({
-        group: "global",
-        type: "success",
-        title: "Info",
-        text: "Record Successfully stored",
-      });
-      this.characterAnnotations = [
-        { id: uniqueId(), character: "", probability: 100, clarity: 100, showDelete: false, showAdd: true },
-      ];
     }
 
-    get greetedUser() {
-      const userProfile = mainStore.userProfile;
-      if (userProfile && userProfile.full_name) {
-        if (userProfile.full_name) {
-          return userProfile.full_name;
-        } else {
-          return userProfile.email;
-        }
-      } else {
-        return "unknown user";
-      }
-    }
+    // public goToEdit() {
+    //   this.$router.push("/main/profile/edit");
+    // }
+    //
+    // public goToPassword() {
+    //   this.$router.push("/main/profile/password");
+    // }
+
+
   }
 </script>
 
@@ -522,4 +349,7 @@
         /*color:black!important;*/
     }
 
+    .v-text-field__details {
+        display: block;
+    }
 </style>

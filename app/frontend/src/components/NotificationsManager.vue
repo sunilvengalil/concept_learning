@@ -21,6 +21,7 @@
     public show = false;
     public text = "";
     public showProgress = false;
+    public timeout = 6500;
     public currentNotification: IAppNotification | false = false;
 
     public async hide() {
@@ -63,7 +64,7 @@
         if (newNotification) {
           mainStore.removeNotificationDelayed({
             notification: newNotification,
-            timeout: 6500,
+            timeout: parseInt(newNotification.timeout),
           });
         }
       }
