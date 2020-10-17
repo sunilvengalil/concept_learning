@@ -4,28 +4,16 @@ import argparse
 import os
 from clearn.config import ExperimentConfig
 from clearn.utils.dir_utils import get_eval_result_dir
-
-#annotator = "ARYA"
-# annotator = "MANJU"
-annotator = "SUNIL"
+from clearn.config import RUN_ID
+from clearn.utils.annotation_utils import ANNOTATION_FOLDER_NAME_PREFIX, annotator
+# annotator = "arya"
+# annotator = "manju"
 eval_interval = 300
 
-N_3 = 32
-N_2 = 128
-N_1 = 64
-Z_DIM = 10
-run_id = 1
-# ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
-ROOT_PATH = "/home/sunilv/concept_learning_data/"
-exp_config = ExperimentConfig(ROOT_PATH,
-                              4,
-                              Z_DIM,
-                              [N_1, N_2, N_3],
-                              None
-                              )
+exp_config = ExperimentConfig.get_exp_config()
 BATCH_SIZE = exp_config.BATCH_SIZE
 DATASET_NAME = exp_config.dataset_name
-exp_config.check_and_create_directories(run_id, create=False)
+exp_config.check_and_create_directories(RUN_ID, create=False)
 
 NUMBER_OF_ROWS = 16
 NUM_DIGITS_PER_ROW = 4
@@ -33,18 +21,7 @@ MAX_BACKUPS = 10
 ANNOTATED_CSV = "annotation.csv"
 last_epoch = 50
 
-ANNOTATED_PATH = exp_config.BASE_PATH + "manual_annotation"
-if annotator == "SUNIL":
-    ANNOTATED_PATH = exp_config.BASE_PATH + "manual_annotation_sunil"
-elif annotator == "MANJU":
-    BASE_PATH = "/home/test/"
-    ANNOTATED_PATH = exp_config.BASE_PATH + "manual_annotation_manju"
-elif annotator == "ARYA":
-    ANNOTATED_PATH = exp_config.BASE_PATH + "manual_annotation_arya"
-else:
-    raise Exception("Only two annotators {} and {} are allowed now".format("SUNIL", "VIJAY"))
-
-ANNOTATED_PATH = exp_config.BASE_PATH + "manual_annotation_set1"
+ANNOTATED_PATH = exp_config.BASE_PATH + ANNOTATION_FOLDER_NAME_PREFIX + str(annotator)
 
 # Initialize variables
 counter_start = 2
@@ -111,7 +88,7 @@ with open(annotation_csv, "a")as outfile:
             print(step)
             reconstructed_dir = get_eval_result_dir(exp_config.PREDICTION_RESULTS_PATH,
                                                     epoch+1,
-                                                    (step * eval_interval) - 1,
+                                                    (step * eval_interval),
                                                     )
             print(reconstructed_dir)
             for _idx in range(start_eval_batch, num_eval_batches):

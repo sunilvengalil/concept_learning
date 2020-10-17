@@ -2,6 +2,16 @@ import os
 from clearn.utils.dir_utils import check_and_create_folder
 from clearn.utils.data_loader import TrainValDataIterator
 
+# ROOT_PATH = "/Users/prathyushsp/concept_learning_old/"
+ROOT_PATH = "/home/sunilv/concept_learning_data/"
+
+N_3 = 32
+N_2 = 64
+N_1 = 20
+Z_DIM = 10
+RUN_ID = 100
+manual_labels_config = TrainValDataIterator.USE_CLUSTER_CENTER  # Possible values "USE_ACTUAL" and "USE_CLUSTER_CENTER"
+
 WEIGHTS = "Weights"
 BIAS = "Bias"
 LAYER_NAME_PREFIX = "Layer"
@@ -10,7 +20,7 @@ LAYER_NAME_PREFIX = "Layer"
 def get_keys(base_path, key_prefix):
     keys = []
     for file in os.listdir(base_path):
-        if os.path.isdir(base_path+file):
+        if os.path.isdir(base_path + file):
             if file.startswith(key_prefix):
                 keys.append(file)
     return keys
@@ -36,6 +46,52 @@ def get_base_path(root_path: str,
 class ExperimentConfig:
     NUM_CLUSTERS_CONFIG_ELBOW = "ELBOW"
     NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW = "TWO_TIMES_ELBOW"
+    _instance = None
+
+    @staticmethod
+    def get_exp_config(root_path=ROOT_PATH,
+                       num_decoder_layer=4,
+                       z_dim=Z_DIM,
+                       num_units=[N_1, N_2, N_3],
+                       num_cluster_config=None,
+                       confidence_decay_factor=5,
+                       beta=5,
+                       supervise_weight=150,
+                       dataset_name="mnist",
+                       split_name="Split_1",
+                       model_name="VAE",
+                       batch_size=64,
+                       eval_interval=300,
+                       name="experiment_configuration",
+                       num_val_samples=128,
+                       total_training_samples=60000,
+                       manual_labels_config=TrainValDataIterator.USE_CLUSTER_CENTER,
+                       reconstruction_weight=1,
+                       activation_hidden_layer="RELU",
+                       activation_output_layer="SIGMOID"):
+        if ExperimentConfig._instance is None:
+            ExperimentConfig._instance = ExperimentConfig(root_path,
+                                                          num_decoder_layer,
+                                                          z_dim,
+                                                          num_units,
+                                                          num_cluster_config,
+                                                          confidence_decay_factor,
+                                                          beta,
+                                                          supervise_weight,
+                                                          dataset_name,
+                                                          split_name,
+                                                          model_name,
+                                                          batch_size,
+                                                          eval_interval,
+                                                          name,
+                                                          num_val_samples,
+                                                          total_training_samples,
+                                                          manual_labels_config,
+                                                          reconstruction_weight,
+                                                          activation_hidden_layer,
+                                                          activation_output_layer
+                                                          )
+        return ExperimentConfig._instance
 
     def __init__(self,
                  root_path,
@@ -44,7 +100,8 @@ class ExperimentConfig:
                  num_units,
                  num_cluster_config,
                  confidence_decay_factor=2,
-                 beta=5, supervise_weight=0,
+                 beta=5,
+                 supervise_weight=0,
                  dataset_name="mnist",
                  split_name="Split_1",
                  model_name="VAE",
@@ -54,7 +111,9 @@ class ExperimentConfig:
                  num_val_samples=128,
                  total_training_samples=60000,
                  manual_labels_config=TrainValDataIterator.USE_CLUSTER_CENTER,
-                 reconstruction_weight=1):
+                 reconstruction_weight=1,
+                 activation_hidden_layer="RELU",
+                 activation_output_layer="SIGMOID"):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
         :rtype: object
@@ -62,6 +121,8 @@ class ExperimentConfig:
         :type num_units: list
         :type beta: float
         """
+        if ExperimentConfig._instance is not None:
+            raise Exception("ExperimentConfig is singleton class. Use class method get_exp_config() instead")
         self.root_path = root_path
         if len(num_units) != num_decoder_layer - 1:
             raise ValueError("No of units should be same as number of layers minus one")
@@ -88,6 +149,9 @@ class ExperimentConfig:
         self.manual_labels_config = manual_labels_config
         self.reconstruction_weight = reconstruction_weight
         self.num_train_samples = ((total_training_samples - num_val_samples) // batch_size) * batch_size
+        self.activation_hidden_layer = activation_hidden_layer
+        self.activation_output_layer = activation_output_layer
+        ExperimentConfig._instance = self
 
     def as_json(self):
         config_json = dict()
@@ -107,7 +171,8 @@ class ExperimentConfig:
         config_json["MANUAL_LABELS_CONFIG"] = self.manual_labels_config
         config_json["RECONSTRUCTION_WEIGHT"] = self.reconstruction_weight
         config_json["EVAL_INTERVAL"] = self.eval_interval
-
+        config_json["ACTIVATION_HIDDEN_LAYER"] = self.activation_hidden_layer
+        config_json["ACTIVATION_OUTPUT_LAYER"] = self.activation_output_layer
         return config_json
 
     def _check_and_create_directories(self, run_id, create):
@@ -122,7 +187,7 @@ class ExperimentConfig:
 
         self.TRAINED_MODELS_PATH = os.path.join(self.BASE_PATH, "trained_models/")
         self.PREDICTION_RESULTS_PATH = os.path.join(self.BASE_PATH, "prediction_results/")
-        self.reconstructed_images_path = os.path.join(self.PREDICTION_RESULTS_PATH,"reconstructed_images/")
+        self.reconstructed_images_path = os.path.join(self.PREDICTION_RESULTS_PATH, "reconstructed_images/")
         self.LOG_PATH = os.path.join(self.BASE_PATH, "logs/")
         self.ANALYSIS_PATH = os.path.join(self.BASE_PATH, "analysis/")
         paths = [self.root_path,

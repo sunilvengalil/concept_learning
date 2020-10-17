@@ -8,12 +8,17 @@ import matplotlib
 from matplotlib import pyplot as plt
 from collections import defaultdict
 
-from clearn.analysis import CSV_COL_NAME_EPOCH, CSV_COL_NAME_STEP, CSV_COL_NAME_IMAGE_ID, CSV_COL_NAME_ROW_ID_WITHIN_IMAGE
+from clearn.analysis import CSV_COL_NAME_EPOCH, CSV_COL_NAME_STEP, CSV_COL_NAME_IMAGE_ID
+from clearn.analysis import CSV_COL_NAME_ROW_ID_WITHIN_IMAGE
 # import ROOT_PATH, z_dim, N_3, N_2, exp_config, run_id, max_epoch
 
 from clearn.config import get_base_path
 from clearn.utils.dir_utils import get_eval_result_dir
 from clearn.utils.pandas_utils import space_separated_string, has_multiple_value
+from clearn.analysis.annotate_v3 import show_image_and_get_annotations_v2
+
+ANNOTATION_FOLDER_NAME_PREFIX="manual_annotation_"
+annotator = "sunil"
 
 KEY_FOR_DATA_FRAME = "data_frame"
 
@@ -286,21 +291,26 @@ def get_combined_annotation(row, column_names):
     return not all_same
 
 
-def get_corrections_for_de_duping(df, exp_config, filter_column):
+def get_corrections_for_de_duping(df, exp_config, filter_column, manually_de_duped_file=None):
     epoch_step_dict = defaultdict()
-    for _epoch in range(5):
-        for _step in range(3):
-            _batch = _epoch * 935 + _step * 300
-            batch_filter = df["batch"] == _batch
-            rows_to_annotate_all_images = list()
-            for image_no in [0, 1]:
-                filter_condition = (batch_filter & (df[filter_column]) & (df["_idx"] == image_no))
-                rows_to_correct = df["num_rows_annotated"][filter_condition].values.tolist()
-                rows_to_annotate_all_images.append(rows_to_correct)
-            if len(rows_to_annotate_all_images[0]) + len(rows_to_annotate_all_images[1]) > 0:
-                epoch_step_dict[_batch] = rows_to_annotate_all_images
-
-    corrected_text_all_images = show_image_and_get_annotations(epoch_step_dict, exp_config)
+    for index, row in df.iterrows():
+        _epoch = row.epoch
+        _step = row.step
+        _batch = _epoch * 935 + _step * 300
+        batch_filter = df["batch"] == _batch
+        rows_to_annotate_all_images = list()
+        for image_no in [0, 1]:
+            filter_condition = (batch_filter & (df[filter_column]) & (df["_idx"] == image_no))
+            rows_to_correct = df["num_rows_annotated"][filter_condition].values.tolist()
+            rows_to_annotate_all_images.append(rows_to_correct)
+        if len(rows_to_annotate_all_images[0]) + len(rows_to_annotate_all_images[1]) > 0:
+            epoch_step_dict[_batch] = rows_to_annotate_all_images
+    if manually_de_duped_file is None:
+        corrected_text_all_images =  show_image_and_get_annotations(epoch_step_dict,exp_config)
+    else:
+        corrected_text_all_images = show_image_and_get_annotations_v2(epoch_step_dict,
+                                                                      exp_config,
+                                                                      manually_de_duped_file)
     return corrected_text_all_images, epoch_step_dict
 
 
@@ -320,7 +330,7 @@ def show_image_and_get_annotations(epoch_step_dict, exp_config):
         step = (_batch % 935 // 300)
         reconstructed_dir = get_eval_result_dir(exp_config.PREDICTION_RESULTS_PATH,
                                                 epoch + 1,
-                                                (step * exp_config.eval_interval) - 1)
+                                                (step * exp_config.eval_interval))
         for _idx in [0, 1]:
             rows_to_annotate = epoch_step_dict[_batch][_idx]
             print(f"batch {_batch}  image {_idx}:{rows_to_annotate}")
@@ -367,11 +377,10 @@ def get_annotations_for_keys(keys: dict, max_epoch: int, use_corrected=False):
     return data_dict
 
 
-
-""" Read all the individual data frames from location  into a dictionary of format {"annotator_id"}"""
-
-
 def combine_annotation_sessions(keys: list, base_path: str, max_epoch: int):
+    """ Read all the individual data frames from location  into a dictionary of format {"annotator_id"}
+    @:param keys List of keys- each key corresponds to annotation by one different user
+    """
     data_dict = dict()
     for key in keys:
         annotation_path = base_path + key
@@ -380,13 +389,6 @@ def combine_annotation_sessions(keys: list, base_path: str, max_epoch: int):
             return data_dict
         df, _ = get_annotations(annotation_path, batches=None)
         df = df[df["epoch"] < max_epoch]
-        # TODO Add code to fix invalid character in annotation
-        # BASE_PATH = get_base_path(ROOT_PATH, z_dim, N_3, N_2, exp_config.num_cluster_config, run_id=run_id)
-        # PREDICTION_RESULTS_PATH = os.path.join(BASE_PATH, "prediction_results/")
-        # ANNOTATED_PATH = BASE_PATH + "manual_annotation"
-        #
-        # df, unique = get_annotations(ANNOTATED_PATH, batches=batch)
-        # df = df.rename(columns={"text": f"text_run_id_{run_id}"})
         if "text" not in df.columns:
             print(f"Files in  {annotation_path} does not have a column called text")
 
@@ -441,7 +443,8 @@ def get_manual_annotation(manually_de_duped_file, df, exp_config, filter_column)
         corrected_text_all_images, epoch_step_dict = get_corrections_for_de_duping(
             df,
             exp_config,
-            filter_column)
+            filter_column,
+            manually_de_duped_file)
         save_manually_de_duped_json(manually_de_duped_file,
                                     corrected_text_all_images,
                                     epoch_step_dict)
