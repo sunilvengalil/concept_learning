@@ -52,7 +52,7 @@
                                     <td class="tg-1wig">Batch:</td>
                                     <td class="tg-0lax">{{Image.batch}}</td>
                                 </tr>
-                                <tr>
+                                <tr style="line-height: 13px">
                                     <td class="tg-1wig">Timestamp:</td>
                                     <td class="tg-0lax">{{Image.timestamp}}</td>
                                 </tr>
@@ -64,23 +64,29 @@
                         <v-form ref="form" v-model="valid">
                             <v-row v-for="characterAnnotation in characterAnnotations"
                                    :key="characterAnnotation.id">
-                                <v-col cols="2">
+                                <v-col>
                                     <v-text-field v-model="characterAnnotation.character" label="Character"
                                                   :rules="nameRules"
                                                   filled required></v-text-field>
                                 </v-col>
                                 <v-col>
-                                    <v-slider
-                                            v-model="characterAnnotation.probability"
-                                            label="Probability"
-                                            thumb-label="always"
-                                    ></v-slider>
+                                    <v-text-field v-model="characterAnnotation.probability" label="Probability"
+                                                  :rules="nameRules"  type="number"
+                                                  filled required></v-text-field>
+<!--                                    <v-slider-->
+<!--                                            v-model="characterAnnotation.probability"-->
+<!--                                            label="Probability"-->
+<!--                                            thumb-label="always"-->
+<!--                                    ></v-slider>-->
                                 </v-col>
 
                                 <v-col>
-                                    <v-slider v-model="characterAnnotation.clarity" label="Clarity"
-                                              thumb-label="always">
-                                    </v-slider>
+                                    <v-text-field v-model="characterAnnotation.clarity" label="Clarity"
+                                                  :rules="nameRules" type="number"
+                                                  filled required></v-text-field>
+<!--                                    <v-slider v-model="characterAnnotation.clarity" label="Clarity"-->
+<!--                                              thumb-label="always">-->
+<!--                                    </v-slider>-->
                                 </v-col>
 
                                 <v-col>
@@ -130,8 +136,8 @@
           {
             id: uniqueId(),
             character: "",
-            probability: 100,
-            clarity: 100,
+            probability: "",
+            clarity: "",
             showDelete: false,
             showAdd: true,
           },
