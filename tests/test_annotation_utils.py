@@ -62,11 +62,7 @@ class ResolveDuplicate(unittest.TestCase):
                                       )
         exp_config.check_and_create_directories(run_id)
         # Read all the individual data frames into a dictionary of format {"annotator_id"}
-        base_path = get_base_path(exp_config.root_path,
-                                  exp_config.Z_DIM,
-                                  exp_config.num_units[2],
-                                  exp_config.num_units[1],
-                                  exp_config.num_cluster_config,
+        base_path = get_base_path(exp_config,
                                   run_id=run_id
                                   )
 

@@ -3,12 +3,12 @@ from clearn.utils.dir_utils import check_and_create_folder
 from clearn.utils.data_loader import TrainValDataIterator
 
 # ROOT_PATH = "/Users/prathyushsp/concept_learning_old/"
-ROOT_PATH = "/home/sunilv/concept_learning_data/"
+ROOT_PATH = "/Users/sunilkumar/concept_learning_exp/"
 
 N_3 = 32
 N_2 = 64
 N_1 = 20
-Z_DIM = 10
+Z_DIM = 20
 RUN_ID = 100
 manual_labels_config = TrainValDataIterator.USE_CLUSTER_CENTER  # Possible values "USE_ACTUAL" and "USE_CLUSTER_CENTER"
 
@@ -26,21 +26,17 @@ def get_keys(base_path, key_prefix):
     return keys
 
 
-def get_base_path(root_path: str,
-                  z_dim: int,
-                  n_3: int,
-                  n_2: int,
-                  cluster_config: str,
+def get_base_path(exp_config,
                   run_id: int = 0
                   ) -> str:
     """
 
     :rtype:
     """
-    if cluster_config is None:
-        return os.path.join(root_path, f"Exp_{z_dim:02d}_{n_3:03}_{n_2:03d}_{run_id}/")
+    if exp_config.num_cluster_config is None:
+        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{exp_config.num_units[3]}_{exp_config.num_units[2]}_{exp_config.num_units[1]}_{exp_config.num_units[0]}_{exp_config.Z_DIM}_{run_id}/")
     else:
-        return os.path.join(root_path, f"Exp_{z_dim:02d}_{n_3:03}_{n_2:03d}_{cluster_config}_{run_id}/")
+        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{exp_config.num_units[3]}_{exp_config.num_units[2]}_{exp_config.num_units[1]}_{exp_config.num_units[0]}_{exp_config.Z_DIM}_{exp_config.cluster_config}_{run_id}/")
 
 
 class ExperimentConfig:
@@ -121,10 +117,11 @@ class ExperimentConfig:
         :type num_units: list
         :type beta: float
         """
-        if ExperimentConfig._instance is not None:
-            raise Exception("ExperimentConfig is singleton class. Use class method get_exp_config() instead")
+        # if ExperimentConfig._instance is not None:
+        #     raise Exception("ExperimentConfig is singleton class. Use class method get_exp_config() instead")
         self.root_path = root_path
         if len(num_units) != num_decoder_layer - 1:
+            print(num_units,num_decoder_layer)
             raise ValueError("No of units should be same as number of layers minus one")
         num_units.append(z_dim * 2)
         self.num_decoder_layer = num_decoder_layer
@@ -151,7 +148,7 @@ class ExperimentConfig:
         self.num_train_samples = ((total_training_samples - num_val_samples) // batch_size) * batch_size
         self.activation_hidden_layer = activation_hidden_layer
         self.activation_output_layer = activation_output_layer
-        ExperimentConfig._instance = self
+        #ExperimentConfig._instance = self
 
     def as_json(self):
         config_json = dict()
@@ -176,11 +173,7 @@ class ExperimentConfig:
         return config_json
 
     def _check_and_create_directories(self, run_id, create):
-        self.BASE_PATH = get_base_path(self.root_path,
-                                       self.Z_DIM,
-                                       self.num_units[self.num_decoder_layer - 2],
-                                       self.num_units[self.num_decoder_layer - 3],
-                                       self.num_cluster_config,
+        self.BASE_PATH = get_base_path(self,
                                        run_id=run_id
                                        )
         self.DATASET_PATH = os.path.join(self.DATASET_ROOT_PATH, self.split_name + "/")

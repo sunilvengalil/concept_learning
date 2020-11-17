@@ -3,6 +3,7 @@ CSV_COL_NAME_EPOCH = "epoch"
 CSV_COL_NAME_STEP = "step"
 CSV_COL_NAME_IMAGE_ID = "_idx"
 CSV_COL_NAME_ROW_ID_WITHIN_IMAGE = "num_rows_annotated"
+ANNOTATION_FOLDER_NAME_PREFIX="manual_annotation_"
 
 
 class ManualAnnotation:

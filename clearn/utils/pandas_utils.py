@@ -14,10 +14,8 @@ def get_combined_annotation(row, column_names):
     return all_same
 
 
-""" Returns if the row has multiple words separated by space """
-
-
 def has_multiple_value(_column_name, row):
+    """ Returns true if the row has multiple words separated by space """
     if len(row[_column_name].split()) > 1:
         return True
     else:
