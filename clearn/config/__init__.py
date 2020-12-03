@@ -36,7 +36,7 @@ def get_base_path(exp_config,
     if exp_config.num_cluster_config is None:
         return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{exp_config.num_units[3]}_{exp_config.num_units[2]}_{exp_config.num_units[1]}_{exp_config.num_units[0]}_{exp_config.Z_DIM}_{run_id}/")
     else:
-        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{exp_config.num_units[3]}_{exp_config.num_units[2]}_{exp_config.num_units[1]}_{exp_config.num_units[0]}_{exp_config.Z_DIM}_{exp_config.cluster_config}_{run_id}/")
+        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{exp_config.num_units[3]}_{exp_config.num_units[2]}_{exp_config.num_units[1]}_{exp_config.num_units[0]}_{exp_config.Z_DIM}_{exp_config.num_cluster_config}_{run_id}/")
 
 
 class ExperimentConfig:
@@ -49,7 +49,7 @@ class ExperimentConfig:
                        num_decoder_layer=4,
                        z_dim=Z_DIM,
                        num_units=[N_1, N_2, N_3],
-                       num_cluster_config=None,
+                       num_cluster_config=NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW,
                        confidence_decay_factor=5,
                        beta=5,
                        supervise_weight=150,

@@ -96,7 +96,12 @@ class TrainValDataIterator:
 
     """
     Creates and initialize an instance of TrainValDataIterator
-    @param: init_config:list A list of attributes that needs to be initialized
+    @param: split_name:Name of the train/valid/test split
+    @param: split_location: path to folder with split_location
+    @param: batch_size: number of samples in each batch
+    @param: manual_labels_config: list A list of attributes that needs to be initialized
+
+
     """
     @classmethod
     def from_existing_split(cls,
@@ -132,15 +137,23 @@ class TrainValDataIterator:
                     instance.manual_annotation[i, int(_manual_annotation[i, 0])] = 1.0
                     instance.manual_annotation[i, 10] = _manual_annotation[i, 1]
             else:
+
                 # TODO if we are using random prior with uniform distribution, do we need to keep
                 # manual confidence as 0.5 or 0
+
+
                 print("Warning", "{} path does not exist. Creating random prior with uniform distribution".
                       format(manual_annotation_file))
+
+                # create a numpy array of dimension (num_training_samples, num_unique_labels) and  set the one-hot encoded label
+                # with uniform probability distribution for each label. i.e in case of MNIST each row will be set as one of the symbol
+                # {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
+
                 _manual_annotation = np.random.choice(instance.unique_labels, len(instance.train_x))
                 instance.manual_annotation = np.zeros((len(_manual_annotation), 11), dtype=np.float)
                 for i, label in enumerate(_manual_annotation):
                     instance.manual_annotation[i, _manual_annotation[i]] = 1.0
-                    instance.manual_annotation[i, 10] = 0
+                    #instance.manual_annotation[i, 10] = 0 not required
         elif manual_labels_config == TrainValDataIterator.USE_ACTUAL:
             instance.manual_annotation = np.zeros((len(instance.train_x), 11), dtype=np.float)
 

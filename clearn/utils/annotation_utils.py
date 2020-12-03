@@ -527,6 +527,7 @@ def combine_multiple_annotations(data_dict, exp_config, num_rows, run_id):
             for image_no in [0, 1]:
                 column_name = f"text_{key}"
                 num_rows_annotated = epoch_step_dict[_batch][image_no]
+                print(f"batch {_batch}  image {image_no}")
                 corrected_text = corrected_text_all_images[_batch][image_no]
                 df.loc[(df["has_multiple_value"]) & (df["epoch"] == epoch) & (df["step"] == step) & (
                 df["num_rows_annotated"].isin(num_rows_annotated)) & (

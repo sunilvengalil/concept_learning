@@ -1,14 +1,13 @@
-from clearn.analysis.annotate import annotate
+from clearn.analysis.combine_keys import combine_keys
 from clearn.config import ExperimentConfig
 from clearn.utils.data_loader import TrainValDataIterator
 import argparse
 
 experiment_name = "semi_supervised_classification"
-z_dim_range = [4, 5, 1]
 num_epochs = 10
 num_runs = 5
 create_split = False
-completed_z_dims = 0
+completed_z_dims = 2
 
 def parse_args():
     desc = "Start annotation of images"
@@ -17,23 +16,17 @@ def parse_args():
     parser.add_argument('--batch', type=int, default=1)
     return parser.parse_args()
 
-
 args = parse_args()
 start_epoch = args.epoch
 start_batch_id = args.batch
-completed_runs = 4
-#for z_dim in [21]:
-for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
-    if z_dim <= completed_z_dims:
-        continue
-    for run_id in range(completed_runs, num_runs):
-        if run_id < completed_runs:
-            continue
+completed_runs = 0
+for z_dim in [10]:
+    for run_id in [100]:
         exp_config = ExperimentConfig(root_path="/Users/sunilv/concept_learning_exp",
                                       num_decoder_layer=4,
                                       z_dim=z_dim,
                                       num_units=[64, 128, 32],
-                                      num_cluster_config=None,
+                                      num_cluster_config=ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW,
                                       confidence_decay_factor=5,
                                       beta=5,
                                       supervise_weight=150,
@@ -51,5 +44,5 @@ for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
                                       activation_output_layer="SIGMOID"
                                       )
         print(args.epoch, args.batch)
-        annotate(exp_config, run_id, args.epoch, args.batch)
+        combine_keys(exp_config, run_id)
     completed_runs = 0

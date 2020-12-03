@@ -27,7 +27,7 @@ def combine_keys(exp_config, run_id):
 
     # Read all the individual data frames into a dictionary of format {"annotator_id"}
     base_path = get_base_path(exp_config, run_id=run_id)
-
+    print(base_path)
     keys = get_keys(base_path, ANNOTATION_FOLDER_NAME_PREFIX)
     print("keys", keys)
 

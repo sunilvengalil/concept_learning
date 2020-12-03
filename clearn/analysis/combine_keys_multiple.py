@@ -4,11 +4,11 @@ from clearn.utils.data_loader import TrainValDataIterator
 import argparse
 
 experiment_name = "semi_supervised_classification"
-z_dim_range = [1, 22, 4]
+z_dim_range = [4, 5, 1]
 num_epochs = 10
 num_runs = 5
 create_split = False
-completed_z_dims = 0
+completed_z_dims = 2
 
 def parse_args():
     desc = "Start annotation of images"
@@ -20,14 +20,12 @@ def parse_args():
 args = parse_args()
 start_epoch = args.epoch
 start_batch_id = args.batch
-
+completed_runs = 0
+#for z_dim in [17,21]:
 for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
-    if z_dim < completed_z_dims:
+    if z_dim <= completed_z_dims:
         continue
-    completed_runs = 0
-    for run_id in range(num_runs):
-        if run_id < completed_runs:
-            continue
+    for run_id in range(completed_runs, num_runs):
         exp_config = ExperimentConfig(root_path="/Users/sunilv/concept_learning_exp",
                                       num_decoder_layer=4,
                                       z_dim=z_dim,
@@ -51,3 +49,4 @@ for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
                                       )
         print(args.epoch, args.batch)
         combine_keys(exp_config, run_id)
+    completed_runs = 0

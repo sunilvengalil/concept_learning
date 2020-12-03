@@ -34,9 +34,16 @@ def show_image_and_get_annotations_v2(epoch_step_dict,
                                                     (step * eval_interval),
                                                     )
             print(reconstructed_dir)
+            key = int(_batch)
             for _idx in [0, 1]:
+                text_list = []
                 rows_to_annotate = epoch_step_dict[_batch][_idx]
                 if len(rows_to_annotate) == 0:
+                    if key in corrected_text_all_images:
+                        corrected_text_all_images[key].append(text_list)
+                    else:
+                        corrected_text_all_images[key] = [text_list]
+
                     continue
                 print(f"batch {_batch}  image {_idx}:{rows_to_annotate}")
                 left, top = (0, 0)
@@ -51,8 +58,6 @@ def show_image_and_get_annotations_v2(epoch_step_dict,
                     break
                 im = cv2.imread(file)
                 print(file)
-                text_list = []
-
                 for num_rows_annotated in rows_to_annotate:
                     image_to_show = im.copy()
                     top = (num_rows_annotated - 1) * height
@@ -85,7 +90,6 @@ def show_image_and_get_annotations_v2(epoch_step_dict,
                     print("Full Text for row {:01d}:{}".format(num_rows_annotated, text))
                     text_list.append(text)
                     writer.writerow([epoch, step, _idx, num_rows_annotated, text])
-                key =int(_batch)
                 if key in corrected_text_all_images:
                     corrected_text_all_images[key].append(text_list)
                 else:

@@ -1,6 +1,6 @@
 import tensorflow as tf
 import argparse
-from clearn.analysis.encode_images import encode_images
+from clearn.experiments.experiment import Experiment
 import json
 import os
 
@@ -9,8 +9,10 @@ from clearn.utils.data_loader import TrainValDataIterator
 from clearn.utils.utils import show_all_variables
 from clearn.config import ExperimentConfig
 from clearn.config import RUN_ID
-create_split = False
 
+create_split = False
+z_dim = 10
+experiment_name = "semi_supervised_classification"
 
 def parse_args():
     desc = "Tensorflow implementation of GAN collections"
@@ -50,72 +52,32 @@ def check_args(_args):
     return _args
 
 
-class Experiment:
-    def __init__(self, exp_id, name, num_val_samples, config1: ExperimentConfig, _run_id=None):
-        """
-
-        :type config1: ExperimentConfig
-        """
-        if _run_id is None:
-            self.run_id = id
-        else:
-            self.run_id = _run_id
-        self.id = exp_id
-        self.name = name
-        self.num_validation_samples = num_val_samples
-        self.config = config1
-        self.model = None
-
-    def initialize(self, _model=None):
-        """
-
-        :type _model: VAE
-        """
-        self.model = _model
-        self.config.check_and_create_directories(self.run_id)
-
-    def as_json(self):
-        config_json = self.config.as_json()
-        config_json["RUN_ID"] = self.run_id
-        config_json["ID"] = self.id
-        config_json["name"] = self.name
-        config_json["NUM_VALIDATION_SAMPLES"] = self.num_validation_samples
-        return config_json
-
-    def train(self, _train_val_data_iterator=None, _create_split=False):
-        if _train_val_data_iterator is None:
-
-            if _create_split:
-                _train_val_data_iterator = TrainValDataIterator(self.config.DATASET_ROOT_PATH,
-                                                                shuffle=True,
-                                                                stratified=True,
-                                                                validation_samples=self.num_validation_samples,
-                                                                split_names=["train", "validation"],
-                                                                split_location=self.config.DATASET_PATH,
-                                                                batch_size=self.config.BATCH_SIZE)
-            else:
-                _train_val_data_iterator = TrainValDataIterator.from_existing_split(self.config.split_name,
-                                                                                    self.config.DATASET_PATH,
-                                                                                    self.config.BATCH_SIZE,
-                                                                                    manual_labels_config=exp.config.manual_labels_config)
-        self.model.train(_train_val_data_iterator)
-        print(" [*] Training finished!")
-
-    def encode_latent_vector(self, _train_val_data_iterator, epoch, dataset_type):
-        encode_images(self.model,
-                      _train_val_data_iterator,
-                      self.config,
-                      epoch,
-                      dataset_type
-                      )
-
-
 if __name__ == '__main__':
     # parse arguments
     args = parse_args()
-    num_epochs = 1
+    num_epochs = 10
 
-    _config = ExperimentConfig.get_exp_config()
+    _config = ExperimentConfig(root_path="/Users/sunilv/concept_learning_exp",
+                               num_decoder_layer=4,
+                               z_dim=z_dim,
+                               num_units=[64, 128, 32],
+                               num_cluster_config=ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW,
+                               confidence_decay_factor=5,
+                               beta=5,
+                               supervise_weight=150,
+                               dataset_name="mnist",
+                               split_name="Split_1",
+                               model_name="VAE",
+                               batch_size=64,
+                               eval_interval=300,
+                               name=experiment_name,
+                               num_val_samples=128,
+                               total_training_samples=60000,
+                               manual_labels_config=TrainValDataIterator.USE_CLUSTER_CENTER,
+                               reconstruction_weight=1,
+                               activation_hidden_layer="RELU",
+                               activation_output_layer="SIGMOID"
+                               )
     _config.check_and_create_directories(RUN_ID)
     BATCH_SIZE = _config.BATCH_SIZE
     DATASET_NAME = _config.dataset_name
@@ -180,3 +142,4 @@ if __name__ == '__main__':
         train_val_data_iterator.reset_counter("train")
         train_val_data_iterator.reset_counter("val")
         exp.encode_latent_vector(train_val_data_iterator, num_epochs, "val")
+

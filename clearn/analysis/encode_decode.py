@@ -2,6 +2,9 @@ import numpy as np
 
 
 def decode(model, z, batch_size):
+    """
+    z =
+    """
     # TODO remove this hard-coding
     feature_dimension = [len(z), 28, 28, 1]
     reconstructed_images = np.zeros(feature_dimension)
@@ -9,6 +12,8 @@ def decode(model, z, batch_size):
     num_batches = num_latent_vectors // batch_size
     for batch_num in range(num_batches):
         decoded_images = model.decode(z[batch_num * batch_size: (batch_num + 1) * batch_size])
+        print("Decoded images shpae", decoded_images.shape)
+        print("reconstructed_images", reconstructed_images.shape)
         reconstructed_images[batch_num * batch_size: (batch_num + 1) * batch_size] = decoded_images
     left_out = num_latent_vectors % batch_size
     if left_out != 0:

@@ -9,16 +9,18 @@ from clearn.utils.data_loader import TrainValDataIterator
 from clearn.config import ExperimentConfig
 from clearn.utils.utils import show_all_variables
 
-experiment_name = "semi_supervised_classification"
-z_dim_range = [1, 22, 4]
+experiment_name = "un_supervised_classification"
+z_dim_range = [2, 5, 1]
 num_epochs = 10
 num_runs = 5
 create_split = False
 completed_z_dims = 0
+#for z_dim in [17]:
 for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
     if z_dim < completed_z_dims:
         continue
     completed_runs = 0
+#    for run_id in [2, 3, 4]:
     for run_id in range(num_runs):
         if run_id < completed_runs:
             continue
@@ -35,7 +37,7 @@ for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
                                       model_name="VAE",
                                       batch_size=64,
                                       eval_interval=300,
-                                      name="semi_supervised_classification",
+                                      name=experiment_name,
                                       num_val_samples=128,
                                       total_training_samples=60000,
                                       manual_labels_config=TrainValDataIterator.USE_CLUSTER_CENTER,
