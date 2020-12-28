@@ -213,7 +213,9 @@ def get_latent_vector_column(z_dim):
     mean_col_names = ["mu_{}".format(i) for i in range(z_dim)]
     sigma_col_names = ["sigma_{}".format(i) for i in range(z_dim)]
     z_col_names = ["z_{}".format(i) for i in range(z_dim)]
-    return mean_col_names, sigma_col_names, z_col_names
+    # TODO fix this
+    l3_col_names = ["l3_{}".format(i) for i in range(32)]
+    return mean_col_names, sigma_col_names, z_col_names, l3_col_names
 
 
 def get_mean(i, df, mean_col_names):
@@ -246,7 +248,7 @@ def get_labels(data_set_path):
 def get_latent_vector(dataset_path, z_dim, df, labels=None):
     if labels is None:
         labels = get_labels(dataset_path)
-    _, _, z_col_names = get_latent_vector_column(z_dim)
+    _, _, z_col_names,_ = get_latent_vector_column(z_dim)
     mu_mean = []
     for i in labels:
         mu_mean.append( get_mean(i, df, z_col_names))
@@ -265,7 +267,7 @@ It should also have a categorical column with name specified by parameter y_colu
 
 
 def get_pmf_y_given_z(data_df, y_column_name, z_dim, normalized=True):
-    _,  _, z_col_names = get_latent_vector_column(z_dim)
+    _,  _, z_col_names,_ = get_latent_vector_column(z_dim)
     un_normalized = data_df[[z_col_names[0],
                              y_column_name
                              ]].groupby(by=y_column_name).count()[z_col_names[0]]

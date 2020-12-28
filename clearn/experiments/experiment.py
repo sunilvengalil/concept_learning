@@ -1,6 +1,6 @@
 import tensorflow as tf
 import argparse
-from clearn.analysis.encode_images import encode_images
+from clearn.analysis.encode_images import encode_images, encode_images_and_get_features
 import json
 import os
 
@@ -101,14 +101,25 @@ class Experiment:
         self.model.train(_train_val_data_iterator)
         print(" [*] Training finished!")
 
-    def encode_latent_vector(self, _train_val_data_iterator, epoch, dataset_type):
-        encode_images(self.model,
+    def encode_latent_vector(self, _train_val_data_iterator, epoch, dataset_type,
+                             save_results=True):
+        return encode_images(self.model,
                       _train_val_data_iterator,
                       self.config,
                       epoch,
-                      dataset_type
+                      dataset_type,
+                      save_results
                       )
 
+    def encode_latent_vector_and_get_features(self, _train_val_data_iterator, epoch, dataset_type,
+                                              save_results=True):
+        return encode_images_and_get_features(self.model,
+                      _train_val_data_iterator,
+                      self.config,
+                      epoch,
+                      dataset_type,
+                      save_results
+                      )
 
 if __name__ == '__main__':
     # parse arguments

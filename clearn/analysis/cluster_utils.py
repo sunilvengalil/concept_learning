@@ -8,6 +8,84 @@ from matplotlib import pyplot as plt
 from clearn.analysis import Cluster
 from clearn.analysis import ClusterGroup
 from clearn.analysis import ManualAnnotation
+from clearn.models.classify.classifier import ClassifierModel
+
+
+def trace_dim(f, num_trace_steps, dim, feature_dim, z_min, z_max):
+    """
+    Returns a tensor of dimension (`num_trace_steps`, `feature_dim`) with each row containing feature vector `f`
+    with values in dimension `dim` changed from `z_min` to `z_max`
+    @param f feature vector
+    @param num_trace_steps number of steps to trace
+    @param dim dimension which should be modified during tracing
+    @param feature_dim dimension of feature vector
+    @param z_min starting value of tracing
+    @param z_max end value of tracing
+    """
+    z = np.zeros([num_trace_steps, feature_dim])
+    for i in range(num_trace_steps):
+        z[i] = f
+
+    step = 1 / num_trace_steps
+    for i in range(num_trace_steps):
+        alpha_i = step * i
+        z[i, dim] = alpha_i * z_min + (1 - alpha_i) * z_max
+    return z
+
+
+def plot_features(exp_config, features, digits, dimensions_to_be_plotted,  new_fig=True):
+    """
+    Plot the mean latent vector corresponding to symbols `digits`
+
+    @param digits list of symbols for which the feature should be plotted
+    @param dimensions_to_be_plotted indices of the feature dimensions that needs to be plotted
+
+    """
+
+    from mpl_toolkits.axes_grid.inset_locator import inset_axes
+
+    # Load Model
+    tf.reset_default_graph()
+    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
+        model = ClassifierModel(exp_config,
+                                sess,
+                                epoch=1,
+                                batch_size=exp_config.BATCH_SIZE,
+                                z_dim=exp_config.z_dim,
+                                dataset_name=exp_config.DATASET_NAME,
+                                beta=exp_config.beta,
+                                num_units_in_layer=exp_config.num_units,
+                                log_dir=exp_config.LOG_PATH,
+                                checkpoint_dir=exp_config.TRAINED_MODELS_PATH,
+                                result_dir=exp_config.PREDICTION_RESULTS_PATH
+                                )
+        print(model.get_trainable_vars())
+        num_steps_completed = model.counter
+        print("Number of steps completed={}".format(num_steps_completed))
+        num_batches = exp_config.num_train_samples / exp_config.BATCH_SIZE
+        epochs_completed = num_steps_completed // num_batches
+        print("Number of epochs completed {}".format(epochs_completed))
+        means = np.asarray([np.mean(features[digit], axis=0) for digit in digits])
+        if new_fig:
+            plt.figure(figsize=(15, 10))
+
+        # TODO remove subplot
+        # ax = fig.add_subplot(2, 2, i % 4 + 1)
+        for d, mean in zip(digits, means):
+            # TODO plot only sensitive dimensions
+
+            plt.plot(mean[dimensions_to_be_plotted[d]])
+
+            # plt.xticks(list(range(len(sensitive_dimensions))), sensitive_dimensions[d])
+            # ax = plt.gca()
+            # iax = inset_axes(ax, width="50%", height=1, loc=1)
+
+            # plt.axes([0.65, 0.65, 0.2, 0.2], facecolor='y')
+
+        reconstructed_image_for_means = decode(model, means.reshape([len(digits), 10]), exp_config.BATCH_SIZE)
+        # plt.imshow(np.squeeze(reconstructed_image),cmap="gray")
+    tf.reset_default_graph()
+    return reconstructed_image_for_means
 
 
 def decode_latent_vectors(cluster_centers, exp_config):

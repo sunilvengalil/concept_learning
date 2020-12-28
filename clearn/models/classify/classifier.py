@@ -479,6 +479,10 @@ class ClassifierModel(object):
         images = self.sess.run(self.out, feed_dict={self.z: z})
         return images
 
+    def decode_l3(self, z):
+        images = self.sess.run(self.out, feed_dict={self.dense2_en: z})
+        return images
+
     def decode_layer1(self, z):
         batch_z = prior.gaussian(self.batch_size, self.z_dim)
         dense1_de = self.sess.run(self.dense1_de, feed_dict={self.z: z,
