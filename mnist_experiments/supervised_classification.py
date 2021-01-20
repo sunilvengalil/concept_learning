@@ -5,8 +5,7 @@ from clearn.config import ExperimentConfig
 
 create_split = False
 z_dim = 10
-experiment_name = "semi_supervised_classification"
-
+experiment_name = "supervised_classification"
 
 def parse_args():
     desc = "Tensorflow implementation of GAN collections"
@@ -49,15 +48,19 @@ def check_args(_args):
 if __name__ == '__main__':
     # parse arguments
     args = parse_args()
-    num_epochs = 1
+    num_epochs = 10
     num_cluster_config = ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW
-    manual_annotation_file = f"manual_annotation_epoch_{num_epochs - 1:.1f}.csv"
-    run_id = 3
-    initialize_model_train_and_get_features(experiment_name=experiment_name,
-                                            z_dim=z_dim,
-                                            run_id=run_id,
-                                            create_split=create_split,
-                                            num_epochs=num_epochs,
-                                            num_cluster_config=num_cluster_config,
-                                            manual_annotation_file=manual_annotation_file)
+    run_id = 1
+    initialize_model_train_and_get_features(experiment_name,
+                                            z_dim,
+                                            run_id,
+                                            create_split,
+                                            num_epochs,
+                                            num_cluster_config,
+                                            manual_annotation_file=None,
+                                            manual_labels_config=ExperimentConfig.USE_ACTUAL,
+                                            supervise_weight=1,
+                                            beta=0,
+                                            reconstruction_weight=0,
+                                            model_type="supervised_classifier")
     tf.reset_default_graph()

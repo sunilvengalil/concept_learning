@@ -8,68 +8,66 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import tensorflow.contrib.slim as slim
-import cv2
 import os
 import imageio
 from collections import defaultdict
 from clearn.utils.data_loader import load_test_raw_data
 
+from sklearn.cluster import KMeans
+from yellowbrick.cluster import KElbowVisualizer
 
-def load_docs_train(size):
-    data_dir = "/Users/sunilkumar/water_mark/train/"
-    # print("size",size)
-    x = np.zeros(shape=(7231, size[0], size[1], 3))
-    original = np.zeros(shape=(7231, size[0], size[1], 3))
-
-    img_index = 0
-
-    for img_name in os.listdir(data_dir+"water_marked_jpg"):
-        img = cv2.imread(os.path.join(data_dir+"water_marked_jpg", img_name))
-        # print(img_name)
-        # print(img.shape)
-        img = cv2.resize(img, dsize=(size[1], size[0]))
-        # print(img.shape)
-
-        x[img_index] = img
-
-        img_orig = cv2.imread(os.path.join(data_dir+"jpgs", img_name))
-        img_orig = cv2.resize(img_orig, (size[1], size[0]))
-
-        original[img_index] = img_orig
-        img_index += 1
-    print("Loaded {:05d} training images".format(img_index))
-
-    return x[0:img_index, :, :, :]/255., original[0:img_index, :, :, :]/255.
-
-
-def load_docs_test(size):
-    data_dir = "/Users/sunilkumar/water_mark/test/"
-
-    x = np.zeros(shape=(7231, size[0], size[1], 3))
-    original = np.zeros(shape=(7231, size[0], size[1], 3))
-
-    img_index = 0
-
-    for img_name in os.listdir(data_dir+"water_marked_jpg"):
-        img = cv2.imread(os.path.join(data_dir+"water_marked_jpg", img_name))
-        img = cv2.resize(img, (size[1], size[0]))
-        x[img_index] = img
-
-        img_orig = cv2.imread(os.path.join(data_dir + "jpgs", img_name))
-        img_orig = cv2.resize(img_orig, (size[1], size[0]))
-
-        original[img_index] = img_orig
-        img_index += 1
-    print("Loaded {:05d} test images".format(img_index))
-
-    return x/255., img_orig/255.
+SIGNIFICANT_THRESHOLD = 0.15
 
 
 def check_and_create_folder(log_dir):
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-
     return log_dir
+
+
+def get_significant_dimensions(lv_dimensions, file_name):
+    """
+    Find the indices with most significant values on the vector `lv_dimensions`
+    @param lv_dimensions vector for which most significant value needs to be found
+    @param file_name full path and name of the file for saving the elbow graph
+    @returns a 1-d ndarray with values as indices of most significant values in input vector
+    """
+    plt.figure()
+    kmeans_model = KMeans()
+    visualizer = KElbowVisualizer(kmeans_model, k=(1, 10))
+    visualizer.fit(lv_dimensions)
+    visualizer.show(file_name)
+    kmeans_model.n_clusters = visualizer.elbow_value_
+    cluster_labels = kmeans_model.fit_predict(lv_dimensions)
+    cluster_centers = kmeans_model.cluster_centers_
+    cluster_centers_indices_sorted = np.squeeze(cluster_centers.argsort(axis=0))
+    print(cluster_centers[cluster_centers_indices_sorted[0]],
+          cluster_centers[cluster_centers_indices_sorted[-1]],
+          cluster_centers[cluster_centers_indices_sorted[0]] / cluster_centers[cluster_centers_indices_sorted[-1]]
+          )
+    norm_of_sum_of_vectors_in_cluster = np.zeros_like(cluster_centers)
+    for i in range(len(cluster_centers)):
+        norm_of_sum_of_vectors_in_cluster[i] = np.linalg.norm(lv_dimensions[np.where(cluster_labels == i)[0]])
+    max_norm = np.max(norm_of_sum_of_vectors_in_cluster)
+    norm_of_sum_of_vectors_in_cluster = norm_of_sum_of_vectors_in_cluster / max_norm
+    dims_to_add = np.where(norm_of_sum_of_vectors_in_cluster > SIGNIFICANT_THRESHOLD)[0]
+
+    significant_dimensions = []
+    for i in range(len(lv_dimensions)):
+        if cluster_labels[i] in dims_to_add:
+            significant_dimensions.append(i)
+
+    return np.asarray(significant_dimensions), cluster_centers
+
+
+def find_absolute_largest_weights(weights, num_out_units):
+    """
+    Find the maximum of absolute value of weights (MAVoW) connecting to each output unit
+    @return returns an array of shape (num_out_units) containing MAVoW for each output unit
+    """
+    max_abs_for_each_out_dimension_weight = np.asarray([np.max(np.abs(weights[:, i])) for i in range(num_out_units)] )
+    max_abs_for_each_out_dimension_weight = np.reshape(max_abs_for_each_out_dimension_weight, (num_out_units, 1))
+    return max_abs_for_each_out_dimension_weight
 
 
 def show_all_variables():
@@ -95,7 +93,7 @@ def save_single_image(images, path, epoch, step, training_batch, eval_batch, eva
         file = f"im_epoch_{epoch}_step_{step}_batch_{training_batch}_eval_image_id_{eval_batch * eval_batch_size + i }.png"
         image = inverse_transform(images[i])
         image = np.squeeze(image)
-        imageio.imwrite(path + file, image )
+        imageio.imwrite(path + file, image)
 
 
 def save_image(image, size, image_file_name):
@@ -113,7 +111,7 @@ def imread(path, grayscale=False):
         return scipy.misc.imread(path).astype(np.float)
 
 
-def merge_images(images, size):
+def merge_images(images):
     return inverse_transform(images)
 
 
@@ -141,8 +139,7 @@ def merge(images, size):
 
 def imsave(images, size, path):
     image = np.squeeze(merge(images, size))
-    imageio.imwrite(path,image)
-    #return scipy.misc.imsave(path, image)
+    imageio.imwrite(path, image)
 
 
 def center_crop(x, crop_h, crop_w, resize_h=64, resize_w=64):
@@ -165,9 +162,11 @@ def transform(image, input_height, input_width, resize_height=64, resize_width=6
 def inverse_transform(images):
     return (images+1.)/2.
 
-""" Drawing Tools """
-# borrowed from https://github.com/ykwon0407/variational_autoencoder/blob/master/variational_bayes.ipynb
+
 def save_scattered_image(z, id, z_range_x, z_range_y, name='scattered_image.jpg'):
+    """ Drawing Tools """
+    # borrowed from https://github.com/ykwon0407/variational_autoencoder/blob/master/variational_bayes.ipynb
+
     N = 10
     plt.figure(figsize=(8, 6))
     plt.scatter(z[:, 0], z[:, 1], c=np.argmax(id, 1), marker='o', edgecolor='none', cmap=discrete_cmap(N, 'jet'))
@@ -195,17 +194,17 @@ def discrete_cmap(N, base_cmap=None):
 def segregate_images_by_label(train_val_iterator, dataset_type="val"):
     labels = set()
     feature_shape = list(train_val_iterator.get_feature_shape())
-    feature_shape.insert(0,10)
+    feature_shape.insert(0, 10)
     images_by_label = defaultdict(list)
     num_batches = 0
     while train_val_iterator.has_next(dataset_type):
         num_batches += 1
         images, label = train_val_iterator.get_next_batch(dataset_type)
         print(images.shape)
-        for im, lbl in zip(images,label):
+        for im, lbl in zip(images, label):
             _lbl = np.where(lbl == 1)[0][0]
             labels.add(_lbl)
-            images_by_label[_lbl].append( im)
+            images_by_label[_lbl].append(im)
     return images_by_label
 
 
@@ -323,4 +322,3 @@ def get_label_reconstructed(annotated_df, num_rows_per_image, num_digits_per_row
             labels[i + offset] = text[i]
 
     return labels
-

@@ -1,14 +1,17 @@
-from clearn.analysis.annotate import annotate
+from clearn.analysis.combine_keys import combine_keys
 from clearn.config import ExperimentConfig
+from clearn.utils.data_loader import TrainValDataIterator
 import argparse
 
 create_split = False
-experiment_name = "Experiment_1"
+z_dim = 10
+experiment_name = "un_supervised_classification"
 ROOT_PATH = "/Users/sunilv/concept_learning_exp"
-z_dim_range = [22, 24, 2]
+z_dim_range = [1, 5, 1]
 num_epochs = 10
-num_runs = 1
-eval_interval = 900
+num_runs = 3
+completed_z_dims = 0
+
 
 def parse_args():
     desc = "Start annotation of images"
@@ -21,15 +24,17 @@ def parse_args():
 args = parse_args()
 start_epoch = args.epoch
 start_batch_id = args.batch
-num_cluster_config = None
-for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
-    print(f"Starting annotation for z_dim {z_dim}")
-    for run_id in range(num_runs):
+completed_runs = 1
+for z_dim in [1]:
+#for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
+    if z_dim <= completed_z_dims:
+        continue
+    for run_id in [0]:
         exp_config = ExperimentConfig(root_path=ROOT_PATH,
                                       num_decoder_layer=4,
                                       z_dim=z_dim,
                                       num_units=[64, 128, 32],
-                                      num_cluster_config=num_cluster_config,
+                                      num_cluster_config=None,
                                       confidence_decay_factor=5,
                                       beta=5,
                                       supervise_weight=150,
@@ -37,14 +42,16 @@ for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
                                       split_name="Split_1",
                                       model_name="VAE",
                                       batch_size=64,
-                                      eval_interval=eval_interval,
+                                      eval_interval=300,
                                       name=experiment_name,
                                       num_val_samples=128,
                                       total_training_samples=60000,
-                                      manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
+                                      manual_labels_config=TrainValDataIterator.ExperimentConfig,
                                       reconstruction_weight=1,
                                       activation_hidden_layer="RELU",
                                       activation_output_layer="SIGMOID"
                                       )
+
         print(args.epoch, args.batch)
-        annotate(exp_config, run_id, args.epoch, args.batch)
+        combine_keys(exp_config, run_id)
+    completed_runs = 0

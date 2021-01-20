@@ -3,10 +3,6 @@ import cv2
 import os
 from clearn.utils.dir_utils import get_eval_result_dir
 
-# annotator = "arya"
-# annotator = "manju"
-eval_interval = 300
-
 
 def show_image_and_get_annotations_v2(epoch_step_dict,
                                       exp_config,
@@ -28,11 +24,12 @@ def show_image_and_get_annotations_v2(epoch_step_dict,
             if _batch is None:
                 continue
             epoch = _batch // 935
-            step = (_batch % 935 // 300)
+            step = (_batch % 935 // exp_config.eval_interval)
             reconstructed_dir = get_eval_result_dir(exp_config.PREDICTION_RESULTS_PATH,
                                                     epoch,
-                                                    (step * eval_interval),
+                                                    (step * exp_config.eval_interval),
                                                     )
+            print(epoch, _batch, step, exp_config.eval_interval)
             print(reconstructed_dir)
             key = int(_batch)
             for _idx in [0, 1]:
@@ -70,9 +67,7 @@ def show_image_and_get_annotations_v2(epoch_step_dict,
                     k = 0
                     # for each row
                     while k != "\n":
-                        # print("Waiting for key press")
                         k = cv2.waitKey(0)
-                        #print(k)
                         if k == 13 or k == ord('q'):
                             break
                         k = chr(k)

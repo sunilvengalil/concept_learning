@@ -27,14 +27,13 @@ class ClassifierModel(object):
                  check_point_epochs=None,
                  supervise_weight=0,
                  reconstruction_weight=1,
-                 reconstructed_image_dir=None,
-                 run_evaluation_during_training=False,
-                 model_save_interval=900
+                 reconstructed_image_dir=None
                  ):
         self.sess = sess
         self.dataset_name = dataset_name
         self.epoch = epoch
         self.batch_size = batch_size
+        self.num_val_samples = 128
         self.log_dir = log_dir
         self.checkpoint_dir = checkpoint_dir
         self.result_dir = result_dir
@@ -43,14 +42,6 @@ class ClassifierModel(object):
         self.supervise_weight = supervise_weight
         self.reconstruction_weight = reconstruction_weight
         self.exp_config = exp_config
-        self.learning_rate = exp_config.learning_rate
-        self.beta_adam = 0.5
-        # test
-        self.sample_num = 64  # number of generated images to be saved
-        self.num_images_per_row = 4  # should be a factor of sample_num
-        self.model_save_interval = model_save_interval
-        self.run_evaluation_during_training = run_evaluation_during_training
-
         if dataset_name == 'mnist' or dataset_name == 'fashion-mnist':
             # parameters
             self.label_dim = 10  # one hot encoding for 10 classes
@@ -65,6 +56,15 @@ class ClassifierModel(object):
                 self.n = [64, 128, 32, z_dim * 2]
             else:
                 self.n = num_units_in_layer
+            # train
+            self.learning_rate = 0.0002
+            self.beta1 = 0.5
+
+            # test
+            self.sample_num = 64  # number of generated images to be saved
+            self.num_images_per_row = 4  # should be a factor of sample_num
+            self.eval_interval = 300
+            # self.num_eval_batches = 10
         else:
             raise NotImplementedError("Dataset {} not implemented".format(dataset_name))
         self.mu = tf.placeholder(tf.float32, [self.batch_size, self.z_dim], name='mu')
@@ -112,16 +112,19 @@ class ClassifierModel(object):
             # The standard deviation must be positive. Parametrize with a softplus and
             # add a small epsilon for numerical stability
             stddev = 1e-6 + tf.nn.softplus(gaussian_params[:, self.z_dim:])
-        return mean, stddev
+        return mean, stddev, w, b
 
     # Bernoulli decoder
     def decoder(self, z, reuse=False):
         # Models the probability P(X/z)
         # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
         # Architecture : FC1024_BR-FC7x7x128_BR-(64)4dc2s_BR-(1)4dc2s_S
+        w = dict()
+        b = dict()
         with tf.variable_scope("decoder", reuse=reuse):
             if self.exp_config.activation_hidden_layer == "RELU":
-                self.dense1_de = lrelu((linear(z, self.n[2], scope='de_fc1')))
+                self.dense1_de, w["de_fc1"], b["de_fc1"] = linear(z, self.n[2], scope='de_fc1')
+                self.dense1_de = lrelu((self.dense1_de))
                 self.dense2_de = lrelu((linear(self.dense1_de, self.n[1] * 7 * 7)))
                 self.reshaped_de = tf.reshape(self.dense2_de, [self.batch_size, 7, 7, self.n[1]])
                 self.deconv1_de = lrelu(
@@ -131,7 +134,7 @@ class ClassifierModel(object):
                 elif self.exp_config.activation_output_layer == "LINEAR":
                     out = deconv2d(self.deconv1_de, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4')
             elif self.exp_config.activation_hidden_layer == "LINEAR":
-                self.dense1_de = linear(z, self.n[2], scope='de_fc1')
+                self.dense1_de, w["de_fc1"], b["de_fc1"] = linear(z, self.n[2], scope='de_fc1')
                 self.dense2_de = linear(self.dense1_de, self.n[1] * 7 * 7)
                 self.reshaped_de = tf.reshape(self.dense2_de , [self.batch_size, 7, 7, self.n[1]])
                 self.deconv1_de = deconv2d(self.reshaped_de, [self.batch_size, 14, 14, self.n[0]], 3, 3, 2, 2, name='de_dc3')
@@ -142,7 +145,7 @@ class ClassifierModel(object):
             else:
                 raise Exception(f"Activation {self.exp_config.activation} not supported")
             # out = lrelu(deconv2d(deconv1, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4'))
-            return out
+            return out, w, b
 
     def inference(self):
         z = self.mu + self.sigma * tf.random_normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
@@ -167,7 +170,7 @@ class ClassifierModel(object):
 
         """ Loss Function """
         # encoding
-        self.mu, self.sigma = self._encoder(self.inputs, reuse=False)
+        self.mu, self.sigma, self.encoder_weight, self.encoder_bias = self._encoder(self.inputs, reuse=False)
 
         # sampling by re-parameterization technique
         self.z = self.mu + self.sigma * tf.random_normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
@@ -180,7 +183,7 @@ class ClassifierModel(object):
                                                                )
 
         # decoding
-        out = self.decoder(self.z, reuse=False)
+        out, self.decoder_weight, self.decoder_bias = self.decoder(self.z, reuse=False)
         self.out = tf.clip_by_value(out, 1e-8, 1 - 1e-8)
 
         # loss
@@ -198,14 +201,15 @@ class ClassifierModel(object):
 
         self.loss = self.reconstruction_weight * self.neg_loglikelihood +\
                     self.beta * self.KL_divergence +\
-                    self.supervise_weight * self.supervised_loss
+                    self.supervise_weight * self.supervised_loss +\
+                    self.regularization_weight *
         # self.loss = -evidence_lower_bound + self.supervise_weight * self.supervised_loss
 
         """ Training """
         # optimizers
         t_vars = tf.trainable_variables()
         with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
-            self.optim = tf.train.AdamOptimizer(self.learning_rate, beta1=self.beta_adam) \
+            self.optim = tf.train.AdamOptimizer(self.learning_rate * 5, beta1=self.beta1) \
                 .minimize(self.loss, var_list=t_vars)
 
         """" Testing """
@@ -225,22 +229,21 @@ class ClassifierModel(object):
 
     def get_trainable_vars(self):
         return tf.trainable_variables()
-
     def train(self, train_val_data_iterator):
         counter = self.counter
         start_batch_id = self.start_batch_id
         start_epoch = self.start_epoch
-        self.evaluate(start_epoch, start_batch_id, 0, val_data_iterator=train_val_data_iterator)
+        # self.evaluate(start_epoch, start_batch_id, 0, val_data_iterator=train_val_data_iterator)
         num_batches_train = train_val_data_iterator.get_num_samples("train") // self.batch_size
-        print("num_batches_train", num_batches_train)
 
         # loop for epoch
         for epoch in range(start_epoch, self.epoch):
             # get batch data
             for idx in range(start_batch_id, num_batches_train):
-                # first 10 elements of manual_labels is actual one hot encoded labels
-                # and next value is confidence
-                batch_images,  _,  manual_labels = train_val_data_iterator.get_next_batch("train")
+                # first 10 elements of manual_labels is actual one hot endoded labels
+                # and next value is confidence currently binary(0/1). TODO change this to continuous
+                #
+                batch_images, _, manual_labels = train_val_data_iterator.get_next_batch("train")
                 batch_z = prior.gaussian(self.batch_size, self.z_dim)
 
                 # update autoencoder
@@ -257,12 +260,11 @@ class ClassifierModel(object):
                 #       % (epoch, idx, num_batches_train, time.time() - start_time, loss, nll_loss, kl_loss,
                 #          supervised_loss))
                 counter += 1
-                if self.run_evaluation_during_training:
-                    if np.mod(idx, self.exp_config.eval_interval) == self.exp_config.eval_interval - 1:
-                        self.evaluate(epoch, idx + 1, counter - 1, val_data_iterator=train_val_data_iterator)
-                        self.writer.add_summary(summary_str, counter-1)
-                    else:
-                        self.writer.add_summary(summary_str, counter-1)
+                if np.mod(idx, self.eval_interval) == self.eval_interval - 1:
+                    self.evaluate(epoch, idx + 1, counter - 1, val_data_iterator=train_val_data_iterator)
+                    self.writer.add_summary(summary_str, counter-1)
+                else:
+                    self.writer.add_summary(summary_str, counter-1)
 
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model
@@ -272,9 +274,12 @@ class ClassifierModel(object):
             print("Saving check point", self.checkpoint_dir)
             self.save(self.checkpoint_dir, counter)
             train_val_data_iterator.reset_counter("train")
-            if np.mod(epoch, self.model_save_interval) == 0:
-                self.save(self.checkpoint_dir,counter)
 
+            # show temporal results
+        # self.visualize_results()
+
+        # save model for final step
+        self.save(self.checkpoint_dir, counter)
 
     def _initialize(self, train_val_data_iterator=None,
                     restore_from_existing_checkpoint=True,
@@ -399,9 +404,9 @@ class ClassifierModel(object):
         return original_samples
 
     def encode(self, images):
-        mu, sigma, z, y_pred = self.sess.run([self.mu, self.sigma, self.z, self.y_pred],
-                                             feed_dict={self.inputs: images})
-        return mu, sigma, z, y_pred
+        mu, sigma, z = self.sess.run([self.mu, self.sigma, self.z],
+                                     feed_dict={self.inputs: images})
+        return mu, sigma, z
 
     def get_decoder_weights_bias(self):
         name_w_1 = "decoder/de_fc1/Matrix:0"
@@ -462,13 +467,6 @@ class ClassifierModel(object):
                                                                               feed_dict={self.inputs: images})
 
         return mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en
-
-    def classify(self, images):
-        logits = self.sess.run([self.y_pred],
-                               feed_dict={self.inputs: images})
-
-        return logits
-
 
     def decode_and_get_features(self, z):
         batch_z = prior.gaussian(self.batch_size, self.z_dim)

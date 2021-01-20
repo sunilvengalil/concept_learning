@@ -13,7 +13,6 @@ def parse_args():
     parser.add_argument('--batch', type=int, default=1)
     return parser.parse_args()
 
-
 args = parse_args()
 start_epoch = args.epoch
 start_batch_id = args.batch
@@ -35,7 +34,7 @@ exp_config = ExperimentConfig(root_path="/Users/sunilv/concept_learning_exp",
                            name=experiment_name,
                            num_val_samples=128,
                            total_training_samples=60000,
-                           manual_labels_config=TrainValDataIterator.USE_CLUSTER_CENTER,
+                           manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                            reconstruction_weight=1,
                            activation_hidden_layer="RELU",
                            activation_output_layer="SIGMOID"

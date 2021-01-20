@@ -38,7 +38,7 @@ for z_dim in [10]:
                                       name="semi_supervised_classification",
                                       num_val_samples=128,
                                       total_training_samples=60000,
-                                      manual_labels_config=TrainValDataIterator.USE_CLUSTER_CENTER,
+                                      manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                                       reconstruction_weight=1,
                                       activation_hidden_layer="RELU",
                                       activation_output_layer="SIGMOID"

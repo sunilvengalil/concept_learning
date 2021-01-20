@@ -38,7 +38,8 @@ def combine_keys(exp_config, run_id):
             keys.remove(key)
     data_dict = combine_annotation_sessions(keys=keys,
                                             base_path=base_path,
-                                            max_epoch=max_epoch)
+                                            max_epoch=max_epoch,
+                                            exp_config=exp_config)
 
     # Verify if there is duplicate annotations for the same combination of ( batch, image_no, row_number_with_image )
     data_dict = combine_multiple_annotations(data_dict, exp_config, num_rows, run_id)

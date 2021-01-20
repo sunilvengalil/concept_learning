@@ -6,8 +6,11 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 import json
 
+from clearn.config import ExperimentConfig
+
 
 def load_images(_config, dataset_type="train", manual_annotation_file=None):
+
     train_val_data_iterator = TrainValDataIterator.from_existing_split(_config.split_name,
                                                                        _config.DATASET_PATH,
                                                                        _config.BATCH_SIZE,
@@ -36,8 +39,6 @@ def load_images(_config, dataset_type="train", manual_annotation_file=None):
 
 
 class TrainValDataIterator:
-    USE_ACTUAL = "USE_ACTUAL"
-    USE_CLUSTER_CENTER = "USE_CLUSTER_CENTER"
     VALIDATION_Y_RAW = "validation_y_raw"
     VALIDATION_Y_ONE_HOT = "validation_y"
     VALIDATION_X = "validation_x"
@@ -45,7 +46,7 @@ class TrainValDataIterator:
     TRAIN_X = "train_x"
 
     @classmethod
-    def _load_manual_annotation(cls, manual_annotation_file):
+    def load_manual_annotation(manual_annotation_file):
         df = pd.read_csv(manual_annotation_file)
         return df.values
 
@@ -94,91 +95,95 @@ class TrainValDataIterator:
                 TrainValDataIterator.VALIDATION_Y_ONE_HOT: _val_y,
                 TrainValDataIterator.VALIDATION_Y_RAW: val_y}
 
-    """
-    Creates and initialize an instance of TrainValDataIterator
-    @param: split_name:Name of the train/valid/test split
-    @param: split_location: path to folder with split_location
-    @param: batch_size: number of samples in each batch
-    @param: manual_labels_config: list A list of attributes that needs to be initialized
-
-
-    """
     @classmethod
     def from_existing_split(cls,
                             split_name,
                             split_location,
                             batch_size=None,
-                            manual_labels_config=USE_CLUSTER_CENTER,
+                            manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                             manual_annotation_file=None,
                             init_config=None):
+        """
+        Creates and initialize an instance of TrainValDataIterator
+        @param: split_name:Name of the train/valid/test split
+        @param: split_location: path to folder where dataset split(train/val/test) is stored
+        @param: batch_size: number of samples in each batch
+        @param: manual_labels_config:
+        """
         instance = cls()
         instance.batch_size = batch_size
         # TODO convert this to lazy loading
-        dataset_dict = cls.load_train_val_existing_split(split_name, split_location)
+        instance.dataset_dict = cls.load_train_val_existing_split(split_name, split_location)
 
         if init_config is not None and "val_y" in init_config:
-            instance.val_y = dataset_dict[TrainValDataIterator.VALIDATION_Y_ONE_HOT]
-        instance.dataset_dict = dataset_dict
-        instance.dataset_dict = cls.load_train_val_existing_split(split_name, split_location)
+            instance.val_y = instance.dataset_dict[TrainValDataIterator.VALIDATION_Y_ONE_HOT]
+        instance.dataset_dict = instance.dataset_dict
+        # instance.dataset_dict = cls.load_train_val_existing_split(split_name, split_location)
 
         instance.train_x = instance.dataset_dict[TrainValDataIterator.TRAIN_X]
         instance.train_y = instance.dataset_dict[TrainValDataIterator.TRAIN_Y]
         instance.val_x = instance.dataset_dict[TrainValDataIterator.VALIDATION_X]
         instance.val_y = instance.dataset_dict[TrainValDataIterator.VALIDATION_Y_ONE_HOT]
+        # TODO fix this later set unique labels based on the shape of the smallest dataset in the dict
         instance.unique_labels = np.unique(instance.dataset_dict[TrainValDataIterator.VALIDATION_Y_RAW])
         instance.manual_labels_config = manual_labels_config
-        if manual_labels_config == TrainValDataIterator.USE_CLUSTER_CENTER:
+        _manual_annotation = None
+        if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
             if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
-                _manual_annotation = cls._load_manual_annotation(manual_annotation_file)
+                _manual_annotation = cls.load_manual_annotation(manual_annotation_file)
                 print("Loaded manual annotation")
                 print(f"Number of samples with manual confidence {sum(_manual_annotation[:, 1] > 0)}")
-                instance.manual_annotation = np.zeros((len(_manual_annotation), 11), dtype=np.float)
-                for i, label in enumerate(_manual_annotation):
-                    instance.manual_annotation[i, int(_manual_annotation[i, 0])] = 1.0
-                    instance.manual_annotation[i, 10] = _manual_annotation[i, 1]
             else:
-
                 # TODO if we are using random prior with uniform distribution, do we need to keep
                 # manual confidence as 0.5 or 0
-
-
                 print("Warning", "{} path does not exist. Creating random prior with uniform distribution".
                       format(manual_annotation_file))
-
                 # create a numpy array of dimension (num_training_samples, num_unique_labels) and  set the one-hot encoded label
                 # with uniform probability distribution for each label. i.e in case of MNIST each row will be set as one of the symbol
                 # {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
-
                 _manual_annotation = np.random.choice(instance.unique_labels, len(instance.train_x))
-                instance.manual_annotation = np.zeros((len(_manual_annotation), 11), dtype=np.float)
-                for i, label in enumerate(_manual_annotation):
-                    instance.manual_annotation[i, _manual_annotation[i]] = 1.0
-                    #instance.manual_annotation[i, 10] = 0 not required
-        elif manual_labels_config == TrainValDataIterator.USE_ACTUAL:
-            instance.manual_annotation = np.zeros((len(instance.train_x), 11), dtype=np.float)
-
-            instance.manual_annotation[:, 0:10] = instance.train_y
-            instance.manual_annotation[:, 10] = 1
+        instance.get_manual_annotation(manual_annotation_file, _manual_annotation=_manual_annotation)
 
         instance.train_idx = 0
         instance.val_idx = 0
-        # TODO fix this later set unique labels based on the shape of the smallest dataset in the dict
         return instance
+
+    def get_manual_annotation(self, manual_annotation_file, _manual_annotation):
+        if self.manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
+            self.manual_annotation = np.zeros((len(_manual_annotation), 11), dtype=np.float)
+            if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
+                for i, label in enumerate(_manual_annotation):
+                    self.manual_annotation[i, int(_manual_annotation[i, 0])] = 1.0
+                    self.manual_annotation[i, 10] = _manual_annotation[i, 1]
+            else:
+                for i, label in enumerate(_manual_annotation):
+                    self.manual_annotation[i, _manual_annotation[i]] = 1.0
+                    self.manual_annotation[i, 10] = 0 # set manual annotation confidence as 0
+        elif self.manual_labels_config == ExperimentConfig.USE_ACTUAL:
+            self.manual_annotation = np.zeros((len(self.train_x), 11), dtype=np.float)
+
+            self.manual_annotation[:, 0:10] = self.train_y
+            self.manual_annotation[:, 10] = 1 # set manual annotation confidence as 1
 
     def __init__(self, dataset_path=None, shuffle=False,
                  stratified=None,
-                 validation_samples=100,
+                 validation_samples=128,
                  split_location=None,
                  split_names=[],
                  batch_size=None,
-                 manual_annotation_path=None):
+                 manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
+                 manual_annotation_file=None):
         self.train_idx = 0
         self.val_idx = 0
         self.dataset_path = dataset_path
         self.batch_size = batch_size
         if dataset_path is not None :
             self.entire_data_x, self.entire_data_y = load_train(dataset_path)
-            percentage_to_be_sampled = validation_samples / len(self.entire_data_y)
+            if validation_samples == -1:
+                percentage_to_be_sampled = 0.3
+            else:
+                percentage_to_be_sampled = validation_samples / len(self.entire_data_y)
+
             self.dataset_dict = load_train_val(dataset_path, shuffle=shuffle,
                                                stratified=stratified,
                                                percentage_to_be_sampled=percentage_to_be_sampled,
@@ -191,6 +196,27 @@ class TrainValDataIterator:
             self.val_y = self.dataset_dict[TrainValDataIterator.VALIDATION_Y_ONE_HOT]
             # TODO fix this later set unique labels based on the shape of the smallest dataset in the dict
             self.unique_labels = np.unique(self.dataset_dict["validation_y_raw"])
+            self.manual_labels_config = manual_labels_config
+            _manual_annotation = None
+            if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
+                if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
+                    _manual_annotation = TrainValDataIterator.load_manual_annotation()
+                    print("Loaded manual annotation")
+                    print(f"Number of samples with manual confidence {sum(_manual_annotation[:, 1] > 0)}")
+                else:
+                    # TODO if we are using random prior with uniform distribution, do we need to keep
+                    # manual confidence as 0.5 or 0
+                    print("Warning", "{} path does not exist. Creating random prior with uniform distribution".
+                          format(manual_annotation_file))
+                    # create a numpy array of dimension (num_training_samples, num_unique_labels) and  set the one-hot encoded label
+                    # with uniform probability distribution for each label. i.e in case of MNIST each row will be set as one of the symbol
+                    # {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
+                    _manual_annotation = np.random.choice(self.unique_labels, len(self.train_x))
+
+            self.get_manual_annotation(manual_annotation_file, _manual_annotation=_manual_annotation)
+
+            self.train_idx = 0
+            self.val_idx = 0
 
     def has_next_val(self):
         # TODO fix this to handle last batch

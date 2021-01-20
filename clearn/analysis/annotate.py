@@ -4,8 +4,6 @@ import os
 from clearn.utils.dir_utils import get_eval_result_dir
 from clearn.utils.annotation_utils import ANNOTATION_FOLDER_NAME_PREFIX, annotator
 
-eval_interval = 300
-
 
 def annotate(exp_config, run_id, start_epoch, start_batch_id):
     exp_config.check_and_create_directories(run_id, create=False)
@@ -49,7 +47,7 @@ def annotate(exp_config, run_id, start_epoch, start_batch_id):
                 print(f"step:{step}")
                 reconstructed_dir = get_eval_result_dir(exp_config.PREDICTION_RESULTS_PATH,
                                                         epoch,
-                                                        (step * eval_interval),
+                                                        (step * exp_config.eval_interval),
                                                         )
                 print(reconstructed_dir)
                 for _idx in range(start_eval_batch, num_eval_batches):
