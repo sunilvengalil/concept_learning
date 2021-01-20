@@ -1,16 +1,14 @@
 import os
-from clearn.utils.dir_utils import check_and_create_folder
-from clearn.utils.data_loader import TrainValDataIterator
+import json
 
-# ROOT_PATH = "/Users/prathyushsp/concept_learning_old/"
+from clearn.dao.mnist import MnistDao
+from clearn.utils.dir_utils import check_and_create_folder
 ROOT_PATH = "/Users/sunilkumar/concept_learning_exp/"
 
-N_3 = 32
-N_2 = 64
-N_1 = 20
-Z_DIM = 20
-RUN_ID = 100
-manual_labels_config = TrainValDataIterator.USE_CLUSTER_CENTER  # Possible values "USE_ACTUAL" and "USE_CLUSTER_CENTER"
+N_3_DEFAULT = 32
+N_2_DEFAULT = 64
+N_1_DEFAULT = 20
+Z_DIM_DEFAULT = 20
 
 WEIGHTS = "Weights"
 BIAS = "Bias"
@@ -42,52 +40,8 @@ def get_base_path(exp_config,
 class ExperimentConfig:
     NUM_CLUSTERS_CONFIG_ELBOW = "ELBOW"
     NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW = "TWO_TIMES_ELBOW"
-    _instance = None
-
-    @staticmethod
-    def get_exp_config(root_path=ROOT_PATH,
-                       num_decoder_layer=4,
-                       z_dim=Z_DIM,
-                       num_units=[N_1, N_2, N_3],
-                       num_cluster_config=NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW,
-                       confidence_decay_factor=5,
-                       beta=5,
-                       supervise_weight=150,
-                       dataset_name="mnist",
-                       split_name="Split_1",
-                       model_name="VAE",
-                       batch_size=64,
-                       eval_interval=300,
-                       name="experiment_configuration",
-                       num_val_samples=128,
-                       total_training_samples=60000,
-                       manual_labels_config=TrainValDataIterator.USE_CLUSTER_CENTER,
-                       reconstruction_weight=1,
-                       activation_hidden_layer="RELU",
-                       activation_output_layer="SIGMOID"):
-        if ExperimentConfig._instance is None:
-            ExperimentConfig._instance = ExperimentConfig(root_path,
-                                                          num_decoder_layer,
-                                                          z_dim,
-                                                          num_units,
-                                                          num_cluster_config,
-                                                          confidence_decay_factor,
-                                                          beta,
-                                                          supervise_weight,
-                                                          dataset_name,
-                                                          split_name,
-                                                          model_name,
-                                                          batch_size,
-                                                          eval_interval,
-                                                          name,
-                                                          num_val_samples,
-                                                          total_training_samples,
-                                                          manual_labels_config,
-                                                          reconstruction_weight,
-                                                          activation_hidden_layer,
-                                                          activation_output_layer
-                                                          )
-        return ExperimentConfig._instance
+    USE_ACTUAL = "USE_ACTUAL"
+    USE_CLUSTER_CENTER = "USE_CLUSTER_CENTER"
 
     def __init__(self,
                  root_path,
@@ -106,10 +60,12 @@ class ExperimentConfig:
                  name="experiment_configuration",
                  num_val_samples=128,
                  total_training_samples=60000,
-                 manual_labels_config=TrainValDataIterator.USE_CLUSTER_CENTER,
+                 manual_labels_config=USE_CLUSTER_CENTER,
                  reconstruction_weight=1,
                  activation_hidden_layer="RELU",
-                 activation_output_layer="SIGMOID"):
+                 activation_output_layer="SIGMOID",
+                 save_reconstructed_images=True,
+                 learning_rate=0.005):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
         :rtype: object
@@ -121,12 +77,15 @@ class ExperimentConfig:
         #     raise Exception("ExperimentConfig is singleton class. Use class method get_exp_config() instead")
         self.root_path = root_path
         if len(num_units) != num_decoder_layer - 1:
-            print(num_units,num_decoder_layer)
+            print(num_units, num_decoder_layer)
             raise ValueError("No of units should be same as number of layers minus one")
-        num_units.append(z_dim * 2)
+
+        # num_units.append(z_dim * 2)
+        self.learning_rate = learning_rate
+
         self.num_decoder_layer = num_decoder_layer
         self.Z_DIM = z_dim
-        self.num_units = num_units
+        self.num_units = num_units + [z_dim * 2]
         self.dataset_name = dataset_name
         self.split_name = split_name
         self.model_name = model_name
@@ -145,10 +104,11 @@ class ExperimentConfig:
         self.confidence_decay_factor = confidence_decay_factor
         self.manual_labels_config = manual_labels_config
         self.reconstruction_weight = reconstruction_weight
+
         self.num_train_samples = ((total_training_samples - num_val_samples) // batch_size) * batch_size
         self.activation_hidden_layer = activation_hidden_layer
         self.activation_output_layer = activation_output_layer
-        #ExperimentConfig._instance = self
+        self.save_reconstructed_images = save_reconstructed_images
 
     def as_json(self):
         config_json = dict()
@@ -170,15 +130,27 @@ class ExperimentConfig:
         config_json["EVAL_INTERVAL"] = self.eval_interval
         config_json["ACTIVATION_HIDDEN_LAYER"] = self.activation_hidden_layer
         config_json["ACTIVATION_OUTPUT_LAYER"] = self.activation_output_layer
+        config_json["SAVE_RECONSTRUCTED_IMAGES"] = self.save_reconstructed_images
+        config_json["NUM_VAL_SAMPLES"] = self.num_val_samples
+        config_json["LEARNING_RATE"] = self.learning_rate
+
         return config_json
+
+    def get_exp_name_with_parameters(self, run_id):
+        if self.num_cluster_config is None:
+            return f"Exp_{self.num_units[3]}_{self.num_units[2]}_{self.num_units[1]}_{self.num_units[0]}_{self.Z_DIM}_{run_id}/"
+        else:
+            return f"Exp_{self.num_units[3]}_{self.num_units[2]}_{self.num_units[1]}_{self.num_units[0]}_{self.Z_DIM}_{self.num_cluster_config}_{run_id}/"
 
     def _check_and_create_directories(self, run_id, create):
         self.BASE_PATH = get_base_path(self,
                                        run_id=run_id
                                        )
-        self.DATASET_PATH = os.path.join(self.DATASET_ROOT_PATH, self.split_name + "/")
 
         self.TRAINED_MODELS_PATH = os.path.join(self.BASE_PATH, "trained_models/")
+
+        self.DATASET_PATH = os.path.join(self.DATASET_ROOT_PATH, self.split_name + "/")
+
         self.PREDICTION_RESULTS_PATH = os.path.join(self.BASE_PATH, "prediction_results/")
         self.reconstructed_images_path = os.path.join(self.PREDICTION_RESULTS_PATH, "reconstructed_images/")
         self.LOG_PATH = os.path.join(self.BASE_PATH, "logs/")
@@ -220,3 +192,57 @@ class ExperimentConfig:
             return os.path.join(base_path, "assembled_annotation/")
         else:
             return os.path.join(self.BASE_PATH, "assembled_annotation/")
+
+    @classmethod
+    def load_from_json(cls, experiment_name, json_file_name, num_units, dataset_name, split_name):
+        with open(json_file_name) as json_fp:
+            exp_config_dict = json.load(json_fp)
+        exp_config = cls()
+        exp_config.initialize_from_dictionary(exp_config, exp_config_dict)
+
+        if len(num_units) != exp_config.num_decoder_layer - 1:
+            print(num_units, exp_config.num_decoder_layer)
+            raise ValueError("No of units should be same as number of layers minus one")
+
+        #exp_config.num_units =  # set this
+        #num_units.append(z_dim * 2)
+        exp_config.num_units = num_units + [exp_config.Z_DIM * 2]
+        exp_config.name = experiment_name
+
+        # set this based on dataset
+        if dataset_name == "MNIST":
+            dao = MnistDao()
+            total_training_samples = dao.number_of_training_samples()
+        exp_config.num_train_samples = ((total_training_samples - exp_config.num_val_samples) // exp_config.BATCH_SIZE) * exp_config.batch_size
+
+        return exp_config
+
+    def initialize_from_dictionary(self, exp_config_dict):
+
+        self.root_path = exp_config_dict["ROOT_PATH"]
+
+        self.num_decoder_layer = exp_config_dict["NUM_DECODER_LAYER"]
+        self.Z_DIM = exp_config_dict["Z_DIM"]
+        self.dataset_name = exp_config_dict["DATASET_NAME"]
+        self.split_name = exp_config_dict["SPLIT_NAME"]
+        self.model_name = exp_config_dict["MODEL_NAME"]
+        self.BATCH_SIZE = exp_config_dict["BATCH_SIZE"]
+        self.eval_interval = exp_config_dict["EVAL_INTERVAL"]
+        self.beta = exp_config_dict["BETA"]
+        self.supervise_weight = exp_config_dict["SUPERVISE_WEIGHT"]
+        self.MODEL_NAME_WITH_CONFIG = "{}_{}_{:2d}_{:02d}".format(self.model_name,
+                                                                  self.dataset_name,
+                                                                  self.BATCH_SIZE,
+                                                                  self.Z_DIM)
+        self.DATASET_ROOT_PATH = os.path.join(self.root_path, "datasets/" + self.dataset_name)
+        self.num_val_samples = exp_config_dict["NUM_VAL_SAMPLES"]
+        self.num_cluster_config = exp_config_dict["NUM_CLUSTER_CONFIG"]
+        self.confidence_decay_factor = exp_config_dict["CONFIDENCE_DECAY_FACTOR"]
+        self.manual_labels_config = exp_config_dict["MANUAL_LABELS_CONFIG"]
+        self.reconstruction_weight = exp_config_dict["RECONSTRUCTION_WEIGHT"]
+        self.num_val_samples = exp_config_dict["NUM_VAL_SAMPLES"]
+        self.activation_hidden_layer = exp_config_dict["ACTIVATION_HIDDEN_LAYER"]
+        self.activation_output_layer = exp_config_dict["ACTIVATION_OUTPUT_LAYER"]
+        self.save_reconstructed_images = exp_config_dict["SAVE_RECONSTRUCTED_IMAGES"]
+
+        return exp_config_dict
