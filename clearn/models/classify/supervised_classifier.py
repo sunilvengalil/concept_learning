@@ -6,9 +6,10 @@ import pandas as pd
 from scipy.special import softmax
 
 from clearn.config.common_path import get_encoded_csv_file
+from clearn.dao.idao import IDao
+from clearn.dao.mnist import MnistDao
 from clearn.utils.utils import get_latent_vector_column
 from clearn.utils import prior_factory as prior
-
 
 from clearn.models.classify.classifier import ClassifierModel
 import tensorflow as tf
@@ -17,6 +18,7 @@ from clearn.utils.tensorflow_wrappers import conv2d, linear, deconv2d, lrelu
 
 class SupervisedClassifierModel(ClassifierModel):
     _model_name = "ClassifierModel"
+
     def __init__(self, exp_config, sess, epoch, batch_size,
                  z_dim, dataset_name, beta=5,
                  num_units_in_layer=None,
@@ -28,13 +30,15 @@ class SupervisedClassifierModel(ClassifierModel):
                  check_point_epochs=None,
                  supervise_weight=0,
                  reconstruction_weight=1,
-                 reconstructed_image_dir=None
+                 reconstructed_image_dir=None,
+                 dao: IDao = MnistDao()
                  ):
+        self.dao = dao
         self.sess = sess
         self.dataset_name = dataset_name
         self.epoch = epoch
         self.batch_size = batch_size
-        self.num_val_samples = 128
+        # self.num_val_samples = 128
         self.log_dir = log_dir
         self.checkpoint_dir = checkpoint_dir
         self.result_dir = result_dir
@@ -43,18 +47,31 @@ class SupervisedClassifierModel(ClassifierModel):
         self.supervise_weight = supervise_weight
         self.reconstruction_weight = reconstruction_weight
         self.exp_config = exp_config
+        self.input_height = dao.image_shape[0]
+        self.input_width = dao.image_shape[1]
+        self.output_height = dao.image_shape[0]
+        self.output_width = dao.image_shape[1]
+        self.label_dim = dao.num_classes
+        self.z_dim = z_dim
+        self.c_dim = dao.image_shape[2]
+        if num_units_in_layer is None or len(num_units_in_layer) == 0:
+            self.n = [64, 128, 32, z_dim]
+        else:
+            self.n = num_units_in_layer
+        self.strides = [2, 2]
+        self.sample_num = 64  # number of generated images to be saved
         if dataset_name == 'mnist' or dataset_name == 'fashion-mnist':
-            # parameters
-            self.label_dim = 10  # one hot encoding for 10 classes
-            self.input_height = 28
-            self.input_width = 28
-            self.output_height = 28
-            self.output_width = 28
+            # train
+            self.learning_rate = 0.0002
+            self.beta1 = 0.5
 
-            self.z_dim = z_dim  # dimension of noise-vector
-            self.c_dim = 1
+            # test
+            self.num_images_per_row = 4  # should be a factor of sample_num
+            self.eval_interval = 300
+            # self.num_eval_batches = 10
+        elif dataset_name == "cifar_10":
             if num_units_in_layer is None or len(num_units_in_layer) == 0:
-                self.n = [64, 128, 32, z_dim ]
+                self.n = [128, 64, 32, z_dim]
             else:
                 self.n = num_units_in_layer
             # train
@@ -62,10 +79,8 @@ class SupervisedClassifierModel(ClassifierModel):
             self.beta1 = 0.5
 
             # test
-            self.sample_num = 64  # number of generated images to be saved
             self.num_images_per_row = 4  # should be a factor of sample_num
             self.eval_interval = 300
-            # self.num_eval_batches = 10
         else:
             raise NotImplementedError("Dataset {} not implemented".format(dataset_name))
         self.images = None
@@ -75,27 +90,28 @@ class SupervisedClassifierModel(ClassifierModel):
         # graph inputs for visualize training results
         self.sample_z = prior.gaussian(self.batch_size, self.z_dim)
         self.max_to_keep = 20
-
         self.counter, self.start_batch_id, self.start_epoch = self._initialize(train_val_data_iterator,
                                                                                read_from_existing_checkpoint,
                                                                                check_point_epochs)
 
-#   Gaussian Encoder
+    #   Gaussian Encoder
     def _encoder(self, x, reuse=False):
         # Encoder models the probability  P(z/X)
         # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
         # Architecture : (64)4c2s-(128)4c2s_BL-FC1024_BL-FC62*4
         w = dict()
-        b= dict()
+        b = dict()
         with tf.variable_scope("encoder", reuse=reuse):
             if self.exp_config.activation_hidden_layer == "RELU":
-                self.conv1 = lrelu(conv2d(x, self.n[0], 3, 3, 2, 2, name='en_conv1'))
-                self.conv2 = lrelu((conv2d(self.conv1, self.n[1], 3, 3, 2, 2, name='en_conv2')))
+                self.conv1 = lrelu(conv2d(x, self.n[0], 3, 3, self.strides[0], self.strides[0], name='en_conv1'))
+                self.conv2 = lrelu((conv2d(self.conv1,
+                                           self.n[1],
+                                           3, 3, self.strides[1], self.strides[1], name='en_conv2')))
                 self.reshaped_en = tf.reshape(self.conv2, [self.batch_size, -1])
                 self.dense2_en = lrelu(linear(self.reshaped_en, self.n[2], scope='en_fc3'))
             elif self.exp_config.activation_hidden_layer == "LINEAR":
-                self.conv1 = conv2d(x, self.n[0], 3, 3, 2, 2, name='en_conv1')
-                self.conv2 = (conv2d(self.conv1, self.n[1], 3, 3, 2, 2, name='en_conv2'))
+                self.conv1 = conv2d(x, self.n[0], 3, 3, self.strides[0], self.strides[0], name='en_conv1')
+                self.conv2 = (conv2d(self.conv1, self.n[1], 3, 3, self.strides[1], self.strides[1], name='en_conv2'))
                 self.reshaped_en = tf.reshape(self.conv2, [self.batch_size, -1])
                 self.dense2_en = linear(self.reshaped_en, self.n[2], scope='en_fc3')
             else:
@@ -103,8 +119,8 @@ class SupervisedClassifierModel(ClassifierModel):
 
             # with tf.control_dependencies([net_before_gauss]):
             z, w["en_fc4"], b["en_fc4"] = linear(self.dense2_en, 2 * self.z_dim,
-                                                               scope='en_fc4',
-                                                               with_w=True)
+                                                 scope='en_fc4',
+                                                 with_w=True)
 
         return z
 
@@ -113,31 +129,46 @@ class SupervisedClassifierModel(ClassifierModel):
         # Models the probability P(X/z)
         # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
         # Architecture : FC1024_BR-FC7x7x128_BR-(64)4dc2s_BR-(1)4dc2s_S
+        image_shape = self.dao.image_shape
+        input_shape = [self.batch_size, image_shape[0], image_shape[1], image_shape[2]]
+        layer_4_size = [self.batch_size,
+                        image_shape[0] // self.strides[0],
+                        image_shape[1] // self.strides[0],
+                        self.n[0]]
+        layer_3_size = [self.batch_size,
+                        layer_4_size[1] // self.strides[1],
+                        layer_4_size[2] // self.strides[1],
+                        self.n[1]]
+        layer_2_size =  self.n[1] * layer_3_size[1] * layer_3_size[1]
         with tf.variable_scope("decoder", reuse=reuse):
             if self.exp_config.activation_hidden_layer == "RELU":
                 self.dense1_de = lrelu((linear(z, self.n[2], scope='de_fc1')))
-                self.dense2_de = lrelu((linear(self.dense1_de, self.n[1] * 7 * 7)))
-                self.reshaped_de = tf.reshape(self.dense2_de, [self.batch_size, 7, 7, self.n[1]])
-                self.deconv1_de = lrelu(
-                    deconv2d(self.reshaped_de, [self.batch_size, 14, 14, self.n[0]], 3, 3, 2, 2, name='de_dc3'))
-                if self.exp_config.activation_output_layer == "SIGMOID":
-                    out = tf.nn.sigmoid(deconv2d(self.deconv1_de, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4'))
-                elif self.exp_config.activation_output_layer == "LINEAR":
-                    out = deconv2d(self.deconv1_de, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4')
+                self.dense2_de = lrelu((linear(self.dense1_de, layer_2_size)))
+                #TODO remove hard coding
+                self.reshaped_de = tf.reshape(self.dense2_de, layer_3_size)
+                self.deconv1_de = lrelu(deconv2d(self.reshaped_de,
+                                                 layer_4_size,
+                                                 3, 3, self.strides[1], self.strides[1], name='de_dc3'))
             elif self.exp_config.activation_hidden_layer == "LINEAR":
                 self.dense1_de = linear(z, self.n[2], scope='de_fc1')
-                self.dense2_de = linear(self.dense1_de, self.n[1] * 7 * 7)
-                self.reshaped_de = tf.reshape(self.dense2_de , [self.batch_size, 7, 7, self.n[1]])
-                self.deconv1_de = deconv2d(self.reshaped_de, [self.batch_size, 14, 14, self.n[0]], 3, 3, 2, 2, name='de_dc3')
-                if self.exp_config.activation_output_layer == "SIGMOID":
-                    out = tf.nn.sigmoid(deconv2d(self.deconv1_de, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4'))
-                elif self.exp_config.activation_output_layer == "LINEAR":
-                    out = deconv2d(self.deconv1_de, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4')
+                self.dense2_de = linear(self.dense1_de, layer_2_size)
+                #TODO remove hard coding
+
+                self.reshaped_de = tf.reshape(self.dense2_de,
+                                              layer_3_size)
+                self.deconv1_de = deconv2d(self.reshaped_de,
+                                           layer_4_size,
+                                           3, 3, self.strides[1], self.strides[1], name='de_dc3')
             else:
                 raise Exception(f"Activation {self.exp_config.activation} not supported")
-            # out = lrelu(deconv2d(deconv1, [self.batch_size, 28, 28, 1], 3, 3, 2, 2, name='de_dc4'))
-            return out
 
+            if self.exp_config.activation_output_layer == "SIGMOID":
+                out = tf.nn.sigmoid(deconv2d(self.deconv1_de,
+                                             input_shape, 3, 3, self.strides[0], self.strides[0], name='de_dc4'))
+            elif self.exp_config.activation_output_layer == "LINEAR":
+                out = deconv2d(self.deconv1_de, input_shape, 3, 3, self.strides[0], self.strides[0], name='de_dc4')
+
+            return out
 
     def _build_model(self):
         # some parameters
@@ -161,7 +192,7 @@ class SupervisedClassifierModel(ClassifierModel):
         self.z = self._encoder(self.inputs, reuse=False)
 
         # supervised loss for labelled samples
-        self.y_pred = linear(self.z, 10)
+        self.y_pred = linear(self.z, self.dao.num_classes)
         self.supervised_loss = tf.losses.softmax_cross_entropy(onehot_labels=self.labels,
                                                                logits=self.y_pred,
                                                                weights=self.is_manual_annotated
@@ -218,18 +249,21 @@ class SupervisedClassifierModel(ClassifierModel):
                                                                        self.merged_summary_op,
                                                                        self.loss,
                                                                        self.supervised_loss],
-                    feed_dict={self.inputs: batch_images,
-                               self.labels: manual_labels[:, :10],
-                               self.is_manual_annotated: manual_labels[:, 10],
-                               self.standard_normal: batch_z})
+                                                                      feed_dict={self.inputs: batch_images,
+                                                                                 self.labels: manual_labels[:,
+                                                                                              :self.dao.num_classes],
+                                                                                 self.is_manual_annotated: manual_labels[
+                                                                                                           :,
+                                                                                                           self.dao.num_classes],
+                                                                                 self.standard_normal: batch_z})
                 counter += 1
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model
             print(f"Completed {epoch} epochs")
             train_val_data_iterator.reset_counter("train")
             train_val_data_iterator.reset_counter("val")
-            self.evaluate(train_val_data_iterator, epoch,"train")
-            self.evaluate(train_val_data_iterator, epoch,"val")
+            self.evaluate(train_val_data_iterator, epoch, "train")
+            self.evaluate(train_val_data_iterator, epoch, "val")
 
             train_val_data_iterator.reset_counter("train")
             train_val_data_iterator.reset_counter("val")
@@ -252,18 +286,12 @@ class SupervisedClassifierModel(ClassifierModel):
             labels_predicted = np.argmax(labels_predicted, axis=1)
             z_dim = z.shape[1]
             mean_col_names, sigma_col_names, z_col_names, l3_col_names = get_latent_vector_column(z_dim)
-            # TODO do this using numpy api
-            labels = np.argmax(batch_labels,axis=1)
-            # i = 0
-            # labels = np.zeros()
-            # for lbl in batch_labels:
-            #     labels[i] = np.where(lbl == 1)[0][0]
-            #     i += 1
+            labels = np.argmax(batch_labels, axis=1)
             # print("labels_predicted shape",labels_predicted.shape)
-            logit_column_names = ["logits_"+str(i) for i in range(y_pred.shape[1])]
+            logit_column_names = ["logits_" + str(i) for i in range(y_pred.shape[1])]
             temp_df1 = pd.DataFrame(z, columns=z_col_names)
-            temp_df2 = pd.DataFrame(y_pred,columns=logit_column_names)
-            temp_df = pd.concat([temp_df1,temp_df2], axis=1)
+            temp_df2 = pd.DataFrame(y_pred, columns=logit_column_names)
+            temp_df = pd.concat([temp_df1, temp_df2], axis=1)
             temp_df["label"] = labels
             temp_df["label_predicted"] = labels_predicted
             if encoded_df is not None:
@@ -277,134 +305,17 @@ class SupervisedClassifierModel(ClassifierModel):
             encoded_df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, output_csv_file), index=False)
         return encoded_df
 
-    def _initialize(self, train_val_data_iterator=None,
-                    restore_from_existing_checkpoint=True,
-                    check_point_epochs=None):
-        # saver to save model
-        self.saver = tf.train.Saver(max_to_keep=50)
-        # summary writer
-        self.writer = tf.summary.FileWriter(self.log_dir + '/' + self._model_name,
-                                            self.sess.graph)
-        self.writer_v = tf.summary.FileWriter(self.log_dir + '/' + self._model_name + "_v",
-                                              self.sess.graph)
-
-        if train_val_data_iterator is not None:
-            num_batches_train = train_val_data_iterator.get_num_samples("train") // self.batch_size
-
-        if restore_from_existing_checkpoint:
-            # restore check-point if it exits
-            could_load, checkpoint_counter = self._load(self.checkpoint_dir,
-                                                        check_point_epochs=check_point_epochs)
-            if could_load:
-                if train_val_data_iterator is not None:
-                    start_epoch = int(checkpoint_counter / num_batches_train)
-                    start_batch_id = checkpoint_counter - start_epoch * num_batches_train
-                else:
-                    start_epoch = -1
-                    start_batch_id = -1
-                counter = checkpoint_counter
-                print(" [*] Load SUCCESS")
-            else:
-                start_epoch = 0
-                start_batch_id = 0
-                counter = 1
-                print(" [!] Load failed...")
-        else:
-            counter = 1
-            start_epoch = 0
-            start_batch_id = 0
-        return counter, start_batch_id, start_epoch
-
-    @property
-    def model_dir(self):
-        return "{}_{}_{}_{}".format(
-            self._model_name, self.dataset_name,
-            self.batch_size, self.z_dim)
-
-    def save(self, checkpoint_dir, step):
-        self.saver.save(self.sess, os.path.join(checkpoint_dir, self._model_name + '.model'), global_step=step)
-
-    def _load(self, checkpoint_dir, check_point_epochs=None):
-        import re
-        # saver to save model
-        self.saver = tf.train.Saver(max_to_keep=20)
-
-        print(" [*] Reading checkpoints...")
-        checkpoint_dir = checkpoint_dir
-        ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
-        if ckpt and ckpt.model_checkpoint_path:
-            ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
-            if check_point_epochs is not None:
-                ckpt_name = check_point_epochs
-            print("ckpt_name", ckpt_name)
-            self.saver.restore(self.sess, os.path.join(checkpoint_dir, ckpt_name))
-            counter = int(next(re.finditer("(\d+)(?!.*\d)", ckpt_name)).group(0))
-            print(" [*] Success to read {}".format(ckpt_name))
-            return True, counter
-        else:
-            print(" [*] Failed to find a checkpoint")
-            return False, 0
-
     def encode(self, images):
-        z, y_pred = self.sess.run([ self.z, self.y_pred],
-                                             feed_dict={self.inputs: images})
+        z, y_pred = self.sess.run([self.z, self.y_pred],
+                                  feed_dict={self.inputs: images})
         return z, z, z, y_pred
-
-
-    def get_decoder_weights_bias(self):
-        name_w_1 = "decoder/de_fc1/Matrix:0"
-        name_w_2 = "decoder/de_dc3/w:0"
-        name_w_3 = "decoder/de_dc4/w:0"
-
-        name_b_1 = "decoder/de_fc1/bias:0"
-        name_b_2 = "decoder/de_dc3/biases:0"
-        name_b_3 = "decoder/de_dc4/biases:0"
-
-        layer_param_names = [name_w_1,
-                             name_b_1,
-                             name_w_2,
-                             name_b_2,
-                             name_w_3,
-                             name_b_3,
-                             ]
-
-        default_graph = tf.get_default_graph()
-        params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
-        param_values = self.sess.run(params)
-        return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
-
-    def get_encoder_weights_bias(self):
-        name_w_1 = "encoder/en_conv1/w:0"
-        name_w_2 = "encoder/en_conv2/w:0"
-        name_w_3 = "encoder/en_fc3/Matrix:0"
-        name_w_4 = "encoder/en_fc4/Matrix:0"
-
-        name_b_1 = "encoder/en_conv1/biases:0"
-        name_b_2 = "encoder/en_conv2/biases:0"
-        name_b_3 = "encoder/en_fc3/bias:0"
-        name_b_4 = "encoder/en_fc4/bias:0"
-
-        layer_param_names = [name_w_1,
-                             name_b_1,
-                             name_w_2,
-                             name_b_2,
-                             name_w_3,
-                             name_b_3,
-                             name_w_4,
-                             name_b_4
-                             ]
-
-        default_graph = tf.get_default_graph()
-        params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
-        param_values = self.sess.run(params)
-        return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
 
     def encode_and_get_features(self, images):
         z, dense2_en, reshaped, conv2_en, conv1_en = self.sess.run([self.z,
-                                                                       self.dense2_en,
-                                                                       self.reshaped_en,
-                                                                       self.conv2,
-                                                                       self.conv1],
-                                                                      feed_dict={self.inputs: images})
+                                                                    self.dense2_en,
+                                                                    self.reshaped_en,
+                                                                    self.conv2,
+                                                                    self.conv1],
+                                                                   feed_dict={self.inputs: images})
 
         return z, z, z, dense2_en, reshaped, conv2_en, conv1_en

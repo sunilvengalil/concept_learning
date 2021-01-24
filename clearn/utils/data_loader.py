@@ -7,6 +7,8 @@ import pandas as pd
 import json
 
 from clearn.config import ExperimentConfig
+from clearn.dao.idao import IDao
+from clearn.dao.mnist import MnistDao
 
 
 def load_images(_config, dataset_type="train", manual_annotation_file=None):
@@ -14,7 +16,8 @@ def load_images(_config, dataset_type="train", manual_annotation_file=None):
     train_val_data_iterator = TrainValDataIterator.from_existing_split(_config.split_name,
                                                                        _config.DATASET_PATH,
                                                                        _config.BATCH_SIZE,
-                                                                       manual_annotation_file=manual_annotation_file
+                                                                       manual_annotation_file=manual_annotation_file,
+                                                                       dao=MnistDao
                                                                        )
     num_images = train_val_data_iterator.get_num_samples(dataset_type)
     feature_shape = list(train_val_data_iterator.get_feature_shape())
@@ -23,7 +26,7 @@ def load_images(_config, dataset_type="train", manual_annotation_file=None):
     train_images = np.zeros(feature_shape)
     i = 0
     # TODO remove hard coding
-    train_labels = np.zeros([num_images, 10])
+    train_labels = np.zeros([num_images, ])
     manual_annotations = np.zeros([num_images, 11])
 
     train_val_data_iterator.reset_counter(dataset_type)
@@ -50,8 +53,7 @@ class TrainValDataIterator:
         df = pd.read_csv(manual_annotation_file)
         return df.values
 
-    @classmethod
-    def load_train_val_existing_split(cls, split_name, split_location):
+    def load_train_val_existing_split(self, split_name, split_location):
         with open(split_location + split_name + ".json") as fp:
             dataset_dict = json.load(fp)
 
@@ -66,13 +68,16 @@ class TrainValDataIterator:
         x_columns = list(train.columns)
         x_columns.remove('label')
         data = train[x_columns].values
-        train_x = data.reshape((data.shape[0], 28, 28, 1))
+        train_x = data.reshape((data.shape[0],
+                                self.dao.image_shape[0],
+                                self.dao.image_shape[1],
+                                self.dao.image_shape[2]))
         data = train[['label']].values
         train_y = np.asarray(data.reshape(data.shape[0])).astype(np.int)
 
         val = dataset_dict["validation"]
         val_x = val[x_columns].values
-        val_x = val_x.reshape((val_x.shape[0], 28, 28, 1))
+        val_x = val_x.reshape(train_x.shape)
 
         val_y = val[['label']].values
         val_y = np.asarray(val_y.reshape(val_y.shape[0])).astype(np.int)
@@ -80,18 +85,19 @@ class TrainValDataIterator:
         if len(split_names) != 2:
             raise Exception("Split not implemented for for than two splits")
 
-        _val_y = np.zeros((len(val_y), 10), dtype=np.float)
+        #TODO change this to numpy - remove the for loop performance improvement
+        _val_y = np.zeros((len(val_y), self.dao.num_classes), dtype=np.float)
         for i, label in enumerate(val_y):
             _val_y[i, val_y[i]] = 1.0
 
-        _train_y = np.zeros((len(train_y), 10), dtype=np.float)
+        _train_y = np.zeros((len(train_y), self.dao.num_classes), dtype=np.float)
         for i, label in enumerate(train_y):
             _train_y[i, train_y[i]] = 1.0
 
         # TODO separate normalizing and loading logic
-        return {TrainValDataIterator.TRAIN_X: train_x / 255.,
+        return {TrainValDataIterator.TRAIN_X: train_x / self.dao.max_value,
                 TrainValDataIterator.TRAIN_Y: _train_y,
-                TrainValDataIterator.VALIDATION_X: val_x / 255.,
+                TrainValDataIterator.VALIDATION_X: val_x / self.dao.max_value,
                 TrainValDataIterator.VALIDATION_Y_ONE_HOT: _val_y,
                 TrainValDataIterator.VALIDATION_Y_RAW: val_y}
 
@@ -102,7 +108,8 @@ class TrainValDataIterator:
                             batch_size=None,
                             manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                             manual_annotation_file=None,
-                            init_config=None):
+                            init_config=None,
+                            dao:IDao=MnistDao()):
         """
         Creates and initialize an instance of TrainValDataIterator
         @param: split_name:Name of the train/valid/test split
@@ -110,10 +117,9 @@ class TrainValDataIterator:
         @param: batch_size: number of samples in each batch
         @param: manual_labels_config:
         """
-        instance = cls()
-        instance.batch_size = batch_size
-        # TODO convert this to lazy loading
-        instance.dataset_dict = cls.load_train_val_existing_split(split_name, split_location)
+        instance = cls(batch_size=batch_size, dao=dao)
+        # TODO convert this to lazy loading/use generator
+        instance.dataset_dict = dao.load_train_val_existing_split(split_name, split_location)
 
         if init_config is not None and "val_y" in init_config:
             instance.val_y = instance.dataset_dict[TrainValDataIterator.VALIDATION_Y_ONE_HOT]
@@ -165,20 +171,23 @@ class TrainValDataIterator:
             self.manual_annotation[:, 0:10] = self.train_y
             self.manual_annotation[:, 10] = 1 # set manual annotation confidence as 1
 
-    def __init__(self, dataset_path=None, shuffle=False,
+    def __init__(self, dataset_path=None,
+                 shuffle=False,
                  stratified=None,
                  validation_samples=128,
                  split_location=None,
                  split_names=[],
                  batch_size=None,
                  manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
-                 manual_annotation_file=None):
+                 manual_annotation_file=None,
+                 dao:IDao = MnistDao()):
         self.train_idx = 0
         self.val_idx = 0
         self.dataset_path = dataset_path
         self.batch_size = batch_size
+        self.dao = dao
         if dataset_path is not None :
-            self.entire_data_x, self.entire_data_y = load_train(dataset_path)
+            self.entire_data_x, self.entire_data_y = load_train(dataset_path, dao=dao)
             if validation_samples == -1:
                 percentage_to_be_sampled = 0.3
             else:
@@ -188,7 +197,8 @@ class TrainValDataIterator:
                                                stratified=stratified,
                                                percentage_to_be_sampled=percentage_to_be_sampled,
                                                split_location=split_location,
-                                               split_names=split_names)
+                                               split_names=split_names,
+                                               dao=dao)
             # TODO remove this later start using dataset_dict instead
             self.train_x = self.dataset_dict[TrainValDataIterator.TRAIN_X]
             self.train_y = self.dataset_dict[TrainValDataIterator.TRAIN_Y]
@@ -279,39 +289,10 @@ class TrainValDataIterator:
         return self.unique_labels
 
 
-def load_train(data_dir, directory_for_sample_images = None,
-               shuffle=True):
-    data_dir = os.path.join(data_dir, "images/")
-
-    def extract_data(filename, num_data, head_size, data_size):
-        with gzip.open(filename) as bytestream:
-            bytestream.read(head_size)
-            buf = bytestream.read(data_size * num_data)
-        return np.frombuffer(buf, dtype=np.uint8).astype(np.float)
-
-    data = extract_data(data_dir + 'train-images-idx3-ubyte.gz', 60000, 16, 28 * 28)
-    tr_y = data.reshape((60000, 28, 28, 1))
-
-    #code to save images
-    if directory_for_sample_images is not None:
-        for i in range(10):
-            cv2.imwrite(directory_for_sample_images+ str(i) + '.jpg', tr_y[i])
-
-    data = extract_data(data_dir + 'train-labels-idx1-ubyte.gz', 60000, 8, 1)
-    tr_y = data.reshape((60000))
-    tr_y = np.asarray(tr_y).astype(np.int)
-    if shuffle:
-        seed = 547
-        np.random.seed(seed)
-        np.random.shuffle(tr_y)
-        np.random.seed(seed)
-        np.random.shuffle(tr_y)
-
-    y_vec = np.zeros((len(tr_y), 10), dtype=np.float)
-    for i, label in enumerate(tr_y):
-        y_vec[i, tr_y[i]] = 1.0
-
-    return tr_y / 255., y_vec
+def load_train(data_dir,
+               shuffle=True,
+               dao:IDao=MnistDao()):
+    return dao.load_train(data_dir, shuffle)
 
 
 def load_test_raw_data(data_dir):
@@ -335,74 +316,13 @@ def load_train_val(data_dir, shuffle=False,
                    stratified=None,
                    percentage_to_be_sampled=0.7,
                    split_location=None,
-                   split_names=[]):
-
-    data_dir = os.path.join(data_dir, "images/")
-
-    def extract_data(filename, num_data, head_size, data_size):
-        with gzip.open(filename) as bytestream:
-            bytestream.read(head_size)
-            buf = bytestream.read(data_size * num_data)
-            _data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
-        return _data
-
-    data = extract_data(data_dir + 'train-images-idx3-ubyte.gz', 60000, 16, 28 * 28)
-    x = data.reshape((60000, 28, 28, 1))
-
-    data = extract_data(data_dir + '/train-labels-idx1-ubyte.gz', 60000, 8, 1)
-    y = np.asarray(data.reshape(60000)).astype(np.int)
-
-    seed = 547
-    _stratify = None
-    if stratified:
-        _stratify = y
-
-    if len(split_names) == 2:
-        splitted = train_test_split(x, y, test_size=percentage_to_be_sampled,
-                                    stratify=_stratify, shuffle=shuffle,
-                                    random_state=seed)
-        train_x = splitted[0]
-        val_x = splitted[1]
-        train_y = splitted[2]
-        val_y = splitted[3]
-
-        # TODO change this to save only indices.
-        # Alternately save the seed after verifying that same seed generates same split
-        if split_location[-1] == "/":
-            split_name = split_location[:-1].rsplit("/", 1)[1]
-        else:
-            split_name = split_location.rsplit("/", 1)[1]
-        dataset_dict = {}
-        num_splits = len(split_names)
-        dataset_dict["split_names"] = split_names
-
-        for split_num, split in enumerate(split_names):
-            # TODO remove hard coding of dimensions below
-            train_df = pd.DataFrame(splitted[split_num].reshape(splitted[split_num].shape[0], 28 * 28))
-            train_df["label"] = splitted[split_num + num_splits]
-            train_df.to_csv(split_location + split + ".csv", index=False)
-        print(split_location)
-        json_ = split_location + split_name + ".json"
-        with open(json_, "w") as fp:
-            print("Writing json to ", json_)
-            json.dump(dataset_dict, fp)
-        print("Writing json to ", json_)
-    else:
-        raise Exception("Split not implemented for for than two splits")
-
-    _val_y = np.zeros((len(val_y), 10), dtype=np.float)
-    for i, label in enumerate(val_y):
-        _val_y[i, val_y[i]] = 1.0
-
-    _train_y = np.zeros((len(train_y), 10), dtype=np.float)
-    for i, label in enumerate(train_y):
-        _train_y[i, train_y[i]] = 1.0
-    # TODO separate normalizing and loading logic
-    return {TrainValDataIterator.TRAIN_X: train_x / 255.,
-            TrainValDataIterator.TRAIN_Y: _train_y,
-            TrainValDataIterator.VALIDATION_X: val_x / 255.,
-            TrainValDataIterator.VALIDATION_Y_ONE_HOT: _val_y,
-            TrainValDataIterator.VALIDATION_Y_RAW: val_y}
+                   split_names=[],
+                   dao: IDao=MnistDao()):
+    return dao.load_train_val(data_dir,
+                              shuffle,
+                              stratified,
+                              percentage_to_be_sampled,
+                              split_location, split_names)
 
 
 if __name__ == "__main__":

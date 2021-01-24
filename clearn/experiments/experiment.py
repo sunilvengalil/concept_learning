@@ -5,6 +5,7 @@ import os
 
 from clearn.models.classify.classifier import ClassifierModel
 from clearn.models.classify.supervised_classifier import SupervisedClassifierModel
+from clearn.dao.dao_factory import get_dao
 
 from clearn.utils.data_loader import TrainValDataIterator
 from clearn.config import ExperimentConfig
@@ -183,7 +184,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             root_path="/Users/sunilv/concept_learning_exp",
                                             learning_rate=0.001,
                                             run_evaluation_during_training=True,
-                                            eval_interval=300):
+                                            eval_interval=300,
+                                            dataset_name="mnist"):
 
     exp_config = ExperimentConfig(root_path=root_path,
                                   num_decoder_layer=4,
@@ -193,7 +195,7 @@ def initialize_model_train_and_get_features(experiment_name,
                                   confidence_decay_factor=5,
                                   beta=beta,
                                   supervise_weight=supervise_weight,
-                                  dataset_name="mnist",
+                                  dataset_name=dataset_name,
                                   split_name=split_name,
                                   model_name="VAE",
                                   batch_size=64,
@@ -209,10 +211,11 @@ def initialize_model_train_and_get_features(experiment_name,
                                   learning_rate=learning_rate
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
-    exp = Experiment(1, "VAE_MNIST", exp_config, run_id)
+    exp = Experiment(1,experiment_name, exp_config, run_id)
     print(exp.as_json())
     with open(exp_config.BASE_PATH + "config.json", "w") as config_file:
         json.dump(exp_config.as_json(), config_file)
+    dao = get_dao(dataset_name, split_name)
     if train_val_data_iterator is None:
         split_filename = exp.config.DATASET_PATH + split_name + ".json"
         manual_annotation_file = os.path.join(exp_config.ANALYSIS_PATH,
@@ -225,7 +228,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                                                                    exp.config.DATASET_PATH,
                                                                                    exp.config.BATCH_SIZE,
                                                                                    manual_labels_config=exp.config.manual_labels_config,
-                                                                                   manual_annotation_file=manual_annotation_file)
+                                                                                   manual_annotation_file=manual_annotation_file,
+                                                                                   dao=dao)
         elif create_split:
             train_val_data_iterator = TrainValDataIterator(exp.config.DATASET_ROOT_PATH,
                                                            shuffle=True,
@@ -235,7 +239,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                                            split_location=exp.config.DATASET_PATH,
                                                            batch_size=exp.config.BATCH_SIZE,
                                                            manual_labels_config=exp.config.manual_labels_config,
-                                                           manual_annotation_file=manual_annotation_file)
+                                                           manual_annotation_file=manual_annotation_file,
+                                                           dao=dao)
         else:
             raise Exception(f"File does not exists {split_filename}")
 
@@ -256,7 +261,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                     supervise_weight=exp.config.supervise_weight,
                                     reconstruction_weight=exp.config.reconstruction_weight,
                                     reconstructed_image_dir=exp.config.reconstructed_images_path,
-                                    run_evaluation_during_training=run_evaluation_during_training
+                                    run_evaluation_during_training=run_evaluation_during_training,
+                                    dao=dao
                                     )
         elif model_type == MODEL_TYPE_SUPERVISED_CLASSIFIER:
             model = SupervisedClassifierModel(exp_config=exp_config,
@@ -273,7 +279,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                               result_dir=exp.config.PREDICTION_RESULTS_PATH,
                                               supervise_weight=exp.config.supervise_weight,
                                               reconstruction_weight=exp.config.reconstruction_weight,
-                                              reconstructed_image_dir=exp.config.reconstructed_images_path
+                                              reconstructed_image_dir=exp.config.reconstructed_images_path,
+                                              dao=dao
                                               )
         else:
             raise Exception(

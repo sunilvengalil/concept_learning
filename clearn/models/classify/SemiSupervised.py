@@ -5,9 +5,6 @@ import time
 import numpy as np
 
 import pandas as pd
-
-from clearn.dao.idao import IDao
-from clearn.dao.mnist import MnistDao
 from clearn.utils import prior_factory as prior
 from clearn.utils.utils import save_image, save_single_image
 from clearn.utils.dir_utils import get_eval_result_dir
@@ -16,8 +13,8 @@ import tensorflow as tf
 from clearn.utils.tensorflow_wrappers import conv2d, linear, deconv2d, lrelu
 
 
-class ClassifierModel(object):
-    _model_name = "ClassifierModel"
+class SemiSupervisedClassifier(object):
+    _model_name = "SemiSupervisedClassifier"
 
     def __init__(self, exp_config, sess, epoch, batch_size,
                  z_dim, dataset_name, beta=5,
@@ -32,10 +29,8 @@ class ClassifierModel(object):
                  reconstruction_weight=1,
                  reconstructed_image_dir=None,
                  run_evaluation_during_training=False,
-                 model_save_interval=900,
-                 dao:IDao=MnistDao()
+                 model_save_interval=900
                  ):
-        self.dao = dao
         self.sess = sess
         self.dataset_name = dataset_name
         self.epoch = epoch
@@ -89,8 +84,7 @@ class ClassifierModel(object):
 #   Gaussian Encoder
     def _encoder(self, x, reuse=False):
         # Encoder models the probability  P(z/X)
-        # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
-        # Architecture : (64)4c2s-(128)4c2s_BL-FC1024_BL-FC62*4
+        # Network Architecture is exactly same as in https://arxiv.org/pdf/1904.00370.pdf
         w = dict()
         b= dict()
         with tf.variable_scope("encoder", reuse=reuse):
@@ -397,6 +391,11 @@ class ClassifierModel(object):
             print(" [*] Failed to find a checkpoint")
             return False, 0
 
+    def generate_image(self, mu, sigma):
+        self.inference()
+        # original_samples = self.sess.run(self.images, feed_dict={self.mu: mu,self.sigma:sigma})
+        original_samples = self.sess.run(self.images, feed_dict={self.mu: mu, self.sigma: sigma})
+        return original_samples
 
     def encode(self, images):
         mu, sigma, z, y_pred = self.sess.run([self.mu, self.sigma, self.z, self.y_pred],
