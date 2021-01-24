@@ -36,7 +36,7 @@ class SupervisedClassifierModel(ClassifierModel):
                  reconstruction_weight=1,
                  reconstructed_image_dir=None,
                  dao: IDao = MnistDao(),
-                 write_predictions = True
+                 write_predictions=True
                  ):
         self.dao = dao
         self.write_predictions = write_predictions
@@ -110,7 +110,6 @@ class SupervisedClassifierModel(ClassifierModel):
             self.metrics["val"][metric] = []
 
 
-    #   Gaussian Encoder
     def _encoder(self, x, reuse=False):
         # Encoder models the probability  P(z/X)
         # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
@@ -328,10 +327,8 @@ class SupervisedClassifierModel(ClassifierModel):
                 labels_predicted = labels_predicted_for_batch
                 labels = labels_for_batch
             else:
-                labels_predicted = np.hstack([labels_predicted,labels_predicted_for_batch])
-                labels = np.hstack([labels,labels_for_batch])
-        print(labels.shape)
-        print(labels_predicted.shape)
+                labels_predicted = np.hstack([labels_predicted, labels_predicted_for_batch])
+                labels = np.hstack([labels, labels_for_batch])
         if "accuracy" in self.metrics_to_compute:
             accuracy = accuracy_score(labels, labels_predicted)
             self.metrics[dataset_type]["accuracy"].append([epoch, accuracy])
