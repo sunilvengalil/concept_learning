@@ -49,7 +49,7 @@ def check_args(_args):
 if __name__ == '__main__':
     # parse arguments
     args = parse_args()
-    num_epochs = 10
+    num_epochs = 50
     num_cluster_config = ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW
     run_id = 1
     z_dim_range = [5, 17, 2]
@@ -73,5 +73,7 @@ if __name__ == '__main__':
                                                                                                  split_name="split_1",
                                                                                                  train_val_data_iterator=train_val_data_iterator,
                                                                                                  num_val_samples=5000,
-                                                                                                 dataset_name="cifar_10")
+                                                                                                 dataset_name="cifar_10",
+                                                                                                 activation_output_layer="LINEAR",
+                                                                                                 write_predictions=False)
             tf.reset_default_graph()

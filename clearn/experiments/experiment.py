@@ -185,8 +185,10 @@ def initialize_model_train_and_get_features(experiment_name,
                                             learning_rate=0.001,
                                             run_evaluation_during_training=True,
                                             eval_interval=300,
-                                            dataset_name="mnist"):
-
+                                            dataset_name="mnist",
+                                            activation_output_layer="SIGMOID",
+                                            write_predictions=True):
+    dao = get_dao(dataset_name, split_name)
     exp_config = ExperimentConfig(root_path=root_path,
                                   num_decoder_layer=4,
                                   z_dim=z_dim,
@@ -198,15 +200,15 @@ def initialize_model_train_and_get_features(experiment_name,
                                   dataset_name=dataset_name,
                                   split_name=split_name,
                                   model_name="VAE",
-                                  batch_size=64,
+                                  batch_size=128,
                                   eval_interval=eval_interval,
                                   name=experiment_name,
                                   num_val_samples=num_val_samples,
-                                  total_training_samples=60000,
+                                  total_training_samples=dao.number_of_training_samples,
                                   manual_labels_config=manual_labels_config,
                                   reconstruction_weight=reconstruction_weight,
                                   activation_hidden_layer="RELU",
-                                  activation_output_layer="SIGMOID",
+                                  activation_output_layer=activation_output_layer,
                                   save_reconstructed_images=save_reconstructed_images,
                                   learning_rate=learning_rate
                                   )
@@ -215,7 +217,6 @@ def initialize_model_train_and_get_features(experiment_name,
     print(exp.as_json())
     with open(exp_config.BASE_PATH + "config.json", "w") as config_file:
         json.dump(exp_config.as_json(), config_file)
-    dao = get_dao(dataset_name, split_name)
     if train_val_data_iterator is None:
         split_filename = exp.config.DATASET_PATH + split_name + ".json"
         manual_annotation_file = os.path.join(exp_config.ANALYSIS_PATH,
@@ -244,7 +245,7 @@ def initialize_model_train_and_get_features(experiment_name,
         else:
             raise Exception(f"File does not exists {split_filename}")
 
-    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
+    with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as sess:
         if model_type == MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER:
             model = ClassifierModel(exp_config=exp_config,
                                     sess=sess,
@@ -262,7 +263,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                     reconstruction_weight=exp.config.reconstruction_weight,
                                     reconstructed_image_dir=exp.config.reconstructed_images_path,
                                     run_evaluation_during_training=run_evaluation_during_training,
-                                    dao=dao
+                                    dao=dao,
+                                    write_predictions=write_predictions
                                     )
         elif model_type == MODEL_TYPE_SUPERVISED_CLASSIFIER:
             model = SupervisedClassifierModel(exp_config=exp_config,
@@ -280,7 +282,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                               supervise_weight=exp.config.supervise_weight,
                                               reconstruction_weight=exp.config.reconstruction_weight,
                                               reconstructed_image_dir=exp.config.reconstructed_images_path,
-                                              dao=dao
+                                              dao=dao,
+                                              write_predictions=write_predictions
                                               )
         else:
             raise Exception(

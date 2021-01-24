@@ -285,11 +285,11 @@ class ClassifierModel(object):
                     restore_from_existing_checkpoint=True,
                     check_point_epochs=None):
         # saver to save model
-        self.saver = tf.train.Saver(max_to_keep=50)
+        self.saver = tf.compat.v1.train.Saver(max_to_keep=50)
         # summary writer
-        self.writer = tf.summary.FileWriter(self.log_dir + '/' + self._model_name,
+        self.writer = tf.compat.v1.summary.FileWriter(self.log_dir + '/' + self._model_name,
                                             self.sess.graph)
-        self.writer_v = tf.summary.FileWriter(self.log_dir + '/' + self._model_name + "_v",
+        self.writer_v = tf.compat.v1.summary.FileWriter(self.log_dir + '/' + self._model_name + "_v",
                                               self.sess.graph)
 
         if train_val_data_iterator is not None:
@@ -379,7 +379,7 @@ class ClassifierModel(object):
     def _load(self, checkpoint_dir, check_point_epochs=None):
         import re
         # saver to save model
-        self.saver = tf.train.Saver(max_to_keep=20)
+        self.saver = tf.compat.v1.train.Saver(max_to_keep=20)
 
         print(" [*] Reading checkpoints...")
         checkpoint_dir = checkpoint_dir

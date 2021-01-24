@@ -4,11 +4,11 @@ import os
 import numpy as np
 import pandas as pd
 from scipy.special import softmax
+from sklearn.metrics import accuracy_score
 
 from clearn.config.common_path import get_encoded_csv_file
 from clearn.dao.idao import IDao
 from clearn.dao.mnist import MnistDao
-from clearn.utils.utils import get_latent_vector_column
 from clearn.utils import prior_factory as prior
 
 from clearn.models.classify.classifier import ClassifierModel
@@ -19,7 +19,11 @@ from clearn.utils.tensorflow_wrappers import conv2d, linear, deconv2d, lrelu
 class SupervisedClassifierModel(ClassifierModel):
     _model_name = "ClassifierModel"
 
-    def __init__(self, exp_config, sess, epoch, batch_size,
+    def __init__(self,
+                 exp_config,
+                 sess,
+                 epoch,
+                 batch_size,
                  z_dim, dataset_name, beta=5,
                  num_units_in_layer=None,
                  log_dir=None,
@@ -31,9 +35,11 @@ class SupervisedClassifierModel(ClassifierModel):
                  supervise_weight=0,
                  reconstruction_weight=1,
                  reconstructed_image_dir=None,
-                 dao: IDao = MnistDao()
+                 dao: IDao = MnistDao(),
+                 write_predictions = True
                  ):
         self.dao = dao
+        self.write_predictions = write_predictions
         self.sess = sess
         self.dataset_name = dataset_name
         self.epoch = epoch
@@ -86,13 +92,23 @@ class SupervisedClassifierModel(ClassifierModel):
         self.images = None
         self._build_model()
         # initialize all variables
-        tf.global_variables_initializer().run()
+        tf.compat.v1.global_variables_initializer().run()
         # graph inputs for visualize training results
         self.sample_z = prior.gaussian(self.batch_size, self.z_dim)
         self.max_to_keep = 20
         self.counter, self.start_batch_id, self.start_epoch = self._initialize(train_val_data_iterator,
                                                                                read_from_existing_checkpoint,
                                                                                check_point_epochs)
+        self.metrics_to_compute = ["accuracy"]
+        self.metrics = dict()
+        self.metrics["train"] = dict()
+        self.metrics["val"] = dict()
+
+        for metric in self.metrics_to_compute:
+            self.metrics[metric] = []
+            self.metrics["train"][metric] = []
+            self.metrics["val"][metric] = []
+
 
     #   Gaussian Encoder
     def _encoder(self, x, reuse=False):
@@ -101,7 +117,7 @@ class SupervisedClassifierModel(ClassifierModel):
         # Architecture : (64)4c2s-(128)4c2s_BL-FC1024_BL-FC62*4
         w = dict()
         b = dict()
-        with tf.variable_scope("encoder", reuse=reuse):
+        with tf.compat.v1.variable_scope("encoder", reuse=reuse):
             if self.exp_config.activation_hidden_layer == "RELU":
                 self.conv1 = lrelu(conv2d(x, self.n[0], 3, 3, self.strides[0], self.strides[0], name='en_conv1'))
                 self.conv2 = lrelu((conv2d(self.conv1,
@@ -177,15 +193,15 @@ class SupervisedClassifierModel(ClassifierModel):
 
         """ Graph Input """
         # images
-        self.inputs = tf.placeholder(tf.float32, [bs] + image_dims, name='real_images')
+        self.inputs = tf.compat.v1.placeholder(tf.float32, [bs] + image_dims, name='real_images')
 
         # random vectors with  multi-variate gaussian distribution
         # 0 mean and covariance matrix as Identity
-        self.standard_normal = tf.placeholder(tf.float32, [bs, self.z_dim], name='z')
+        self.standard_normal = tf.compat.v1.placeholder(tf.float32, [bs, self.z_dim], name='z')
 
         # Whether the sample was manually annotated.
-        self.is_manual_annotated = tf.placeholder(tf.float32, [bs], name="is_manual_annotated")
-        self.labels = tf.placeholder(tf.float32, [bs, self.label_dim], name='manual_label')
+        self.is_manual_annotated = tf.compat.v1.placeholder(tf.float32, [bs], name="is_manual_annotated")
+        self.labels = tf.compat.v1.placeholder(tf.float32, [bs, self.label_dim], name='manual_label')
 
         """ Loss Function """
         # encoding
@@ -193,39 +209,42 @@ class SupervisedClassifierModel(ClassifierModel):
 
         # supervised loss for labelled samples
         self.y_pred = linear(self.z, self.dao.num_classes)
-        self.supervised_loss = tf.losses.softmax_cross_entropy(onehot_labels=self.labels,
-                                                               logits=self.y_pred,
-                                                               weights=self.is_manual_annotated
-                                                               )
+        self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
+                                                                         logits=self.y_pred,
+                                                                         weights=self.is_manual_annotated
+                                                                         )
 
         # decoding
         out = self.decoder(self.z, reuse=False)
         self.out = tf.clip_by_value(out, 1e-8, 1 - 1e-8)
 
         # loss
-        marginal_likelihood = tf.reduce_sum(self.inputs * tf.log(self.out) +
-                                            (1 - self.inputs) * tf.log(1 - self.out),
-                                            [1, 2])
+        if self.exp_config.activation_output_layer == "SIGMOID":
+            marginal_likelihood = tf.reduce_sum(self.inputs * tf.math.log(self.out) +
+                                                (1 - self.inputs) * tf.math.log(1 - self.out),
+                                                [1, 2])
+        elif self.exp_config.activation_output_layer == "LINEAR":
+            marginal_likelihood = tf.compat.v1.losses.mean_squared_error(self.inputs, self.out)
 
         self.neg_loglikelihood = -tf.reduce_mean(marginal_likelihood)
         self.loss = self.supervise_weight * self.supervised_loss
 
         """ Training """
         # optimizers
-        t_vars = tf.trainable_variables()
-        with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
-            self.optim = tf.train.AdamOptimizer(self.learning_rate * 5, beta1=self.beta1) \
+        t_vars = tf.compat.v1.trainable_variables()
+        with tf.control_dependencies(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
+            self.optim = tf.compat.v1.train.AdamOptimizer(self.learning_rate * 5, beta1=self.beta1) \
                 .minimize(self.loss, var_list=t_vars)
 
         """" Testing """
 
         # for test
         """ Summary """
-        tf.summary.scalar("Supervised Loss", self.supervised_loss)
-        tf.summary.scalar("Total Loss", self.loss)
+        tf.compat.v1.summary.scalar("Supervised Loss", self.supervised_loss)
+        tf.compat.v1.summary.scalar("Total Loss", self.loss)
 
         # final summary operations
-        self.merged_summary_op = tf.summary.merge_all()
+        self.merged_summary_op = tf.compat.v1.summary.merge_all()
 
     def get_trainable_vars(self):
         return tf.trainable_variables()
@@ -270,37 +289,57 @@ class SupervisedClassifierModel(ClassifierModel):
             start_batch_id = 0
             # save model
             self.save(self.checkpoint_dir, counter)
+            # save metrics
+            # TODO save all metrics. not just accuracy
+            if "accuracy" in self.metrics:
+                df = pd.DataFrame(self.metrics["train"]["accuracy"], columns=["epoch", "accuracy"])
+                df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"train_accuracy_{start_epoch}.csv"),
+                          index=False)
+
+                df = pd.DataFrame(self.metrics["val"]["accuracy"], columns=["epoch", "accuracy"])
+                df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"val_accuracy_{start_epoch}.csv"),
+                          index=False)
+
         # save model for final step
         self.save(self.checkpoint_dir, counter)
 
-    def evaluate(self, train_val_data_iterator, epoch, dataset_type="train", save_results=True):
+    def evaluate(self, train_val_data_iterator, epoch, dataset_type="train"):
         encoded_df = None
+        labels_predicted = None
+        labels = None
         while train_val_data_iterator.has_next(dataset_type):
-            batch_images, batch_labels, _ = train_val_data_iterator.get_next_batch(dataset_type)
+            batch_images, batch_labels_un_normalized_logit, _ = train_val_data_iterator.get_next_batch(dataset_type)
             if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                 train_val_data_iterator.reset_counter(dataset_type)
                 break
 
-            z, z, z, y_pred = self.encode(batch_images)
-            labels_predicted = softmax(y_pred)
-            labels_predicted = np.argmax(labels_predicted, axis=1)
-            z_dim = z.shape[1]
-            mean_col_names, sigma_col_names, z_col_names, l3_col_names = get_latent_vector_column(z_dim)
-            labels = np.argmax(batch_labels, axis=1)
-            # print("labels_predicted shape",labels_predicted.shape)
-            logit_column_names = ["logits_" + str(i) for i in range(y_pred.shape[1])]
-            temp_df1 = pd.DataFrame(z, columns=z_col_names)
-            temp_df2 = pd.DataFrame(y_pred, columns=logit_column_names)
-            temp_df = pd.concat([temp_df1, temp_df2], axis=1)
-            temp_df["label"] = labels
-            temp_df["label_predicted"] = labels_predicted
-            if encoded_df is not None:
-                encoded_df = pd.concat([encoded_df, temp_df])
+            _, _, z, y_pred = self.encode(batch_images)
+            labels_predicted_for_batch = softmax(y_pred)
+            labels_predicted_for_batch = np.argmax(labels_predicted_for_batch, axis=1)
+            labels_for_batch = np.argmax(batch_labels_un_normalized_logit, axis=1)
+            if self.write_predictions:
+                temp_df = pd.DataFrame(np.transpose(np.vstack([labels_for_batch, labels_predicted_for_batch])),
+                                       columns=["label","label_predicted"])
+                if encoded_df is not None:
+                    encoded_df = pd.concat([encoded_df, temp_df])
+                else:
+                    encoded_df = temp_df
+            if labels_predicted is None:
+                labels_predicted = labels_predicted_for_batch
+                labels = labels_for_batch
             else:
-                encoded_df = temp_df
+                labels_predicted = np.hstack([labels_predicted,labels_predicted_for_batch])
+                labels = np.hstack([labels,labels_for_batch])
+        print(labels.shape)
+        print(labels_predicted.shape)
+        if "accuracy" in self.metrics_to_compute:
+            accuracy = accuracy_score(labels, labels_predicted)
+            self.metrics[dataset_type]["accuracy"].append([epoch, accuracy])
+            self.metrics["accuracy"].append([epoch, accuracy])
+
         print(self.exp_config.ANALYSIS_PATH)
 
-        if save_results:
+        if self.write_predictions:
             output_csv_file = get_encoded_csv_file(self.exp_config, epoch, dataset_type)
             encoded_df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, output_csv_file), index=False)
         return encoded_df
