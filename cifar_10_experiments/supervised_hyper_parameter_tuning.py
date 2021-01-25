@@ -5,7 +5,7 @@ from clearn.config import ExperimentConfig
 
 create_split = True
 z_dim = 10
-experiment_name = "cifar_split_1"
+experiment_name = "cifar_arch_2_split_1"
 
 
 def parse_args():
@@ -67,12 +67,13 @@ if __name__ == '__main__':
                                                                                                  supervise_weight=1,
                                                                                                  beta=0,
                                                                                                  reconstruction_weight=0,
-                                                                                                 model_type="supervised_classifier",
+                                                                                                 model_type="cifar_arch_2",
                                                                                                  num_units=num_units,
                                                                                                  save_reconstructed_images=False,
                                                                                                  split_name="split_1",
                                                                                                  train_val_data_iterator=train_val_data_iterator,
                                                                                                  num_val_samples=5000,
+                                                                                                 learning_rate=0.005,
                                                                                                  dataset_name="cifar_10",
                                                                                                  activation_output_layer="LINEAR",
                                                                                                  write_predictions=False)

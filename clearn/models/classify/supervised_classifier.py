@@ -61,34 +61,15 @@ class SupervisedClassifierModel(ClassifierModel):
         self.z_dim = z_dim
         self.c_dim = dao.image_shape[2]
         if num_units_in_layer is None or len(num_units_in_layer) == 0:
-            self.n = [64, 128, 32, z_dim]
+            self.n = [128, 64, 32, z_dim]
         else:
             self.n = num_units_in_layer
         self.strides = [2, 2]
         self.sample_num = 64  # number of generated images to be saved
-        if dataset_name == 'mnist' or dataset_name == 'fashion-mnist':
-            # train
-            self.learning_rate = 0.0002
-            self.beta1 = 0.5
-
-            # test
-            self.num_images_per_row = 4  # should be a factor of sample_num
-            self.eval_interval = 300
-            # self.num_eval_batches = 10
-        elif dataset_name == "cifar_10":
-            if num_units_in_layer is None or len(num_units_in_layer) == 0:
-                self.n = [128, 64, 32, z_dim]
-            else:
-                self.n = num_units_in_layer
-            # train
-            self.learning_rate = 0.0002
-            self.beta1 = 0.5
-
-            # test
-            self.num_images_per_row = 4  # should be a factor of sample_num
-            self.eval_interval = 300
-        else:
-            raise NotImplementedError("Dataset {} not implemented".format(dataset_name))
+        self.learning_rate = 0.0002
+        self.beta1 = 0.5
+        self.eval_interval = 300
+        self.num_images_per_row = 4  # should be a factor of sample_num
         self.images = None
         self._build_model()
         # initialize all variables
@@ -212,31 +193,16 @@ class SupervisedClassifierModel(ClassifierModel):
                                                                          logits=self.y_pred,
                                                                          weights=self.is_manual_annotated
                                                                          )
-
-        # decoding
-        out = self.decoder(self.z, reuse=False)
-        self.out = tf.clip_by_value(out, 1e-8, 1 - 1e-8)
-
-        # loss
-        if self.exp_config.activation_output_layer == "SIGMOID":
-            marginal_likelihood = tf.reduce_sum(self.inputs * tf.math.log(self.out) +
-                                                (1 - self.inputs) * tf.math.log(1 - self.out),
-                                                [1, 2])
-        elif self.exp_config.activation_output_layer == "LINEAR":
-            marginal_likelihood = tf.compat.v1.losses.mean_squared_error(self.inputs, self.out)
-
-        self.neg_loglikelihood = -tf.reduce_mean(marginal_likelihood)
         self.loss = self.supervise_weight * self.supervised_loss
 
         """ Training """
         # optimizers
         t_vars = tf.compat.v1.trainable_variables()
         with tf.control_dependencies(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
-            self.optim = tf.compat.v1.train.AdamOptimizer(self.learning_rate * 5, beta1=self.beta1) \
+            self.optim = tf.compat.v1.train.AdamOptimizer(self.learning_rate, beta1=self.beta1) \
                 .minimize(self.loss, var_list=t_vars)
 
         """" Testing """
-
         # for test
         """ Summary """
         tf.compat.v1.summary.scalar("Supervised Loss", self.supervised_loss)

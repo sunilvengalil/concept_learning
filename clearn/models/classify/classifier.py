@@ -19,7 +19,11 @@ from clearn.utils.tensorflow_wrappers import conv2d, linear, deconv2d, lrelu
 class ClassifierModel(object):
     _model_name = "ClassifierModel"
 
-    def __init__(self, exp_config, sess, epoch, batch_size,
+    def __init__(self,
+                 exp_config,
+                 sess,
+                 epoch,
+                 batch_size,
                  z_dim, dataset_name, beta=5,
                  num_units_in_layer=None,
                  log_dir=None,

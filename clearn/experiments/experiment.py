@@ -3,6 +3,7 @@ from clearn.analysis.encode_images import encode_images, encode_images_and_get_f
 import json
 import os
 
+from clearn.models.classify.Cifar10Classifier import Cifar10Classifier
 from clearn.models.classify.classifier import ClassifierModel
 from clearn.models.classify.supervised_classifier import SupervisedClassifierModel
 from clearn.dao.dao_factory import get_dao
@@ -187,10 +188,11 @@ def initialize_model_train_and_get_features(experiment_name,
                                             eval_interval=300,
                                             dataset_name="mnist",
                                             activation_output_layer="SIGMOID",
-                                            write_predictions=True):
+                                            write_predictions=True,
+                                            num_decoder_layer =4):
     dao = get_dao(dataset_name, split_name)
     exp_config = ExperimentConfig(root_path=root_path,
-                                  num_decoder_layer=4,
+                                  num_decoder_layer=num_decoder_layer,
                                   z_dim=z_dim,
                                   num_units=num_units,
                                   num_cluster_config=num_cluster_config,
@@ -268,6 +270,25 @@ def initialize_model_train_and_get_features(experiment_name,
                                     )
         elif model_type == MODEL_TYPE_SUPERVISED_CLASSIFIER:
             model = SupervisedClassifierModel(exp_config=exp_config,
+                                              sess=sess,
+                                              epoch=num_epochs,
+                                              batch_size=exp_config.BATCH_SIZE,
+                                              z_dim=exp_config.Z_DIM,
+                                              dataset_name=exp_config.dataset_name,
+                                              beta=exp_config.beta,
+                                              num_units_in_layer=exp_config.num_units,
+                                              train_val_data_iterator=train_val_data_iterator,
+                                              log_dir=exp.config.LOG_PATH,
+                                              checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
+                                              result_dir=exp.config.PREDICTION_RESULTS_PATH,
+                                              supervise_weight=exp.config.supervise_weight,
+                                              reconstruction_weight=exp.config.reconstruction_weight,
+                                              reconstructed_image_dir=exp.config.reconstructed_images_path,
+                                              dao=dao,
+                                              write_predictions=write_predictions
+                                              )
+        elif model_type == "cifar_arch_vaal":
+            model = Cifar10Classifier(exp_config=exp_config,
                                               sess=sess,
                                               epoch=num_epochs,
                                               batch_size=exp_config.BATCH_SIZE,
