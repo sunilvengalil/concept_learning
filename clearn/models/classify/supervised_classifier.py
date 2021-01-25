@@ -40,6 +40,7 @@ class SupervisedClassifierModel(ClassifierModel):
                  ):
         self.dao = dao
         self.write_predictions = write_predictions
+        self.run_evaluation_during_training=True
         self.eval_interval_in_epochs = 1
         self.sess = sess
         self.dataset_name = dataset_name
@@ -248,7 +249,7 @@ class SupervisedClassifierModel(ClassifierModel):
             # non-zero value is only for the first epoch after loading pre-trained model
             print(f"Completed {epoch} epochs")
             if self.run_evaluation_during_training:
-                if np.mod(epoch, self.exp_config.eval_interval_in_epochs) == 0:
+                if np.mod(epoch, self.eval_interval_in_epochs) == 0:
                     train_val_data_iterator.reset_counter("train")
                     train_val_data_iterator.reset_counter("val")
                     self.evaluate(train_val_data_iterator, epoch, "train")
