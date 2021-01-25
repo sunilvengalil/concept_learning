@@ -3,7 +3,7 @@ import tensorflow as tf
 from clearn.dao.idao import IDao
 from clearn.dao.mnist import MnistDao
 from clearn.utils.tensorflow_wrappers import conv2d, linear, deconv2d, lrelu
-from clearn.models.classify.supervised_classifier import  SupervisedClassifierModel
+from clearn.models.classify.supervised_classifier import SupervisedClassifierModel
 
 
 class Cifar10Classifier(SupervisedClassifierModel):
@@ -51,7 +51,7 @@ class Cifar10Classifier(SupervisedClassifierModel):
 
     def _encoder(self, x, reuse=False):
         # Encoder models the probability  P(z/X)
-        #pytorch code
+        # pytorch code
         # self.encoder = nn.Sequential(
         #     nn.Conv2d(nc, 128, 4, 2, 1, bias=False),              # B,  128, 32, 32
         #     nn.BatchNorm2d(128),
@@ -72,19 +72,19 @@ class Cifar10Classifier(SupervisedClassifierModel):
             if self.exp_config.activation_hidden_layer == "RELU":
                 conv1 = conv2d(x, self.n[0], 3, 3, self.strides[0], self.strides[0], name='en_conv1')
                 conv1 = tf.compat.v1.layers.batch_normalization(conv1)
-                self.conv1 =lrelu((conv1))
+                self.conv1 = lrelu(conv1)
 
                 conv2 = conv2d(self.conv1, self.n[1], 3, 3, self.strides[0], self.strides[0], name='en_conv2')
                 conv2 = tf.compat.v1.layers.batch_normalization(conv2)
-                self.conv2 =lrelu((conv2))
+                self.conv2 = lrelu(conv2)
 
                 conv3 = conv2d(self.conv2, self.n[2], 3, 3, self.strides[0], self.strides[0], name='en_conv3')
                 conv3 = tf.compat.v1.layers.batch_normalization(conv3)
-                self.conv3 = lrelu((conv3))
+                self.conv3 = lrelu(conv3)
 
                 conv4 = conv2d(self.conv3, self.n[3], 3, 3, self.strides[0], self.strides[0], name='en_conv4')
                 conv4 = tf.compat.v1.layers.batch_normalization(conv4)
-                self.conv4 = lrelu((conv4))
+                self.conv4 = lrelu(conv4)
 
                 reshaped = tf.reshape(self.conv4, [self.batch_size, -1])
 
@@ -122,7 +122,7 @@ class Cifar10Classifier(SupervisedClassifierModel):
         # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
         # Architecture : FC1024_BR-FC7x7x128_BR-(64)4dc2s_BR-(1)4dc2s_S
 
-        output_shape = [self.batch_size, self.image_shape[0], self.image_shape[1], self.image_shape[2]]
+        output_shape = [self.batch_size, self.dao.image_shape[0], self.dao.image_shape[1], self.dao.image_shape[2]]
         layer_4_size = [self.batch_size,
                         output_shape[1] // self.strides[0],
                         output_shape[2] // self.strides[0],

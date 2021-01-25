@@ -14,6 +14,7 @@ from clearn.utils import prior_factory as prior
 from clearn.models.classify.classifier import ClassifierModel
 import tensorflow as tf
 from clearn.utils.tensorflow_wrappers import conv2d, linear, deconv2d, lrelu
+from clearn.utils.utils import get_latent_vector_column
 
 
 class SupervisedClassifierModel(ClassifierModel):
@@ -265,41 +266,53 @@ class SupervisedClassifierModel(ClassifierModel):
         # save model for final step
         self.save(self.checkpoint_dir, counter)
 
-    def evaluate(self, train_val_data_iterator, epoch, dataset_type="train"):
+    def evaluate(self, train_val_data_iterator, epoch, dataset_type="train", return_latent_vector=False):
         encoded_df = None
         labels_predicted = None
         labels = None
+        mu = None
+        sigma = None
+        z = None
         while train_val_data_iterator.has_next(dataset_type):
-            batch_images, batch_labels_un_normalized_logit, _ = train_val_data_iterator.get_next_batch(dataset_type)
+            batch_images, batch_labels, _ = train_val_data_iterator.get_next_batch(dataset_type)
+            # skip last batch
             if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                 train_val_data_iterator.reset_counter(dataset_type)
                 break
 
-            _, _, z, y_pred = self.encode(batch_images)
-            labels_predicted_for_batch = softmax(y_pred)
-            labels_predicted_for_batch = np.argmax(labels_predicted_for_batch, axis=1)
-            labels_for_batch = np.argmax(batch_labels_un_normalized_logit, axis=1)
-            if self.write_predictions:
-                temp_df = pd.DataFrame(np.transpose(np.vstack([labels_for_batch, labels_predicted_for_batch])),
-                                       columns=["label","label_predicted"])
-                if encoded_df is not None:
-                    encoded_df = pd.concat([encoded_df, temp_df])
-                else:
-                    encoded_df = temp_df
+            mu_for_batch, sigma_for_batch, z_for_batch, y_pred = self.encode(batch_images)
+            labels_predicted_for_batch = np.argmax(softmax(y_pred), axis=1)
+            labels_for_batch = np.argmax(batch_labels, axis=1)
             if labels_predicted is None:
                 labels_predicted = labels_predicted_for_batch
                 labels = labels_for_batch
             else:
                 labels_predicted = np.hstack([labels_predicted, labels_predicted_for_batch])
                 labels = np.hstack([labels, labels_for_batch])
+            if return_latent_vector:
+                mean_col_names, sigma_col_names, z_col_names, l3_col_names = get_latent_vector_column(self.exp_config.z_dim)
+                if mu is None:
+                    mu = mu_for_batch
+                    sigma = sigma_for_batch
+                    z = z_for_batch
+                else:
+                    mu = np.hstack([mu, mu_for_batch])
+                    sigma = np.hstack([sigma, sigma_for_batch])
+                    z = np.hstack([z, z_for_batch])
+
         if "accuracy" in self.metrics_to_compute:
             accuracy = accuracy_score(labels, labels_predicted)
             self.metrics[dataset_type]["accuracy"].append([epoch, accuracy])
             self.metrics["accuracy"].append([epoch, accuracy])
-
-        print(self.exp_config.ANALYSIS_PATH)
-
         if self.write_predictions:
+            print("Saving evaluation results to ", self.exp_config.ANALYSIS_PATH)
+            encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
+                                      columns=["label", "label_predicted"])
+            if return_latent_vector:
+                encoded_df[mean_col_names] = mu
+                encoded_df[sigma_col_names] = sigma
+                encoded_df[z_col_names] = z
+
             output_csv_file = get_encoded_csv_file(self.exp_config, epoch, dataset_type)
             encoded_df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, output_csv_file), index=False)
         return encoded_df
