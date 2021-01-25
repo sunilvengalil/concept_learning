@@ -40,9 +40,9 @@ class SupervisedClassifierModel(ClassifierModel):
                  ):
         self.dao = dao
         self.write_predictions = write_predictions
+        self.eval_interval_in_epochs = 1
         self.sess = sess
         self.dataset_name = dataset_name
-        self.epoch = epoch
         self.batch_size = batch_size
         # self.num_val_samples = 128
         self.log_dir = log_dir
@@ -78,6 +78,11 @@ class SupervisedClassifierModel(ClassifierModel):
         self.counter, self.start_batch_id, self.start_epoch = self._initialize(train_val_data_iterator,
                                                                                read_from_existing_checkpoint,
                                                                                check_point_epochs)
+        if epoch == -1:
+            epoch = self.start_epoch
+        else:
+            self.epoch = epoch
+
         self.metrics_to_compute = ["accuracy"]
         self.metrics = dict()
         self.metrics["train"] = dict()
@@ -242,16 +247,19 @@ class SupervisedClassifierModel(ClassifierModel):
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model
             print(f"Completed {epoch} epochs")
-            train_val_data_iterator.reset_counter("train")
-            train_val_data_iterator.reset_counter("val")
-            self.evaluate(train_val_data_iterator, epoch, "train")
-            self.evaluate(train_val_data_iterator, epoch, "val")
+            if self.run_evaluation_during_training:
+                if np.mod(epoch, self.exp_config.eval_interval_in_epochs) == 0:
+                    train_val_data_iterator.reset_counter("train")
+                    train_val_data_iterator.reset_counter("val")
+                    self.evaluate(train_val_data_iterator, epoch, "train")
+                    self.evaluate(train_val_data_iterator, epoch, "val")
 
-            train_val_data_iterator.reset_counter("train")
-            train_val_data_iterator.reset_counter("val")
+                    train_val_data_iterator.reset_counter("train")
+                    train_val_data_iterator.reset_counter("val")
             start_batch_id = 0
             # save model
-            self.save(self.checkpoint_dir, counter)
+            if np.mod(epoch, self.model_save_interval) == 0:
+                self.save(self.checkpoint_dir, counter)
             # save metrics
             # TODO save all metrics. not just accuracy
             if "accuracy" in self.metrics:
@@ -266,20 +274,23 @@ class SupervisedClassifierModel(ClassifierModel):
         # save model for final step
         self.save(self.checkpoint_dir, counter)
 
-    def evaluate(self, train_val_data_iterator, epoch, dataset_type="train", return_latent_vector=False):
+    def evaluate(self, train_val_data_iterator, epoch=-1, dataset_type="train", return_latent_vector=False):
+        if epoch == -1:
+            epoch = self.start_epoch
         encoded_df = None
         labels_predicted = None
         labels = None
         mu = None
         sigma = None
         z = None
+        batch_no = 1
         while train_val_data_iterator.has_next(dataset_type):
+            print(f"Running evaluation batch {batch_no}")
             batch_images, batch_labels, _ = train_val_data_iterator.get_next_batch(dataset_type)
             # skip last batch
             if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                 train_val_data_iterator.reset_counter(dataset_type)
                 break
-
             mu_for_batch, sigma_for_batch, z_for_batch, y_pred = self.encode(batch_images)
             labels_predicted_for_batch = np.argmax(softmax(y_pred), axis=1)
             labels_for_batch = np.argmax(batch_labels, axis=1)
@@ -299,6 +310,7 @@ class SupervisedClassifierModel(ClassifierModel):
                     mu = np.hstack([mu, mu_for_batch])
                     sigma = np.hstack([sigma, sigma_for_batch])
                     z = np.hstack([z, z_for_batch])
+            batch_no += 1
 
         if "accuracy" in self.metrics_to_compute:
             accuracy = accuracy_score(labels, labels_predicted)

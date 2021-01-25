@@ -8,7 +8,7 @@ from clearn.models.classify.classifier import ClassifierModel
 from clearn.models.classify.supervised_classifier import SupervisedClassifierModel
 from clearn.dao.dao_factory import get_dao
 
-from clearn.utils.data_loader import TrainValDataIterator
+from clearn.utils.data_loader import TrainValDataIterator, DataIterator
 from clearn.config import ExperimentConfig
 from clearn.utils.utils import show_all_variables
 
@@ -65,6 +65,9 @@ class Experiment:
         self.model.train(train_val_data_iterator)
 
         print(" [*] Training finished!")
+
+    def test(self, data_iterator):
+        return self.model.evaluate(data_iterator, dataset_type="test")
 
     def encode_latent_vector(self, _train_val_data_iterator, epoch, dataset_type,
                              save_results=True):
@@ -189,7 +192,7 @@ def initialize_model_train_and_get_features(experiment_name,
                                             dataset_name="mnist",
                                             activation_output_layer="SIGMOID",
                                             write_predictions=True,
-                                            num_decoder_layer =4):
+                                            num_decoder_layer=4):
     dao = get_dao(dataset_name, split_name)
     exp_config = ExperimentConfig(root_path=root_path,
                                   num_decoder_layer=num_decoder_layer,
@@ -215,7 +218,7 @@ def initialize_model_train_and_get_features(experiment_name,
                                   learning_rate=learning_rate
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
-    exp = Experiment(1,experiment_name, exp_config, run_id)
+    exp = Experiment(1, experiment_name, exp_config, run_id)
     print(exp.as_json())
     with open(exp_config.BASE_PATH + "config.json", "w") as config_file:
         json.dump(exp_config.as_json(), config_file)
@@ -287,22 +290,22 @@ def initialize_model_train_and_get_features(experiment_name,
                                               )
         elif model_type == "cifar_arch_vaal":
             model = Cifar10Classifier(exp_config=exp_config,
-                                              sess=sess,
-                                              epoch=num_epochs,
-                                              batch_size=exp_config.BATCH_SIZE,
-                                              z_dim=exp_config.Z_DIM,
-                                              dataset_name=exp_config.dataset_name,
-                                              beta=exp_config.beta,
-                                              num_units_in_layer=exp_config.num_units,
-                                              train_val_data_iterator=train_val_data_iterator,
-                                              log_dir=exp.config.LOG_PATH,
-                                              checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
-                                              result_dir=exp.config.PREDICTION_RESULTS_PATH,
-                                              reconstruction_weight=exp.config.reconstruction_weight,
-                                              reconstructed_image_dir=exp.config.reconstructed_images_path,
-                                              dao=dao,
-                                              write_predictions=write_predictions
-                                              )
+                                      sess=sess,
+                                      epoch=num_epochs,
+                                      batch_size=exp_config.BATCH_SIZE,
+                                      z_dim=exp_config.Z_DIM,
+                                      dataset_name=exp_config.dataset_name,
+                                      beta=exp_config.beta,
+                                      num_units_in_layer=exp_config.num_units,
+                                      train_val_data_iterator=train_val_data_iterator,
+                                      log_dir=exp.config.LOG_PATH,
+                                      checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
+                                      result_dir=exp.config.PREDICTION_RESULTS_PATH,
+                                      reconstruction_weight=exp.config.reconstruction_weight,
+                                      reconstructed_image_dir=exp.config.reconstructed_images_path,
+                                      dao=dao,
+                                      write_predictions=write_predictions
+                                      )
         else:
             raise Exception(
                 f"model_type should be one of [{MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER}, {MODEL_TYPE_SUPERVISED_CLASSIFIER}]")
@@ -330,3 +333,122 @@ def train_and_get_features(exp: Experiment,
     train_val_data_iterator.reset_counter("train")
     train_val_data_iterator.reset_counter("val")
     exp.encode_latent_vector(train_val_data_iterator, num_epochs, "val")
+
+
+def test(exp: Experiment,
+         model: ClassifierModel,
+         data_iterator: DataIterator
+         ):
+    exp.model = model
+    show_all_variables()
+    predicted_df = exp.test(data_iterator)
+    return predicted_df
+
+
+def load_model_and_test(experiment_name,
+                        z_dim,
+                        run_id,
+                        num_cluster_config=None,
+                        model_type="classifier",
+                        num_units=[64, 128, 32],
+                        save_reconstructed_images=True,
+                        split_name="Split_1",
+                        data_iterator=None,
+                        num_val_samples=128,
+                        root_path="/Users/sunilv/concept_learning_exp",
+                        dataset_name="mnist",
+                        write_predictions=True,
+                        num_decoder_layer=4
+                        ):
+    dao = get_dao(dataset_name, split_name)
+    exp_config = ExperimentConfig(root_path=root_path,
+                                  num_decoder_layer=num_decoder_layer,
+                                  z_dim=z_dim,
+                                  num_units=num_units,
+                                  num_cluster_config=num_cluster_config,
+                                  confidence_decay_factor=5,
+                                  dataset_name=dataset_name,
+                                  split_name=split_name,
+                                  model_name="VAE",
+                                  batch_size=128,
+                                  name=experiment_name,
+                                  num_val_samples=num_val_samples,
+                                  save_reconstructed_images=save_reconstructed_images,
+                                  )
+    exp_config.check_and_create_directories(run_id, create=False)
+    exp = Experiment(1, experiment_name, exp_config, run_id)
+    print(exp.as_json())
+
+    if data_iterator is None:
+        split_filename = exp.config.DATASET_PATH + split_name + ".json"
+        print(split_filename)
+        if os.path.isfile(split_filename):
+            data_iterator = DataIterator.from_existing_split(exp.config.split_name,
+                                                             exp.config.DATASET_PATH,
+                                                             exp.config.BATCH_SIZE,
+                                                             dao=dao)
+
+        else:
+            raise Exception(f"File does not exists {split_filename}")
+
+    with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as sess:
+        if model_type == MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER:
+            model = ClassifierModel(exp_config=exp_config,
+                                    sess=sess,
+                                    epoch=-1,
+                                    batch_size=exp_config.BATCH_SIZE,
+                                    z_dim=exp_config.Z_DIM,
+                                    dataset_name=exp_config.dataset_name,
+                                    beta=exp_config.beta,
+                                    num_units_in_layer=exp_config.num_units,
+                                    train_val_data_iterator=data_iterator,
+                                    log_dir=exp.config.LOG_PATH,
+                                    checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
+                                    result_dir=exp.config.PREDICTION_RESULTS_PATH,
+                                    reconstruction_weight=exp.config.reconstruction_weight,
+                                    reconstructed_image_dir=exp.config.reconstructed_images_path,
+                                    dao=dao
+                                    )
+        elif model_type == MODEL_TYPE_SUPERVISED_CLASSIFIER:
+            model = SupervisedClassifierModel(exp_config=exp_config,
+                                              sess=sess,
+                                              epoch=-1,
+                                              batch_size=exp_config.BATCH_SIZE,
+                                              z_dim=exp_config.Z_DIM,
+                                              dataset_name=exp_config.dataset_name,
+                                              beta=exp_config.beta,
+                                              num_units_in_layer=exp_config.num_units,
+                                              train_val_data_iterator=data_iterator,
+                                              log_dir=exp.config.LOG_PATH,
+                                              checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
+                                              result_dir=exp.config.PREDICTION_RESULTS_PATH,
+                                              reconstruction_weight=exp.config.reconstruction_weight,
+                                              reconstructed_image_dir=exp.config.reconstructed_images_path,
+                                              dao=dao,
+                                              write_predictions=write_predictions
+                                              )
+        elif model_type == "cifar_arch_vaal":
+            model = Cifar10Classifier(exp_config=exp_config,
+                                      sess=sess,
+                                      epoch=-1,
+                                      batch_size=exp_config.BATCH_SIZE,
+                                      z_dim=exp_config.Z_DIM,
+                                      dataset_name=exp_config.dataset_name,
+                                      beta=exp_config.beta,
+                                      num_units_in_layer=exp_config.num_units,
+                                      train_val_data_iterator=data_iterator,
+                                      log_dir=exp.config.LOG_PATH,
+                                      checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
+                                      result_dir=exp.config.PREDICTION_RESULTS_PATH,
+                                      reconstruction_weight=exp.config.reconstruction_weight,
+                                      reconstructed_image_dir=exp.config.reconstructed_images_path,
+                                      dao=dao,
+                                      write_predictions=write_predictions
+                                      )
+        else:
+            raise Exception(
+                f"model_type should be one of [{MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER}, {MODEL_TYPE_SUPERVISED_CLASSIFIER},cifar_arch_vaal ]")
+        print("Starting Inference")
+        predicted_df = test(exp, model, data_iterator)
+        data_iterator.reset_counter("test")
+        return predicted_df

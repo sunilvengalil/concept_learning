@@ -1,7 +1,9 @@
 import numpy as np
 from clearn.dao.idao import IDao
+
+
 class CiFar10Dao(IDao):
-    def __init__(self,split_name):
+    def __init__(self, split_name):
         self.dataset_name = "cifar_10"
         self.split_name = split_name
 
@@ -21,7 +23,7 @@ class CiFar10Dao(IDao):
     def num_classes(self):
         return 10
 
-    def load_train(self,data_dir, shuffle):
+    def load_train(self, data_dir, shuffle):
         tr_x, tr_y = self.load_train_val_1(data_dir)
 
         if shuffle:
@@ -35,16 +37,19 @@ class CiFar10Dao(IDao):
 
         return tr_x / self.max_value, y_vec
 
+    @staticmethod
+    def unpickle(file):
+        import pickle
+        with open(file, 'rb') as fo:
+            data_dict = pickle.load(fo, encoding='bytes')
+        return data_dict
+
     def load_train_val_1(self, data_dir):
-        def unpickle(file):
-            import pickle
-            with open(file, 'rb') as fo:
-                dict = pickle.load(fo, encoding='bytes')
-            return dict
         data = None
+        label = None
         for batch_no in range(1, 6):
-            batch_name = "data_batch_" +str(batch_no)
-            data_dict = unpickle(data_dir +"/cifar-10-batches-py" + "/" +batch_name)
+            batch_name = "data_batch_" + str(batch_no)
+            data_dict = CiFar10Dao.unpickle(data_dir + "/cifar-10-batches-py" + "/" + batch_name)
             if data is None:
                 data = data_dict[b"data"]
                 label = data_dict[b"labels"]
@@ -52,8 +57,19 @@ class CiFar10Dao(IDao):
                 data = np.concatenate((data, data_dict[b"data"]), axis=0)
                 label = np.concatenate((label, data_dict[b"labels"]), axis=0)
 
-        tr_x = data.reshape(
-            (self.number_of_training_samples, self.image_shape[0], self.image_shape[1], self.image_shape[2]))
-        tr_y = label.reshape((self.number_of_training_samples))
-        tr_y = np.asarray(tr_y).astype(np.int)
+        tr_x, tr_y = self.reshape_x_and_y(data, label)
         return tr_x, tr_y
+
+    def reshape_x_and_y(self, data, label):
+        print(data.shape)
+        x = data.reshape(
+            (data.shape[0], self.image_shape[0], self.image_shape[1], self.image_shape[2]))
+        y = np.asarray(label).astype(np.int)
+        print(y.shape)
+        return x, y
+
+    def load_test_1(self, data_dir):
+        batch_name = "test_batch"
+        data_dict = CiFar10Dao.unpickle(data_dir + "/cifar-10-batches-py" + "/" + batch_name)
+        data, label = data_dict[b"data"], data_dict[b"labels"]
+        return self.reshape_x_and_y(data, label)

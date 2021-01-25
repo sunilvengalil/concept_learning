@@ -85,7 +85,7 @@ class ExperimentConfig:
 
         self.num_decoder_layer = num_decoder_layer
         self.Z_DIM = z_dim
-        self.num_units = num_units + [z_dim * 2]
+        self.num_units = num_units
         self.dataset_name = dataset_name
         self.split_name = split_name
         self.model_name = model_name
@@ -204,8 +204,8 @@ class ExperimentConfig:
             print(num_units, exp_config.num_decoder_layer)
             raise ValueError("No of units should be same as number of layers minus one")
 
-        #exp_config.num_units =  # set this
-        #num_units.append(z_dim * 2)
+        # exp_config.num_units =  # set this
+        # num_units.append(z_dim * 2)
         exp_config.num_units = num_units + [exp_config.Z_DIM * 2]
         exp_config.name = experiment_name
 

@@ -2,22 +2,22 @@ import os
 import gzip
 import numpy as np
 import cv2
-from sklearn.model_selection import train_test_split
 import pandas as pd
 import json
 
 from clearn.config import ExperimentConfig
+from clearn.dao.dao_factory import get_dao
 from clearn.dao.idao import IDao
 from clearn.dao.mnist import MnistDao
 
 
 def load_images(_config, dataset_type="train", manual_annotation_file=None):
-
+    dao = get_dao(dataset_type)
     train_val_data_iterator = TrainValDataIterator.from_existing_split(_config.split_name,
                                                                        _config.DATASET_PATH,
                                                                        _config.BATCH_SIZE,
                                                                        manual_annotation_file=manual_annotation_file,
-                                                                       dao=MnistDao
+                                                                       dao=dao
                                                                        )
     num_images = train_val_data_iterator.get_num_samples(dataset_type)
     feature_shape = list(train_val_data_iterator.get_feature_shape())
@@ -25,9 +25,8 @@ def load_images(_config, dataset_type="train", manual_annotation_file=None):
     feature_shape.insert(0, num_images)
     train_images = np.zeros(feature_shape)
     i = 0
-    # TODO remove hard coding
     train_labels = np.zeros([num_images, ])
-    manual_annotations = np.zeros([num_images, 11])
+    manual_annotations = np.zeros([num_images, dao.num_classes + 1])
 
     train_val_data_iterator.reset_counter(dataset_type)
     while train_val_data_iterator.has_next(dataset_type):
@@ -85,7 +84,7 @@ class TrainValDataIterator:
         if len(split_names) != 2:
             raise Exception("Split not implemented for for than two splits")
 
-        #TODO change this to numpy - remove the for loop performance improvement
+        # TODO change this to numpy - remove the for loop performance improvement
         _val_y = np.zeros((len(val_y), self.dao.num_classes), dtype=np.float)
         for i, label in enumerate(val_y):
             _val_y[i, val_y[i]] = 1.0
@@ -108,8 +107,7 @@ class TrainValDataIterator:
                             batch_size=None,
                             manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                             manual_annotation_file=None,
-                            init_config=None,
-                            dao:IDao=MnistDao()):
+                            dao: IDao = MnistDao()):
         """
         Creates and initialize an instance of TrainValDataIterator
         @param: split_name:Name of the train/valid/test split
@@ -120,11 +118,6 @@ class TrainValDataIterator:
         instance = cls(batch_size=batch_size, dao=dao)
         # TODO convert this to lazy loading/use generator
         instance.dataset_dict = dao.load_train_val_existing_split(split_name, split_location)
-
-        if init_config is not None and "val_y" in init_config:
-            instance.val_y = instance.dataset_dict[TrainValDataIterator.VALIDATION_Y_ONE_HOT]
-        instance.dataset_dict = instance.dataset_dict
-        # instance.dataset_dict = cls.load_train_val_existing_split(split_name, split_location)
 
         instance.train_x = instance.dataset_dict[TrainValDataIterator.TRAIN_X]
         instance.train_y = instance.dataset_dict[TrainValDataIterator.TRAIN_Y]
@@ -324,27 +317,183 @@ def load_train_val(data_dir, shuffle=False,
                               percentage_to_be_sampled,
                               split_location, split_names)
 
+def load_test(data_dir,
+              split_location=None,
+              split_names="test",
+              dao:IDao=MnistDao()
+              ):
+    return dao.load_test(data_dir,
+                         split_location,
+                         split_names
+                         )
+
+
+class DataIterator:
+    Y_RAW = "test_y"
+    Y_ONE_HOT = "test_y_one_hot"
+    X = "test_x"
+
+    def load_train_val_existing_split(self, split_name, split_location):
+        with open(split_location + split_name + ".json") as fp:
+            dataset_dict = json.load(fp)
+
+        split_names = dataset_dict["split_names"]
+        for split in split_names:
+            df = pd.read_csv(split_location + split + ".csv")
+            dataset_dict[split] = df
+        split_names = dataset_dict["split_names"]
+
+        # TODO fix this remove hard coding of split name and column names
+        train = dataset_dict["train"]
+        x_columns = list(train.columns)
+        x_columns.remove('label')
+        data = train[x_columns].values
+        train_x = data.reshape((data.shape[0],
+                                self.dao.image_shape[0],
+                                self.dao.image_shape[1],
+                                self.dao.image_shape[2]))
+        data = train[['label']].values
+        train_y = np.asarray(data.reshape(data.shape[0])).astype(np.int)
+
+        val = dataset_dict["validation"]
+        val_x = val[x_columns].values
+        val_x = val_x.reshape(train_x.shape)
+
+        val_y = val[['label']].values
+        val_y = np.asarray(val_y.reshape(val_y.shape[0])).astype(np.int)
+
+        if len(split_names) != 2:
+            raise Exception("Split not implemented for for than two splits")
+
+        # TODO change this to numpy - remove the for loop performance improvement
+        _val_y = np.zeros((len(val_y), self.dao.num_classes), dtype=np.float)
+        for i, label in enumerate(val_y):
+            _val_y[i, val_y[i]] = 1.0
+
+        _train_y = np.zeros((len(train_y), self.dao.num_classes), dtype=np.float)
+        for i, label in enumerate(train_y):
+            _train_y[i, train_y[i]] = 1.0
+
+        # TODO separate normalizing and loading logic
+        return {TrainValDataIterator.TRAIN_X: train_x / self.dao.max_value,
+                TrainValDataIterator.TRAIN_Y: _train_y,
+                TrainValDataIterator.VALIDATION_X: val_x / self.dao.max_value,
+                TrainValDataIterator.VALIDATION_Y_ONE_HOT: _val_y,
+                TrainValDataIterator.VALIDATION_Y_RAW: val_y}
+
+    @classmethod
+    def from_existing_split(cls,
+                            split_name,
+                            split_location,
+                            batch_size=None,
+                            dao: IDao = MnistDao()):
+        """
+        Creates and initialize an instance of TrainValDataIterator
+        @param: split_name:Name of the train/valid/test split
+        @param: split_location: path to folder where dataset split(train/val/test) is stored
+        @param: batch_size: number of samples in each batch
+        @param: manual_labels_config:
+        """
+        instance = cls(batch_size=batch_size, dao=dao)
+        # TODO convert this to lazy loading/use generator
+        instance.dataset_dict = dao.load_from_existing_split(split_name, split_location)
+        print([k for k in instance.dataset_dict.keys()])
+
+        instance.x = instance.dataset_dict[DataIterator.X]
+        instance.y = instance.dataset_dict[DataIterator.Y_ONE_HOT]
+        instance.unique_labels = np.unique(instance.dataset_dict[DataIterator.Y_RAW])
+        instance.idx = 0
+        return instance
+
+
+    def __init__(self, dataset_path=None,
+                 split_location=None,
+                 split_names=["test"],
+                 batch_size=None,
+                 dao:IDao = MnistDao()):
+        self.idx = 0
+        self.dataset_path = dataset_path
+        self.batch_size = batch_size
+        self.dao = dao
+        if dataset_path is not None :
+            self.dataset_dict = load_test(dataset_path,
+                                          split_location=split_location,
+                                          split_names=split_names,
+                                          dao=dao
+                                          )
+            self.x = self.dataset_dict[DataIterator.X]
+            self.y = self.dataset_dict[DataIterator.Y_ONE_HOT]
+            self.unique_labels = np.unique(self.dataset_dict[DataIterator.Y_RAW])
+            self.idx = 0
+
+    def has_next(self):
+        # TODO fix this to handle last batch
+        return self.idx * self.batch_size - self.x.shape[0] < self.batch_size
+
+    def get_feature_shape(self):
+        return self.x.shape[1:]
+
+    def get_next_batch(self, dataset_type):
+        if self.batch_size is None:
+            raise Exception("batch_size attribute is not set")
+        x = self.x[self.idx * self.batch_size:(self.idx + 1) * self.batch_size]
+        y = self.y[self.idx * self.batch_size:(self.idx + 1) * self.batch_size]
+        self.idx += 1
+        #TODO fix this later. return manual annnotation as third parameter
+        return x, y, y
+
+    def get_num_samples(self, dataset_type):
+        return len(self.x)
+
+    def reset_counter(self, dataset_type):
+        self.idx = 0
+
+    def get_unique_labels(self):
+        if self.unique_labels is None:
+            self.unique_labels = np.unique(self.y)
+        return self.unique_labels
+
+
 
 if __name__ == "__main__":
     # Test cases for load_images
-    from clearn.config import ExperimentConfig
-    N_3 = 16
-    N_2 = 128
-    Z_DIM = 20
-    run_id = 1
 
-    ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
-    exp_config = ExperimentConfig(ROOT_PATH, 4, Z_DIM, [64, N_2, N_3],
-                                  ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW)
-    BATCH_SIZE = exp_config.BATCH_SIZE
-    DATASET_NAME = exp_config.dataset_name
-    exp_config.check_and_create_directories(run_id, create=False)
+    dataset_path = "/Users/sunilv/concept_learning_exp/datasets/cifar_10/"
+    split_location = dataset_path +"test/"
+    cifar_10_dao = get_dao("cifar_10","test")
+    # DataIterator = DataIterator(dataset_path=dataset_path,
+    #                             split_location=split_location,
+    #                             split_names=["test"],
+    #                             batch_size=128,
+    #                             dao=cifar_10_dao)
 
-    iterator, val_images, val_labels, val_annotations = load_images(exp_config,
-                                                                    dataset_type="val")
-    print("Images shape={}".format(val_images.shape))
-    print("Labels shape={}".format(val_labels.shape))
-    print("Manual Annotations shape={}".format(val_annotations.shape))
+    data_iterator = DataIterator.from_existing_split("test",
+                                     split_location,
+                                     128,
+                                     dao=cifar_10_dao)
+    while data_iterator.has_next():
+        x, y = data_iterator.get_next_batch("test")
+        print(x.shape)
+        print(y.shape)
+
+    print("completed_iteration")
+    # N_3 = 16
+    # N_2 = 128
+    # Z_DIM = 20
+    # run_id = 1
+    #
+    # ROOT_PATH = "/Users/sunilkumar/concept_learning_old/image_classification_old/"
+    # exp_config = ExperimentConfig(ROOT_PATH, 4, Z_DIM, [64, N_2, N_3],
+    #                               ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW)
+    # BATCH_SIZE = exp_config.BATCH_SIZE
+    # DATASET_NAME = exp_config.dataset_name
+    # exp_config.check_and_create_directories(run_id, create=False)
+    #
+    # iterator, val_images, val_labels, val_annotations = load_images(exp_config,
+    #                                                                 dataset_type="val")
+    # print("Images shape={}".format(val_images.shape))
+    # print("Labels shape={}".format(val_labels.shape))
+    # print("Manual Annotations shape={}".format(val_annotations.shape))
 
     # Test cases for load_images
     # train_val_iterator, images, labels, manual_annotation = load_images(exp_config, "train",

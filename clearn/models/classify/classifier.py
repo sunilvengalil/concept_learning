@@ -35,7 +35,7 @@ class ClassifierModel(object):
                  reconstruction_weight=1,
                  reconstructed_image_dir=None,
                  run_evaluation_during_training=False,
-                 model_save_interval=900,
+                 model_save_interval=1,
                  dao:IDao=MnistDao()
                  ):
         self.dao = dao
@@ -236,11 +236,8 @@ class ClassifierModel(object):
         counter = self.counter
         start_batch_id = self.start_batch_id
         start_epoch = self.start_epoch
-        self.evaluate(start_epoch, start_batch_id, 0, val_data_iterator=train_val_data_iterator)
         num_batches_train = train_val_data_iterator.get_num_samples("train") // self.batch_size
-        print("num_batches_train", num_batches_train)
 
-        # loop for epoch
         for epoch in range(start_epoch, self.epoch):
             # get batch data
             for idx in range(start_batch_id, num_batches_train):
@@ -259,9 +256,6 @@ class ClassifierModel(object):
                                self.is_manual_annotated: manual_labels[:, 10],
                                self.standard_normal: batch_z})
 
-                # print("Epoch: [%2d] [%4d/%4d] time: %4.4f, loss: %.8f, nll: %.8f, kl: %.8f, supervised_loss: %.4f"
-                #       % (epoch, idx, num_batches_train, time.time() - start_time, loss, nll_loss, kl_loss,
-                #          supervised_loss))
                 counter += 1
                 if self.run_evaluation_during_training:
                     if np.mod(idx, self.exp_config.eval_interval) == self.exp_config.eval_interval - 1:

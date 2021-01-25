@@ -27,6 +27,9 @@ class MnistDao(IDao):
     def num_classes(self):
         return 10
 
+    def load_test_1(self, data_dir):
+        pass
+
     def load_train(self, data_dir, shuffle):
         tr_x, tr_y = self.load_train_val_1(data_dir)
         if shuffle:

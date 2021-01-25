@@ -12,6 +12,10 @@ class IDao(ABC):
     TRAIN_Y = "train_y"
     TRAIN_X = "train_x"
 
+    Y_RAW = "test_y"
+    Y_ONE_HOT = "test_y_one_hot"
+    X = "test_x"
+
     @property
     @abstractmethod
     def number_of_training_samples(self):
@@ -22,6 +26,7 @@ class IDao(ABC):
     def image_shape(self):
         pass
 
+    @property
     @abstractmethod
     def max_value(self):
         pass
@@ -37,6 +42,38 @@ class IDao(ABC):
     @abstractmethod
     def load_train_val_1(self, data_dir):
         pass
+
+    @abstractmethod
+    def load_test_1(self, data_dir):
+        pass
+
+    def load_test(self, data_dir,
+                  split_location=None,
+                  split_names=[] ):
+        x, y = self.load_test_1(data_dir)
+        dataset_dict = {}
+        dataset_dict["split_names"] = split_names
+
+        for split_num, split in enumerate(split_names):
+            print(split, x.shape)
+            feature_dim = self.image_shape[0] * self.image_shape[1] * self.image_shape[2]
+            df = pd.DataFrame(x.reshape(x.shape[0],
+                                              feature_dim)
+                                    )
+            df["label"] = y
+            df.to_csv(split_location + split + ".csv", index=False)
+        print(split_location)
+        split_name = self.get_split_name(split_location)
+        json_ = split_location + split_name + ".json"
+        with open(json_, "w") as fp:
+            print("Writing json to ", json_)
+            json.dump(dataset_dict, fp)
+
+        y_one_hot = np.eye(self.num_classes)[y]
+        # TODO separate normalizing and loading logic
+        return {"test_x": x / self.max_value,
+                "test_y": y,
+                "test_y_onehot": y_one_hot}
 
     def load_train_val(self, data_dir, shuffle=False,
                        stratified=None,
@@ -62,10 +99,7 @@ class IDao(ABC):
 
             # TODO change this to save only indices.
             # Alternately save the seed after verifying that same seed generates same split
-            if split_location[-1] == "/":
-                split_name = split_location[:-1].rsplit("/", 1)[1]
-            else:
-                split_name = split_location.rsplit("/", 1)[1]
+            split_name = self.get_split_name(split_location)
             dataset_dict = {}
             num_splits = len(split_names)
             dataset_dict["split_names"] = split_names
@@ -96,6 +130,12 @@ class IDao(ABC):
                 self.VALIDATION_Y_ONE_HOT: _val_y,
                 self.VALIDATION_Y_RAW: val_y}
 
+    def get_split_name(self, split_location):
+        if split_location[-1] == "/":
+            split_name = split_location[:-1].rsplit("/", 1)[1]
+        else:
+            split_name = split_location.rsplit("/", 1)[1]
+        return split_name
 
     def load_train_val_existing_split(self, split_name, split_location):
         with open(split_location + split_name + ".json") as fp:
@@ -142,3 +182,36 @@ class IDao(ABC):
                 self.VALIDATION_X: val_x / self.max_value,
                 self.VALIDATION_Y_ONE_HOT: _val_y,
                 self.VALIDATION_Y_RAW: val_y}
+
+
+
+    def load_from_existing_split(self, split_name, split_location):
+        with open(split_location + split_name + ".json") as fp:
+            dataset_dict = json.load(fp)
+
+        split_names = dataset_dict["split_names"]
+        for split in split_names:
+            df = pd.read_csv(split_location + split + ".csv")
+            dataset_dict[split] = df
+        split_names = dataset_dict["split_names"]
+        result_dict = dict()
+        for split in split_names:
+            data_df = dataset_dict[split]
+            columns = list(data_df.columns)
+            columns.remove('label')
+            data = data_df[columns].values
+
+            x = data.reshape((data.shape[0],
+                                    self.image_shape[0],
+                                    self.image_shape[1],
+                                    self.image_shape[2]))
+            data = data_df[['label']].values
+            y = np.asarray(data.reshape(data.shape[0])).astype(np.int)
+            y_one_hot = np.eye(self.num_classes)[y]
+
+            # TODO separate normalizing and loading logic
+            result_dict[split + "_x"] = x / self.max_value
+            result_dict[split + "_y"] = y
+            result_dict[split + "_y_one_hot"] = y_one_hot
+
+        return result_dict
