@@ -17,11 +17,10 @@ def plot_z_dim_vs_accuracy(root_path: str,
                            run_id: int,
                            split_name: str,
                            num_val_samples: int,
-                           manual_labels_config: str,
-                           reconstruction_weight: float,
                            activation_output_layer="SIGMOID",
                            dataset_name="mnist",
                            batch_size=64,
+                           num_decoder_layer=4
                            ):
     dao = get_dao(dataset_name, split_name)
     training_accuracies = []
@@ -29,13 +28,13 @@ def plot_z_dim_vs_accuracy(root_path: str,
     validation_accuracies = []
     for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
         exp_config = ExperimentConfig(root_path=root_path,
-                                      num_decoder_layer=4,
+                                      num_decoder_layer=num_decoder_layer,
                                       z_dim=z_dim,
                                       num_units=num_units,
                                       num_cluster_config=num_cluster_config,
                                       confidence_decay_factor=5,
                                       beta=5,
-                                      supervise_weight=150,
+                                      supervise_weight=1,
                                       dataset_name=dataset_name,
                                       split_name=split_name,
                                       model_name="VAE",
@@ -99,16 +98,17 @@ def plot_epoch_vs_accuracy(root_path: str,
                            split_name="Split_1",
                            batch_size=64,
                            num_val_samples=128,
+                           num_decoder_layer=4
                            ):
     dao = get_dao(dataset_name, split_name)
     exp_config = ExperimentConfig(root_path=root_path,
-                                  num_decoder_layer=4,
+                                  num_decoder_layer=num_decoder_layer,
                                   z_dim=z_dim,
                                   num_units=num_units,
                                   num_cluster_config=num_cluster_config,
                                   confidence_decay_factor=5,
                                   beta=5,
-                                  supervise_weight=150,
+                                  supervise_weight=1,
                                   dataset_name=dataset_name,
                                   split_name=split_name,
                                   model_name="VAE",

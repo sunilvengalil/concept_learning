@@ -32,7 +32,6 @@ class ClassifierModel(object):
                  train_val_data_iterator=None,
                  read_from_existing_checkpoint=True,
                  check_point_epochs=None,
-                 supervise_weight=0,
                  reconstruction_weight=1,
                  reconstructed_image_dir=None,
                  run_evaluation_during_training=False,
@@ -49,10 +48,8 @@ class ClassifierModel(object):
         self.result_dir = result_dir
         self.reconstructed_image_dir = reconstructed_image_dir
         self.beta = beta
-        self.supervise_weight = supervise_weight
         self.reconstruction_weight = reconstruction_weight
         self.exp_config = exp_config
-        self.learning_rate = exp_config.learning_rate
         self.beta_adam = 0.5
         # test
         self.sample_num = 64  # number of generated images to be saved
@@ -207,14 +204,14 @@ class ClassifierModel(object):
 
         self.loss = self.reconstruction_weight * self.neg_loglikelihood +\
                     self.beta * self.KL_divergence +\
-                    self.supervise_weight * self.supervised_loss
+                    self.exp_config.supervise_weight * self.supervised_loss
         # self.loss = -evidence_lower_bound + self.supervise_weight * self.supervised_loss
 
         """ Training """
         # optimizers
         t_vars = tf.trainable_variables()
         with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
-            self.optim = tf.train.AdamOptimizer(self.learning_rate, beta1=self.beta_adam) \
+            self.optim = tf.train.AdamOptimizer(self.exp_config.learning_rate, beta1=self.beta_adam) \
                 .minimize(self.loss, var_list=t_vars)
 
         """" Testing """

@@ -3,7 +3,7 @@ import argparse
 from clearn.experiments.experiment import initialize_model_train_and_get_features
 from clearn.config import ExperimentConfig
 
-create_split = True
+create_split = False
 z_dim = 32
 experiment_name = "cifar_arch_vaal_split_1"
 

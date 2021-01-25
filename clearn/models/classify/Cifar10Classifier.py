@@ -24,7 +24,6 @@ class Cifar10Classifier(SupervisedClassifierModel):
                  train_val_data_iterator=None,
                  read_from_existing_checkpoint=True,
                  check_point_epochs=None,
-                 supervise_weight=0,
                  reconstruction_weight=1,
                  reconstructed_image_dir=None,
                  dao: IDao = MnistDao(),
@@ -44,7 +43,6 @@ class Cifar10Classifier(SupervisedClassifierModel):
                          train_val_data_iterator,
                          read_from_existing_checkpoint,
                          check_point_epochs,
-                         supervise_weight,
                          reconstruction_weight,
                          reconstructed_image_dir,
                          dao,
@@ -199,13 +197,13 @@ class Cifar10Classifier(SupervisedClassifierModel):
                                                                          logits=self.y_pred,
                                                                          weights=self.is_manual_annotated
                                                                          )
-        self.loss = self.supervise_weight * self.supervised_loss
+        self.loss = self.exp_config.supervise_weight * self.supervised_loss
 
         """ Training """
         # optimizers
         t_vars = tf.compat.v1.trainable_variables()
         with tf.control_dependencies(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
-            self.optim = tf.compat.v1.train.AdamOptimizer(self.learning_rate, beta1=self.beta1) \
+            self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate, beta1=self.beta1) \
                 .minimize(self.loss, var_list=t_vars)
 
         """" Testing """

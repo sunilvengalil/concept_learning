@@ -32,7 +32,6 @@ class SupervisedClassifierModel(ClassifierModel):
                  train_val_data_iterator=None,
                  read_from_existing_checkpoint=True,
                  check_point_epochs=None,
-                 supervise_weight=0,
                  reconstruction_weight=1,
                  reconstructed_image_dir=None,
                  dao: IDao = MnistDao(),
@@ -50,7 +49,6 @@ class SupervisedClassifierModel(ClassifierModel):
         self.result_dir = result_dir
         self.reconstructed_image_dir = reconstructed_image_dir
         self.beta = beta
-        self.supervise_weight = supervise_weight
         self.reconstruction_weight = reconstruction_weight
         self.exp_config = exp_config
         self.input_height = dao.image_shape[0]
@@ -66,7 +64,6 @@ class SupervisedClassifierModel(ClassifierModel):
             self.n = num_units_in_layer
         self.strides = [2, 2]
         self.sample_num = 64  # number of generated images to be saved
-        self.learning_rate = 0.0002
         self.beta1 = 0.5
         self.eval_interval = 300
         self.num_images_per_row = 4  # should be a factor of sample_num
@@ -193,13 +190,13 @@ class SupervisedClassifierModel(ClassifierModel):
                                                                          logits=self.y_pred,
                                                                          weights=self.is_manual_annotated
                                                                          )
-        self.loss = self.supervise_weight * self.supervised_loss
+        self.loss = self.exp_config.supervise_weight * self.supervised_loss
 
         """ Training """
         # optimizers
         t_vars = tf.compat.v1.trainable_variables()
         with tf.control_dependencies(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
-            self.optim = tf.compat.v1.train.AdamOptimizer(self.learning_rate, beta1=self.beta1) \
+            self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate, beta1=self.beta1) \
                 .minimize(self.loss, var_list=t_vars)
 
         """" Testing """
