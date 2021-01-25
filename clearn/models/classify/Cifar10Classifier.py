@@ -69,8 +69,7 @@ class Cifar10Classifier(SupervisedClassifierModel):
         #     nn.ReLU(True),
         #     View((-1, 1024*2*2)),                                 # B, 1024*4*4
         # )
-        w = dict()
-        b = dict()
+
         with tf.compat.v1.variable_scope("encoder", reuse=reuse):
             if self.exp_config.activation_hidden_layer == "RELU":
                 conv1 = conv2d(x, self.n[0], 3, 3, self.strides[0], self.strides[0], name='en_conv1')
@@ -89,17 +88,16 @@ class Cifar10Classifier(SupervisedClassifierModel):
                 conv4 = tf.compat.v1.layers.batch_normalization(conv4)
                 self.conv4 = lrelu((conv4))
 
-                z = tf.reshape(self.conv4, [self.batch_size, -1])
+                reshaped = tf.reshape(self.conv4, [self.batch_size, -1])
+
                 # self.dense2_en = lrelu(linear(self.reshaped_en, self.n[2], scope='en_fc3'))
 
             else:
                 raise Exception(f"Activation {self.exp_config.activation} not implemented")
 
-            # z, w["en_fc4"], b["en_fc4"] = linear(self.dense2_en,
-            #                                      2 * self.z_dim,
-            #                                      scope='en_fc4',
-            #                                      with_w=True
-            #                                      )
+            z = linear(reshaped,
+                       self.z_dim,
+                       scope='en_fc1')
         return z
 
     # Bernoulli decoder
@@ -147,6 +145,7 @@ class Cifar10Classifier(SupervisedClassifierModel):
         with tf.variable_scope("decoder", reuse=reuse):
             if self.exp_config.activation_hidden_layer == "RELU":
                 # TODO remove hard coding
+
                 self.dense1_de = linear(z, 1024 * 4 * 4, scope='de_fc1')
                 #self.dense2_de = lrelu((linear(self.dense1_de, layer_2_size)))
                 self.reshaped_de = tf.reshape(self.dense2_de, layer_1_size)
@@ -193,7 +192,9 @@ class Cifar10Classifier(SupervisedClassifierModel):
         self.z = self._encoder(self.inputs, reuse=False)
 
         # supervised loss for labelled samples
+
         self.y_pred = linear(self.z, self.dao.num_classes)
+
         self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
                                                                          logits=self.y_pred,
                                                                          weights=self.is_manual_annotated
