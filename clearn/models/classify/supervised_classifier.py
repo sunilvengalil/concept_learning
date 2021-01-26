@@ -253,9 +253,9 @@ class SupervisedClassifierModel(ClassifierModel):
                                                                                  self.standard_normal: batch_z})
 
                 counter += 1
-            print(f"Accuracy: train: {self.metrics[SupervisedClassifierModel.data_type_train][SupervisedClassifierModel.accuracy]}" )
-            print(f"Accuracy: test: {self.metrics[SupervisedClassifierModel.data_type_test][SupervisedClassifierModel.accuracy]}" )
-            print(f"Accuracy: val: {self.metrics[SupervisedClassifierModel.data_type_val][SupervisedClassifierModel.accuracy]}" )
+            print(f"Accuracy: train: {self.metrics[SupervisedClassifierModel.dataset_type_train][SupervisedClassifierModel.accuracy]}" )
+            print(f"Accuracy: test: {self.metrics[SupervisedClassifierModel.dataset_type_val][SupervisedClassifierModel.accuracy]}" )
+            print(f"Accuracy: val: {self.metrics[SupervisedClassifierModel.dataset_type_test][SupervisedClassifierModel.accuracy]}" )
 
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model
