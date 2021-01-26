@@ -251,7 +251,7 @@ def initialize_model_train_and_get_features(experiment_name,
         else:
             raise Exception(f"File does not exists {split_filename}")
 
-    if test_data_iterator == None:
+    if test_data_iterator is None:
         test_data_iterator = DataIterator.from_existing_split("test",
                                                               split_location=exp_config.DATASET_ROOT_PATH + "/test/",
                                                               batch_size=exp_config.BATCH_SIZE,
@@ -293,7 +293,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                               reconstruction_weight=exp.config.reconstruction_weight,
                                               reconstructed_image_dir=exp.config.reconstructed_images_path,
                                               dao=dao,
-                                              write_predictions=write_predictions
+                                              write_predictions=write_predictions,
+                                              test_data_iterator=test_data_iterator
                                               )
         elif model_type == "cifar_arch_vaal":
             model = Cifar10Classifier(exp_config=exp_config,

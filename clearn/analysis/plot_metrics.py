@@ -73,17 +73,14 @@ def plot_z_dim_vs_accuracy(root_path: str,
 
 
 def read_accuracy_from_file(file_prefix):
-    accuracies = None
-    epochs = None
+    df = None
     for file in glob.glob(file_prefix):
-        df = pd.read_csv(file)
-        if accuracies is None:
-            accuracies = df["accuracy"].values
-            epochs = df["epoch"].values
+        temp_df = pd.read_csv(file)
+        if df is None:
+            df = temp_df
         else:
-            accuracies = np.hstack([accuracies, df["accuracy"].values])
-            epochs = np.hstack([epochs, df["epoch"].values])
-    return epochs, accuracies
+            pd.concat([df,temp_df], axis=1)
+    return df
 
 
 def plot_epoch_vs_accuracy(root_path: str,
@@ -92,7 +89,7 @@ def plot_epoch_vs_accuracy(root_path: str,
                            num_cluster_config: str,
                            z_dim: int,
                            run_id: int,
-                           data_set: List[str] = ["train", "val"],
+                           dataset_types: List[str] = ["train", "test"],
                            activation_output_layer="SIGMOID",
                            dataset_name="mnist",
                            split_name="Split_1",
@@ -124,14 +121,11 @@ def plot_epoch_vs_accuracy(root_path: str,
                                   )
     exp_config.check_and_create_directories(run_id)
 
-    if "train" in data_set:
-        file_prefix = "/train_accuracy_*.csv"
-        train_epochs, train_accuracies = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
-        plt.plot(train_epochs, train_accuracies, label="train_" + "z_dim_" + str(z_dim))
-    if "val" in data_set:
-        file_prefix = "/val_accuracy_*.csv"
-        val_epochs, val_accuracies = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
-        plt.plot(val_epochs, val_accuracies, label="val_" + "z_dim_" + str(z_dim))
+    file_prefix = "/accuracy_*.csv"
+    df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
+    for dataset_name in dataset_types:
+        plt.plot(df["epoch"], df[f"{dataset_name}_accuracy"], label=f"{dataset_name}_z_dim_{z_dim}")
+
 
     plt.xlabel("Epochs")
     plt.ylabel("Accuracy")
