@@ -19,6 +19,10 @@ from clearn.utils.utils import get_latent_vector_column
 
 class SupervisedClassifierModel(ClassifierModel):
     _model_name = "ClassifierModel"
+    data_type_test = "test"
+    data_type_train = "train"
+    data_type_val = "val"
+
 
     def __init__(self,
                  exp_config,
@@ -36,16 +40,19 @@ class SupervisedClassifierModel(ClassifierModel):
                  reconstruction_weight=1,
                  reconstructed_image_dir=None,
                  dao: IDao = MnistDao(),
-                 write_predictions=True
+                 write_predictions=True,
+                 run_evaluation_during_training=True,
+                 eval_interval_in_epochs=1,
+                 test_data_iterator=None
                  ):
+        self.test_data_iterator=test_data_iterator
         self.dao = dao
         self.write_predictions = write_predictions
-        self.run_evaluation_during_training=True
-        self.eval_interval_in_epochs = 1
+        self.run_evaluation_during_training=run_evaluation_during_training
+        self.eval_interval_in_epochs = eval_interval_in_epochs
         self.sess = sess
         self.dataset_name = dataset_name
         self.batch_size = batch_size
-        # self.num_val_samples = 128
         self.log_dir = log_dir
         self.checkpoint_dir = checkpoint_dir
         self.result_dir = result_dir
@@ -86,16 +93,14 @@ class SupervisedClassifierModel(ClassifierModel):
 
         self.metrics_to_compute = ["accuracy"]
         self.metrics = dict()
-        self.metrics["train"] = dict()
-        self.metrics["val"] = dict()
-        self.metrics["test"] = dict()
+        self.metrics[SupervisedClassifierModel.dataset_type_train] = dict()
+        self.metrics[SupervisedClassifierModel.dataset_type_test] = dict()
+        self.metrics[SupervisedClassifierModel.dataset_type_val] = dict()
 
         for metric in self.metrics_to_compute:
-            self.metrics["train"][metric] = []
-            self.metrics["val"][metric] = []
-            self.metrics["test"][metric] = []
-
-
+            self.metrics[SupervisedClassifierModel.dataset_type_train][metric] = []
+            self.metrics[SupervisedClassifierModel.dataset_type_val][metric] = []
+            self.metrics[SupervisedClassifierModel.dataset_type_test][metric] = []
 
     def _encoder(self, x, reuse=False):
         # Encoder models the probability  P(z/X)
@@ -246,7 +251,12 @@ class SupervisedClassifierModel(ClassifierModel):
                                                                                                            :,
                                                                                                            self.dao.num_classes],
                                                                                  self.standard_normal: batch_z})
+
                 counter += 1
+            print(f"Accuracy: train: {self.metrics[SupervisedClassifierModel.data_type_train][SupervisedClassifierModel.accuracy]}" )
+            print(f"Accuracy: test: {self.metrics[SupervisedClassifierModel.data_type_test][SupervisedClassifierModel.accuracy]}" )
+            print(f"Accuracy: val: {self.metrics[SupervisedClassifierModel.data_type_val][SupervisedClassifierModel.accuracy]}" )
+
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model
             print(f"Completed {epoch} epochs")
@@ -256,7 +266,12 @@ class SupervisedClassifierModel(ClassifierModel):
                     train_val_data_iterator.reset_counter("val")
                     self.evaluate(train_val_data_iterator, epoch, "train")
                     self.evaluate(train_val_data_iterator, epoch, "val")
-
+                    if self.test_data_iterator is not None:
+                        encoded_df = self.evaluate(self.test_data_iterator, dataset_type="test")
+                        encoded_df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH,
+                                                       f"test_accuracy_{start_epoch}.csv"),
+                                          index=False)
+                        self.test_data_iterator.reset_counter("test")
                     train_val_data_iterator.reset_counter("train")
                     train_val_data_iterator.reset_counter("val")
             start_batch_id = 0
@@ -280,7 +295,6 @@ class SupervisedClassifierModel(ClassifierModel):
     def evaluate(self, train_val_data_iterator, epoch=-1, dataset_type="train", return_latent_vector=False):
         if epoch == -1:
             epoch = self.start_epoch
-        encoded_df = None
         labels_predicted = None
         labels = None
         mu = None
@@ -304,7 +318,6 @@ class SupervisedClassifierModel(ClassifierModel):
                 labels_predicted = np.hstack([labels_predicted, labels_predicted_for_batch])
                 labels = np.hstack([labels, labels_for_batch])
             if return_latent_vector:
-                mean_col_names, sigma_col_names, z_col_names, l3_col_names = get_latent_vector_column(self.exp_config.z_dim)
                 if mu is None:
                     mu = mu_for_batch
                     sigma = sigma_for_batch
@@ -323,6 +336,7 @@ class SupervisedClassifierModel(ClassifierModel):
         encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
                                   columns=["label", "label_predicted"])
         if return_latent_vector:
+            mean_col_names, sigma_col_names, z_col_names, l3_col_names = get_latent_vector_column(self.exp_config.z_dim)
             encoded_df[mean_col_names] = mu
             encoded_df[sigma_col_names] = sigma
             encoded_df[z_col_names] = z
