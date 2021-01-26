@@ -90,12 +90,12 @@ class Cifar10Classifier(SupervisedClassifierModel):
 
                 reshaped = tf.reshape(self.conv4, [self.batch_size, -1])
 
-                # self.dense2_en = lrelu(linear(self.reshaped_en, self.n[2], scope='en_fc3'))
+                self.dense2_en = lrelu(linear(reshaped, self.n[4], scope='en_fc1'))
 
             else:
                 raise Exception(f"Activation {self.exp_config.activation} not implemented")
 
-            z = linear(reshaped,
+            z = linear(self.dense2_en,
                        self.z_dim,
                        scope='en_fc1')
         return z
@@ -146,8 +146,8 @@ class Cifar10Classifier(SupervisedClassifierModel):
             if self.exp_config.activation_hidden_layer == "RELU":
                 # TODO remove hard coding
 
-                self.dense1_de = linear(z, 1024 * 4 * 4, scope='de_fc1')
-                #self.dense2_de = lrelu((linear(self.dense1_de, layer_2_size)))
+                self.dense1_de = lrelu((linear(z, self.n[4], scope="de_fc1")))
+                self.dense2_de = linear(self.dense1_de, 1024 * 4 * 4, scope='de_fc2')
                 self.reshaped_de = tf.reshape(self.dense2_de, layer_1_size)
                 deconv1 = lrelu(deconv2d(self.reshaped_de,
                                                  layer_2_size,

@@ -54,7 +54,7 @@ if __name__ == '__main__':
     run_id = 2
     z_dim_range = [5, 17, 2]
     train_val_data_iterator = None
-    num_units = [128, 256, 512, 1024]
+    num_units = [128, 256, 512, 1024,512]
     train_val_data_iterator, exp_config, model = initialize_model_train_and_get_features(experiment_name,
                                                                                          z_dim,
                                                                                          run_id,
@@ -76,5 +76,5 @@ if __name__ == '__main__':
                                                                                          dataset_name="cifar_10",
                                                                                          activation_output_layer="LINEAR",
                                                                                          write_predictions=False,
-                                                                                         num_decoder_layer=5)
+                                                                                         num_decoder_layer=6)
     tf.reset_default_graph()
