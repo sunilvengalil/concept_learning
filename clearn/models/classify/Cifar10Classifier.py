@@ -97,7 +97,7 @@ class Cifar10Classifier(SupervisedClassifierModel):
 
             z = linear(self.dense2_en,
                        self.z_dim,
-                       scope='en_fc1')
+                       scope='en_fc2')
         return z
 
     # Bernoulli decoder
@@ -147,7 +147,7 @@ class Cifar10Classifier(SupervisedClassifierModel):
                 # TODO remove hard coding
 
                 self.dense1_de = lrelu((linear(z, self.n[4], scope="de_fc1")))
-                self.dense2_de = linear(self.dense1_de, 1024 * 4 * 4, scope='de_fc2')
+                self.dense2_de = lrelu(linear(self.dense1_de, 1024 * 4 * 4, scope='de_fc2'))
                 self.reshaped_de = tf.reshape(self.dense2_de, layer_1_size)
                 deconv1 = lrelu(deconv2d(self.reshaped_de,
                                                  layer_2_size,
