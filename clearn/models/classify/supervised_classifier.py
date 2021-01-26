@@ -43,9 +43,11 @@ class SupervisedClassifierModel(ClassifierModel):
                  write_predictions=True,
                  run_evaluation_during_training=True,
                  eval_interval_in_epochs=1,
-                 test_data_iterator=None
+                 test_data_iterator=None,
+                 model_save_interval=1,
                  ):
         self.test_data_iterator=test_data_iterator
+        self.model_save_interval = model_save_interval
         self.dao = dao
         self.write_predictions = write_predictions
         self.run_evaluation_during_training=run_evaluation_during_training
@@ -253,7 +255,8 @@ class SupervisedClassifierModel(ClassifierModel):
                                                                                  self.standard_normal: batch_z})
 
                 counter += 1
-            for metric in self.metrics:
+            print([k for k in self.metrics.keys()])
+            for metric in self.metrics_to_compute:
                 print(f"Accuracy: train: {self.metrics[SupervisedClassifierModel.dataset_type_train][metric]}" )
                 print(f"Accuracy: test: {self.metrics[SupervisedClassifierModel.dataset_type_val][metric]}" )
                 print(f"Accuracy: val: {self.metrics[SupervisedClassifierModel.dataset_type_test][metric]}" )
@@ -303,7 +306,6 @@ class SupervisedClassifierModel(ClassifierModel):
         z = None
         batch_no = 1
         while train_val_data_iterator.has_next(dataset_type):
-            print(f"Running evaluation batch {batch_no}")
             batch_images, batch_labels, _ = train_val_data_iterator.get_next_batch(dataset_type)
             # skip last batch
             if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
