@@ -255,12 +255,6 @@ class SupervisedClassifierModel(ClassifierModel):
                                                                                  self.standard_normal: batch_z})
 
                 counter += 1
-            print([k for k in self.metrics.keys()])
-            for metric in self.metrics_to_compute:
-                print(f"Accuracy: train: {self.metrics[SupervisedClassifierModel.dataset_type_train][metric]}" )
-                print(f"Accuracy: test: {self.metrics[SupervisedClassifierModel.dataset_type_val][metric]}" )
-                print(f"Accuracy: val: {self.metrics[SupervisedClassifierModel.dataset_type_test][metric]}" )
-
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model
             print(f"Completed {epoch} epochs")
@@ -271,27 +265,27 @@ class SupervisedClassifierModel(ClassifierModel):
                     self.evaluate(train_val_data_iterator, epoch, "train")
                     self.evaluate(train_val_data_iterator, epoch, "val")
                     if self.test_data_iterator is not None:
-                        encoded_df = self.evaluate(self.test_data_iterator, dataset_type="test")
-                        encoded_df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH,
-                                                       f"test_accuracy_{start_epoch}.csv"),
-                                          index=False)
+                        self.evaluate(self.test_data_iterator, epoch, dataset_type="test")
                         self.test_data_iterator.reset_counter("test")
                     train_val_data_iterator.reset_counter("train")
                     train_val_data_iterator.reset_counter("val")
+            for metric in self.metrics_to_compute:
+                print(f"Accuracy: train: {self.metrics[SupervisedClassifierModel.dataset_type_train][metric][-1]}" )
+                print(f"Accuracy: val: {self.metrics[SupervisedClassifierModel.dataset_type_val][metric][-1]}" )
+                print(f"Accuracy: test: {self.metrics[SupervisedClassifierModel.dataset_type_test][metric][-1]}" )
+
             start_batch_id = 0
             # save model
             if np.mod(epoch, self.model_save_interval) == 0:
                 self.save(self.checkpoint_dir, counter)
-            # save metrics
-            # TODO save all metrics. not just accuracy
-            if "accuracy" in self.metrics:
-                df = pd.DataFrame(self.metrics["train"]["accuracy"], columns=["epoch", "accuracy"])
-                df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"train_accuracy_{start_epoch}.csv"),
-                          index=False)
-
-                df = pd.DataFrame(self.metrics["val"]["accuracy"], columns=["epoch", "accuracy"])
-                df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"val_accuracy_{start_epoch}.csv"),
-                          index=False)
+        # save metrics
+        # TODO save all metrics. not just accuracy
+        if "accuracy" in self.metrics_to_compute:
+            df = pd.DataFrame(self.metrics["train"]["accuracy"], columns=["epoch", "train_accuracy"])
+            df["val_accuracy"] = np.asarray(self.metrics["val"]["accuracy"])[:,1]
+            df["test_accuracy"] = np.asarray(self.metrics["test"]["accuracy"])[:,1]
+            df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"accuracy_{start_epoch}.csv"),
+                      index=False)
 
         # save model for final step
         self.save(self.checkpoint_dir, counter)
