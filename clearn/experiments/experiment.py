@@ -192,7 +192,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             dataset_name="mnist",
                                             activation_output_layer="SIGMOID",
                                             write_predictions=True,
-                                            num_decoder_layer=4):
+                                            num_decoder_layer=4,
+                                            test_data_iterator=None):
     dao = get_dao(dataset_name, split_name)
     exp_config = ExperimentConfig(root_path=root_path,
                                   num_decoder_layer=num_decoder_layer,
@@ -250,6 +251,12 @@ def initialize_model_train_and_get_features(experiment_name,
         else:
             raise Exception(f"File does not exists {split_filename}")
 
+    if test_data_iterator == None:
+        test_data_iterator = DataIterator.from_existing_split("test",
+                                                              split_location=exp_config.DATASET_ROOT_PATH + "/test/",
+                                                              batch_size=exp_config.BATCH_SIZE,
+                                                              dao=dao
+                                                              )
     with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as sess:
         if model_type == MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER:
             model = ClassifierModel(exp_config=exp_config,

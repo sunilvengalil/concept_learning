@@ -19,9 +19,9 @@ from clearn.utils.utils import get_latent_vector_column
 
 class SupervisedClassifierModel(ClassifierModel):
     _model_name = "ClassifierModel"
-    data_type_test = "test"
-    data_type_train = "train"
-    data_type_val = "val"
+    dataset_type_test = "test"
+    dataset_type_train = "train"
+    dataset_type_val = "val"
 
 
     def __init__(self,

@@ -51,7 +51,7 @@ if __name__ == '__main__':
     args = parse_args()
     num_epochs = 50
     num_cluster_config = ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW
-    run_id = 1
+    run_id = 2
     z_dim_range = [5, 17, 2]
     train_val_data_iterator = None
     num_units = [128, 256, 512, 1024]
