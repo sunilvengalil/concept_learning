@@ -27,7 +27,8 @@ class Cifar10Classifier(SupervisedClassifierModel):
                  reconstruction_weight=1,
                  reconstructed_image_dir=None,
                  dao: IDao = MnistDao(),
-                 write_predictions=True
+                 write_predictions=True,
+                 test_data_iterator=None
                  ):
         super().__init__(exp_config,
                          sess,
@@ -46,7 +47,8 @@ class Cifar10Classifier(SupervisedClassifierModel):
                          reconstruction_weight,
                          reconstructed_image_dir,
                          dao,
-                         write_predictions)
+                         write_predictions,
+                         test_data_iterator=test_data_iterator)
         self.strides = [2, 2, 2, 2]
 
     def _encoder(self, x, reuse=False):

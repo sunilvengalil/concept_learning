@@ -312,7 +312,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                       reconstruction_weight=exp.config.reconstruction_weight,
                                       reconstructed_image_dir=exp.config.reconstructed_images_path,
                                       dao=dao,
-                                      write_predictions=write_predictions
+                                      write_predictions=write_predictions,
+                                      test_data_iterator=test_data_iterator
                                       )
         else:
             raise Exception(
