@@ -426,7 +426,7 @@ class DataIterator:
             self.unique_labels = np.unique(self.dataset_dict[DataIterator.Y_RAW])
             self.idx = 0
 
-    def has_next(self):
+    def has_next(self, dataset_type):
         # TODO fix this to handle last batch
         return self.idx * self.batch_size - self.x.shape[0] < self.batch_size
 

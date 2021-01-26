@@ -88,11 +88,13 @@ class SupervisedClassifierModel(ClassifierModel):
         self.metrics = dict()
         self.metrics["train"] = dict()
         self.metrics["val"] = dict()
+        self.metrics["test"] = dict()
 
         for metric in self.metrics_to_compute:
-            self.metrics[metric] = []
             self.metrics["train"][metric] = []
             self.metrics["val"][metric] = []
+            self.metrics["test"][metric] = []
+
 
 
     def _encoder(self, x, reuse=False):
@@ -316,16 +318,15 @@ class SupervisedClassifierModel(ClassifierModel):
         if "accuracy" in self.metrics_to_compute:
             accuracy = accuracy_score(labels, labels_predicted)
             self.metrics[dataset_type]["accuracy"].append([epoch, accuracy])
-            self.metrics["accuracy"].append([epoch, accuracy])
-        if self.write_predictions:
-            print("Saving evaluation results to ", self.exp_config.ANALYSIS_PATH)
-            encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
-                                      columns=["label", "label_predicted"])
-            if return_latent_vector:
-                encoded_df[mean_col_names] = mu
-                encoded_df[sigma_col_names] = sigma
-                encoded_df[z_col_names] = z
 
+        print("Saving evaluation results to ", self.exp_config.ANALYSIS_PATH)
+        encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
+                                  columns=["label", "label_predicted"])
+        if return_latent_vector:
+            encoded_df[mean_col_names] = mu
+            encoded_df[sigma_col_names] = sigma
+            encoded_df[z_col_names] = z
+        if self.write_predictions:
             output_csv_file = get_encoded_csv_file(self.exp_config, epoch, dataset_type)
             encoded_df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, output_csv_file), index=False)
         return encoded_df

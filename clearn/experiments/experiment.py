@@ -451,4 +451,4 @@ def load_model_and_test(experiment_name,
         print("Starting Inference")
         predicted_df = test(exp, model, data_iterator)
         data_iterator.reset_counter("test")
-        return predicted_df
+        return exp_config, predicted_df

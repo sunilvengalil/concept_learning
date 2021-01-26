@@ -2,6 +2,7 @@ import tensorflow as tf
 import argparse
 from clearn.experiments.experiment import load_model_and_test
 from clearn.config import ExperimentConfig
+import os
 
 create_split = False
 z_dim = 32
@@ -54,18 +55,19 @@ if __name__ == '__main__':
     z_dim_range = [5, 17, 2]
     data_iterator = None
     num_units = [128, 256, 512, 1024]
-    train_val_data_iterator, exp_config, model = load_model_and_test(experiment_name,
-                                                                     z_dim,
-                                                                     run_id,
-                                                                     num_cluster_config,
-                                                                     model_type="cifar_arch_vaal",
-                                                                     num_units=num_units,
-                                                                     save_reconstructed_images=False,
-                                                                     split_name="test",
-                                                                     data_iterator=data_iterator,
-                                                                     num_val_samples=5000,
-                                                                     dataset_name="cifar_10",
-                                                                     write_predictions=False,
-                                                                     num_decoder_layer=5
-                                                                     )
+    exp_config, predicted_df = load_model_and_test(experiment_name,
+                                                   z_dim,
+                                                   run_id,
+                                                   num_cluster_config,
+                                                   model_type="cifar_arch_vaal",
+                                                   num_units=num_units,
+                                                   save_reconstructed_images=False,
+                                                   split_name="test",
+                                                   data_iterator=data_iterator,
+                                                   num_val_samples=5000,
+                                                   dataset_name="cifar_10",
+                                                   write_predictions=True,
+                                                   num_decoder_layer=5
+                                                   )
+    predicted_df.to_csv(os.path.join(exp_config.ANALYSIS_PATH, "test_predictions.csv"), index=False)
     tf.reset_default_graph()
