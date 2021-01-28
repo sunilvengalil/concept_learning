@@ -70,10 +70,9 @@ class IDao(ABC):
             json.dump(dataset_dict, fp)
 
         y_one_hot = np.eye(self.num_classes)[y]
-        # TODO separate normalizing and loading logic
         return {"test_x": x / self.max_value,
                 "test_y": y,
-                "test_y_onehot": y_one_hot}
+                "test_y_one_hot": y_one_hot}
 
     def load_train_val(self, data_dir, shuffle=False,
                        stratified=None,
