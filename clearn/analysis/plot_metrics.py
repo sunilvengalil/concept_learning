@@ -131,3 +131,4 @@ def plot_epoch_vs_accuracy(root_path: str,
     plt.ylabel("Accuracy")
     plt.legend(loc='lower right', shadow=True, fontsize='x-large')
     plt.title(f"Number of units {num_units}")
+    plt.grid()

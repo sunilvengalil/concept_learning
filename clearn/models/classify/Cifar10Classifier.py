@@ -74,28 +74,28 @@ class Cifar10Classifier(SupervisedClassifierModel):
             if self.exp_config.activation_hidden_layer == "RELU":
                 conv1 = conv2d(x, self.n[0], 3, 3, self.strides[0], self.strides[0], name='en_conv1')
                 conv1 = tf.compat.v1.layers.batch_normalization(conv1)
-                self.conv1 = lrelu(conv1,0.01)
+                self.conv1 = lrelu(conv1,0.0)
 
                 conv2 = conv2d(self.conv1, self.n[1], 3, 3, self.strides[0], self.strides[0], name='en_conv2')
                 conv2 = tf.compat.v1.layers.batch_normalization(conv2)
-                self.conv2 = lrelu(conv2,0.01)
+                self.conv2 = lrelu(conv2,0.0)
 
                 conv3 = conv2d(self.conv2, self.n[2], 3, 3, self.strides[0], self.strides[0], name='en_conv3')
                 conv3 = tf.compat.v1.layers.batch_normalization(conv3)
-                self.conv3 = lrelu(conv3, 0.01)
+                self.conv3 = lrelu(conv3, 0.0)
 
                 conv4 = conv2d(self.conv3, self.n[3], 3, 3, self.strides[0], self.strides[0], name='en_conv4')
                 conv4 = tf.compat.v1.layers.batch_normalization(conv4)
                 self.conv4 = lrelu(conv4,0.01)
 
-                reshaped = tf.reshape(self.conv4, [self.batch_size, -1])
+                self.reshaped = tf.reshape(self.conv3, [self.batch_size, -1])
 
-                self.dense2_en = lrelu(linear(reshaped, self.n[4], scope='en_fc1'), 0.01)
+                #self.dense2_en = lrelu(linear(reshaped, self.n[4], scope='en_fc1'), 0.0)
 
             else:
                 raise Exception(f"Activation {self.exp_config.activation} not implemented")
 
-            z = linear(self.dense2_en,
+            z = linear(self.reshaped,
                        self.z_dim,
                        scope='en_fc2')
         return z
@@ -196,8 +196,7 @@ class Cifar10Classifier(SupervisedClassifierModel):
         self.y_pred = linear(self.z, self.dao.num_classes)
 
         self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
-                                                                         logits=self.y_pred,
-                                                                         weights=self.is_manual_annotated
+                                                                         logits=self.y_pred
                                                                          )
         self.loss = self.exp_config.supervise_weight * self.supervised_loss
 
@@ -205,7 +204,7 @@ class Cifar10Classifier(SupervisedClassifierModel):
         # optimizers
         t_vars = tf.compat.v1.trainable_variables()
         with tf.control_dependencies(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
-            self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate, beta1=self.beta1) \
+            self.optim = tf.compat.v1.train.AdamOptimizer(0.001) \
                 .minimize(self.loss, var_list=t_vars)
 
         """" Testing """

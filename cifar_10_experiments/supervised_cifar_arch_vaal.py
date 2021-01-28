@@ -51,10 +51,10 @@ if __name__ == '__main__':
     args = parse_args()
     num_epochs = 50
     num_cluster_config = ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW
-    run_id = 2
+    run_id = 5
     z_dim_range = [5, 17, 2]
     train_val_data_iterator = None
-    num_units = [32, 64, 64, 64, 64]
+    num_units = [32, 64, 64, 64]
     train_val_data_iterator, exp_config, model = initialize_model_train_and_get_features(experiment_name,
                                                                                          z_dim,
                                                                                          run_id,
@@ -76,5 +76,5 @@ if __name__ == '__main__':
                                                                                          dataset_name="cifar_10",
                                                                                          activation_output_layer="LINEAR",
                                                                                          write_predictions=False,
-                                                                                         num_decoder_layer=6)
+                                                                                         num_decoder_layer=5)
     tf.reset_default_graph()
