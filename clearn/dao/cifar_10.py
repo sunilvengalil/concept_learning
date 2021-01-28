@@ -1,7 +1,7 @@
 import numpy as np
 from clearn.dao.idao import IDao
 from tensorflow.keras import datasets
-
+import ssl
 class CiFar10Dao(IDao):
     def __init__(self, split_name):
         self.dataset_name = "cifar_10"
@@ -33,7 +33,7 @@ class CiFar10Dao(IDao):
             np.random.seed(seed)
             np.random.shuffle(tr_y)
 
-        y_vec = np.eye(self.num_classes)[tr_y]
+        y_vec = np.eye(self.num_classes)[np.squeeze(tr_y)]
 
         return tr_x / self.max_value, y_vec
 
@@ -45,6 +45,8 @@ class CiFar10Dao(IDao):
         return data_dict
 
     def load_train_val_1(self, data_dir):
+        ssl._create_default_https_context = ssl._create_unverified_context
+
         (tr_x, tr_y), (test_images, test_labels) = datasets.cifar10.load_data()
         # data = None
         # label = None
@@ -59,7 +61,7 @@ class CiFar10Dao(IDao):
         #         label = np.concatenate((label, data_dict[b"labels"]), axis=0)
         #
         # tr_x, tr_y = self.reshape_x_and_y(data, label)
-        return tr_x, tr_y
+        return tr_x, np.squeeze(tr_y)
 
     def reshape_x_and_y(self, data, label):
         print(data.shape)
@@ -70,10 +72,11 @@ class CiFar10Dao(IDao):
         return x, y
 
     def load_test_1(self, data_dir):
+        ssl._create_default_https_context = ssl._create_unverified_context
         (tr_x, tr_y), (test_images, test_labels) = datasets.cifar10.load_data()
 
         # batch_name = "test_batch"
         # data_dict = CiFar10Dao.unpickle(data_dir + "/cifar-10-batches-py" + "/" + batch_name)
         # data, label = data_dict[b"data"], data_dict[b"labels"]
         #return self.reshape_x_and_y(data, label)
-        return test_images, test_labels
+        return test_images, np.squeeze(test_labels)
