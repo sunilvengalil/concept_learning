@@ -3,7 +3,7 @@ import argparse
 from clearn.experiments.experiment import initialize_model_train_and_get_features
 from clearn.config import ExperimentConfig
 
-create_split = False
+create_split = True
 z_dim = 32
 experiment_name = "cifar_arch_vaal_split_1"
 
@@ -54,7 +54,7 @@ if __name__ == '__main__':
     run_id = 2
     z_dim_range = [5, 17, 2]
     train_val_data_iterator = None
-    num_units = [128, 256, 512, 1024,512]
+    num_units = [32, 64, 64, 64, 64]
     train_val_data_iterator, exp_config, model = initialize_model_train_and_get_features(experiment_name,
                                                                                          z_dim,
                                                                                          run_id,

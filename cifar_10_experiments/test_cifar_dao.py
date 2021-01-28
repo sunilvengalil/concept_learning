@@ -5,34 +5,34 @@ from clearn.utils.data_loader import TrainValDataIterator, DataIterator
 
 
 def get_data_iterators(exp_config, dao):
-    train_val_data_iterator = TrainValDataIterator(exp_config.DATASET_ROOT_PATH,
-                                                   shuffle=True,
-                                                   stratified=True,
-                                                   validation_samples=exp_config.num_val_samples,
-                                                   split_names=["train", "validation"],
-                                                   split_location=exp_config.DATASET_PATH,
-                                                   batch_size=exp_config.BATCH_SIZE,
-                                                   manual_labels_config=exp_config.manual_labels_config,
-                                                   manual_annotation_file=None,
-                                                   dao=dao)
-    test_data_iterator = DataIterator(exp_config.DATASET_ROOT_PATH,
-                                      exp_config.DATASET_PATH,
-                                      ["test"],
-                                      exp_config.BATCH_SIZE,
-                                      dao=dao)
+    # train_val_data_iterator = TrainValDataIterator(exp_config.DATASET_ROOT_PATH,
+    #                                                shuffle=True,
+    #                                                stratified=True,
+    #                                                validation_samples=exp_config.num_val_samples,
+    #                                                split_names=["train", "validation"],
+    #                                                split_location=exp_config.DATASET_PATH,
+    #                                                batch_size=exp_config.BATCH_SIZE,
+    #                                                manual_labels_config=exp_config.manual_labels_config,
+    #                                                manual_annotation_file=None,
+    #                                                dao=dao)
+    # test_data_iterator = DataIterator(exp_config.DATASET_ROOT_PATH,
+    #                                   exp_config.DATASET_PATH,
+    #                                   ["test"],
+    #                                   exp_config.BATCH_SIZE,
+    #                                   dao=dao)
 
-    # train_val_data_iterator = TrainValDataIterator.from_existing_split(exp_config.split_name,
-    #                                                                     exp_config.DATASET_PATH,
-    #                                                                     exp_config.BATCH_SIZE,
-    #                                                                     manual_labels_config=exp_config.manual_labels_config,
-    #                                                                     manual_annotation_file=manual_annotation_file,
-    #                                                                     dao=dao)
+    train_val_data_iterator = TrainValDataIterator.from_existing_split(exp_config.split_name,
+                                                                        exp_config.DATASET_PATH,
+                                                                        exp_config.BATCH_SIZE,
+                                                                        manual_labels_config=exp_config.manual_labels_config,
+                                                                        manual_annotation_file=manual_annotation_file,
+                                                                        dao=dao)
 
-    # test_data_iterator = DataIterator.from_existing_split("test",
-    #                                                       split_location=exp_config.DATASET_ROOT_PATH + "/test/",
-    #                                                       batch_size=exp_config.BATCH_SIZE,
-    #                                                       dao=dao
-    #                                                       )
+    test_data_iterator = DataIterator.from_existing_split("test",
+                                                          split_location=exp_config.DATASET_ROOT_PATH + "/test/",
+                                                          batch_size=exp_config.BATCH_SIZE,
+                                                          dao=dao
+                                                          )
 
     return train_val_data_iterator, test_data_iterator
 

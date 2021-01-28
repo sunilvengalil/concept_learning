@@ -252,11 +252,19 @@ def initialize_model_train_and_get_features(experiment_name,
             raise Exception(f"File does not exists {split_filename}")
 
     if test_data_iterator is None:
-        test_data_iterator = DataIterator.from_existing_split("test",
-                                                              split_location=exp_config.DATASET_ROOT_PATH + "/test/",
-                                                              batch_size=exp_config.BATCH_SIZE,
-                                                              dao=dao
-                                                              )
+        test_data_location = exp_config.DATASET_ROOT_PATH + "/test/"
+        if not os.path.isfile(test_data_location+"test.json"):
+            test_data_iterator = DataIterator(exp_config.DATASET_ROOT_PATH,
+                         split_location=test_data_location,
+                         split_names=["test"],
+                         batch_size=exp_config.BATCH_SIZE,
+                         dao=dao)
+        else:
+            test_data_iterator = DataIterator.from_existing_split("test",
+                                                                  split_location=test_data_location,
+                                                                  batch_size=exp_config.BATCH_SIZE,
+                                                                  dao=dao
+                                                                  )
     with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as sess:
         if model_type == MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER:
             model = ClassifierModel(exp_config=exp_config,
