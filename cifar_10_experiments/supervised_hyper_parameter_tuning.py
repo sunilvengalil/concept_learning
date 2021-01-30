@@ -1,6 +1,6 @@
 import tensorflow as tf
 import argparse
-from clearn.experiments.experiment import initialize_model_train_and_get_features
+from clearn.experiments.experiment import initialize_model_train_and_get_features,VAAL_ARCHITECTURE_FOR_CIFAR
 from clearn.config import ExperimentConfig
 
 create_split = True
@@ -56,17 +56,17 @@ if __name__ == '__main__':
     train_val_data_iterator = None
     for num_units in [[128, 64, 32]]:
         for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
-            train_val_data_iterator, exp_config, model = initialize_model_train_and_get_features(experiment_name,
-                                                                                                 z_dim,
-                                                                                                 run_id,
-                                                                                                 create_split,
-                                                                                                 num_epochs,
-                                                                                                 num_cluster_config,
+            train_val_data_iterator, exp_config, model = initialize_model_train_and_get_features(experiment_name=experiment_name,
+                                                                                                 z_dim=z_dim,
+                                                                                                 run_id=run_id,
+                                                                                                 create_split=create_split,
+                                                                                                 num_epochs=num_epochs,
+                                                                                                 num_cluster_config=num_cluster_config,
                                                                                                  manual_labels_config=ExperimentConfig.USE_ACTUAL,
                                                                                                  supervise_weight=1,
                                                                                                  beta=0,
                                                                                                  reconstruction_weight=0,
-                                                                                                 model_type="cifar_arch_2",
+                                                                                                 model_type=VAAL_ARCHITECTURE_FOR_CIFAR,
                                                                                                  num_units=num_units,
                                                                                                  save_reconstructed_images=False,
                                                                                                  split_name="split_1",

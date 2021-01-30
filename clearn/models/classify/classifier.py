@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
-import os
 import numpy as np
 
 import pandas as pd
@@ -37,15 +36,13 @@ class ClassifierModel(Model):
         # test
         self.sample_num = 64  # number of generated images to be saved
         self.num_images_per_row = 4  # should be a factor of sample_num
-        if exp_config.dataset_name == 'mnist' or exp_config.dataset_name == 'fashion-mnist':
-            # parameters
-            self.label_dim = 10  # one hot encoding for 10 classes
-            if num_units_in_layer is None or len(num_units_in_layer) == 0:
-                self.n = [64, 128, 32, exp_config.Z_DIM * 2]
-            else:
-                self.n = num_units_in_layer
+        self.label_dim = self.dao.num_classes  # one hot encoding for 10 classes
+
+        if num_units_in_layer is None or len(num_units_in_layer) == 0:
+            self.n = [64, 128, 32, exp_config.Z_DIM * 2]
         else:
-            raise NotImplementedError(f"Dataset {exp_config.dataset_name} not implemented")
+            self.n = num_units_in_layer
+
         self.mu = tf.placeholder(tf.float32, [self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM], name='mu')
         self.sigma = tf.placeholder(tf.float32, [self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM], name='sigma')
         self.images = None

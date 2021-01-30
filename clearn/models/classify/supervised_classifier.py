@@ -28,13 +28,11 @@ class SupervisedClassifierModel(ClassifierModel):
                  sess,
                  epoch,
                  num_units_in_layer=None,
-                 train_val_data_iterator=None,
-                 read_from_existing_checkpoint=True,
                  check_point_epochs=None,
                  dao: IDao = MnistDao(),
                  test_data_iterator=None,
                  ):
-        super().__init__(exp_config, sess, epoch)
+        super().__init__(exp_config, sess, epoch, check_point_epochs=check_point_epochs, dao=dao)
         self.test_data_iterator=test_data_iterator
         self.dao = dao
         self.label_dim = dao.num_classes

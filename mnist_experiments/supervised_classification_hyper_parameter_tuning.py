@@ -52,7 +52,7 @@ if __name__ == '__main__':
     num_epochs = 40
     num_cluster_config = ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW
     run_id = 1
-    z_dim_range = [5, 17, 2]
+    z_dim_range = [5, 30, 2]
     train_val_data_iterator = None
     for num_units in [[64, 128, 32],
                       [32, 64, 16],

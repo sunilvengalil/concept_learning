@@ -13,22 +13,16 @@ class Cifar10Classifier(SupervisedClassifierModel):
                  exp_config,
                  sess,
                  epoch,
-                 batch_size,
-                 z_dim,
-                 dataset_name,
-                 beta=5,
                  num_units_in_layer=None,
-                 log_dir=None,
+                 dao:IDao=MnistDao(),
+                 test_data_iterator=None
                  ):
         super().__init__(exp_config,
                          sess,
                          epoch,
-                         batch_size,
-                         z_dim,
-                         dataset_name,
-                         beta,
                          num_units_in_layer,
-                         log_dir,
+                         dao=dao,
+                         test_data_iterator=test_data_iterator
                          )
         self.strides = [2, 2, 2, 2]
 
@@ -74,10 +68,10 @@ class Cifar10Classifier(SupervisedClassifierModel):
                 # self.dense2_en = lrelu(linear(reshaped, self.n[4], scope='en_fc1'), 0.0)
 
             else:
-                raise Exception(f"Activation {self.exp_config.activation} not implemented")
+                raise Exception(f"Activation {self.exp_config.activation_hidden_layer} not implemented")
 
             z = linear(self.reshaped,
-                       self.z_dim,
+                       self.exp_config.Z_DIM,
                        scope='en_fc2')
         return z
 
@@ -154,6 +148,7 @@ class Cifar10Classifier(SupervisedClassifierModel):
     def _build_model(self):
         image_dims = self.dao.image_shape
         bs = self.exp_config.BATCH_SIZE
+        self.strides = [2, 2]
 
         """ Graph Input """
         # images
@@ -161,11 +156,11 @@ class Cifar10Classifier(SupervisedClassifierModel):
 
         # random vectors with  multi-variate gaussian distribution
         # 0 mean and covariance matrix as Identity
-        self.standard_normal = tf.compat.v1.placeholder(tf.float32, [bs, self.z_dim], name='z')
+        self.standard_normal = tf.compat.v1.placeholder(tf.float32, [bs, self.exp_config.Z_DIM], name='z')
 
         # Whether the sample was manually annotated.
         self.is_manual_annotated = tf.compat.v1.placeholder(tf.float32, [bs], name="is_manual_annotated")
-        self.labels = tf.compat.v1.placeholder(tf.float32, [bs, self.label_dim], name='manual_label')
+        self.labels = tf.compat.v1.placeholder(tf.float32, [bs, self.dao.num_classes], name='manual_label')
 
         """ Loss Function """
         # encoding

@@ -13,7 +13,7 @@ class CiFar10Dao(IDao):
 
     @property
     def image_shape(self):
-        return(32, 32, 3)
+        return[32, 32, 3]
 
     @property
     def max_value(self):

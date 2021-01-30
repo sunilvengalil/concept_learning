@@ -268,26 +268,15 @@ def initialize_model_train_and_get_features(experiment_name,
                                               sess=sess,
                                               epoch=num_epochs,
                                               num_units_in_layer=exp_config.num_units,
-                                              train_val_data_iterator=train_val_data_iterator,
                                               dao=dao,
                                               test_data_iterator=test_data_iterator
                                               )
-        elif model_type == "cifar_arch_vaal":
+        elif model_type == VAAL_ARCHITECTURE_FOR_CIFAR:
             model = Cifar10Classifier(exp_config=exp_config,
                                       sess=sess,
                                       epoch=num_epochs,
-                                      batch_size=exp_config.BATCH_SIZE,
-                                      z_dim=exp_config.Z_DIM,
-                                      dataset_name=exp_config.dataset_name,
                                       num_units_in_layer=exp_config.num_units,
-                                      train_val_data_iterator=train_val_data_iterator,
-                                      log_dir=exp.config.LOG_PATH,
-                                      checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
-                                      result_dir=exp.config.PREDICTION_RESULTS_PATH,
-                                      reconstruction_weight=exp.config.reconstruction_weight,
-                                      reconstructed_image_dir=exp.config.reconstructed_images_path,
                                       dao=dao,
-                                      write_predictions=write_predictions,
                                       test_data_iterator=test_data_iterator
                                       )
         else:
@@ -391,29 +380,18 @@ def load_model_and_test(experiment_name,
                                               sess=sess,
                                               epoch=-1,
                                               num_units_in_layer=exp_config.num_units,
-                                              train_val_data_iterator=data_iterator,
                                               dao=dao,
                                               )
         elif model_type == VAAL_ARCHITECTURE_FOR_CIFAR:
             model = Cifar10Classifier(exp_config=exp_config,
                                       sess=sess,
                                       epoch=-1,
-                                      batch_size=exp_config.BATCH_SIZE,
-                                      z_dim=exp_config.Z_DIM,
-                                      dataset_name=exp_config.dataset_name,
                                       num_units_in_layer=exp_config.num_units,
-                                      train_val_data_iterator=data_iterator,
-                                      log_dir=exp.config.LOG_PATH,
-                                      checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
-                                      result_dir=exp.config.PREDICTION_RESULTS_PATH,
-                                      reconstruction_weight=exp.config.reconstruction_weight,
-                                      reconstructed_image_dir=exp.config.reconstructed_images_path,
-                                      dao=dao,
-                                      write_predictions=write_predictions
+                                      dao=dao
                                       )
         else:
             raise Exception(
-                f"model_type should be one of [{MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER}, {MODEL_TYPE_SUPERVISED_CLASSIFIER},cifar_arch_vaal ]")
+                f"model_type should be one of [{MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER}, {MODEL_TYPE_SUPERVISED_CLASSIFIER},{VAAL_ARCHITECTURE_FOR_CIFAR} ]")
         print("Starting Inference")
         predicted_df = test(exp, model, data_iterator)
         data_iterator.reset_counter("test")
