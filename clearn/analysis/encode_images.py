@@ -8,7 +8,8 @@ from clearn.config.common_path import get_encoded_csv_file
 
 
 def encode_images(model, train_val_data_iterator, exp_config, epoch, dataset_type="train", save_results=True):
-    encoded_df = model.evaluate(train_val_data_iterator,epoch,dataset_type)
+    encoded_df = model.evaluate(train_val_data_iterator,
+                                dataset_type)
 
     # while train_val_data_iterator.has_next(dataset_type):
     #     batch_images, batch_labels, _ = train_val_data_iterator.get_next_batch(dataset_type)

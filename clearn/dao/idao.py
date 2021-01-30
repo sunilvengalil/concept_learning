@@ -183,7 +183,6 @@ class IDao(ABC):
                 self.VALIDATION_Y_RAW: val_y}
 
 
-
     def load_from_existing_split(self, split_name, split_location):
         with open(split_location + split_name + ".json") as fp:
             dataset_dict = json.load(fp)

@@ -4,20 +4,21 @@ import json
 import os
 
 from clearn.models.classify.Cifar10Classifier import Cifar10Classifier
-from clearn.models.classify.classifier import ClassifierModel
+from clearn.models.vae import VAE
 from clearn.models.classify.supervised_classifier import SupervisedClassifierModel
 from clearn.dao.dao_factory import get_dao
+from clearn.models.model import Model
 
 from clearn.utils.data_loader import TrainValDataIterator, DataIterator
 from clearn.config import ExperimentConfig
 from clearn.utils.utils import show_all_variables
 
-MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER = "classifier"
-MODEL_TYPE_SUPERVISED_CLASSIFIER = "supervised_classifier"
+MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER = "VAE_UNSUPERVISED"
+MODEL_TYPE_SUPERVISED_CLASSIFIER = "CLASSIFIER_SUPERVISED"
+VAAL_ARCHITECTURE_FOR_CIFAR = "ACTIVE_LEARNING_VAAL_CIFAR"
 
 
 class Experiment:
-
     def __init__(self, exp_id, name, config1: ExperimentConfig, _run_id=None):
         """
         :type config1: ExperimentConfig
@@ -93,12 +94,12 @@ class Experiment:
 def load_trained_model(experiment_name,
                        z_dim,
                        run_id,
+                       model_type,
                        num_cluster_config=None,
                        manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                        supervise_weight=150,
                        beta=5,
                        reconstruction_weight=1,
-                       model_type="classifier"
                        ):
     exp_config = ExperimentConfig(root_path="/Users/sunilv/concept_learning_exp",
                                   num_decoder_layer=4,
@@ -125,18 +126,11 @@ def load_trained_model(experiment_name,
     tf.reset_default_graph()
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
         if model_type == MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER:
-            model = ClassifierModel(exp_config,
-                                    sess,
-                                    epoch=1,
-                                    batch_size=exp_config.BATCH_SIZE,
-                                    z_dim=z_dim,
-                                    dataset_name=exp_config.dataset_name,
-                                    beta=exp_config.beta,
-                                    num_units_in_layer=exp_config.num_units,
-                                    log_dir=exp_config.LOG_PATH,
-                                    checkpoint_dir=exp_config.TRAINED_MODELS_PATH,
-                                    result_dir=exp_config.PREDICTION_RESULTS_PATH
-                                    )
+            model = VAE(exp_config,
+                        sess,
+                        epoch=1,
+                        num_units_in_layer=exp_config.num_units,
+                        )
             print(model.get_trainable_vars())
             num_steps_completed = model.counter
             print("Number of steps completed={}".format(num_steps_completed))
@@ -147,14 +141,7 @@ def load_trained_model(experiment_name,
             model = SupervisedClassifierModel(exp_config,
                                               sess,
                                               epoch=1,
-                                              batch_size=exp_config.BATCH_SIZE,
-                                              z_dim=z_dim,
-                                              dataset_name=exp_config.dataset_name,
-                                              beta=exp_config.beta,
                                               num_units_in_layer=exp_config.num_units,
-                                              log_dir=exp_config.LOG_PATH,
-                                              checkpoint_dir=exp_config.TRAINED_MODELS_PATH,
-                                              result_dir=exp_config.PREDICTION_RESULTS_PATH
                                               )
             print(model.get_trainable_vars())
             num_steps_completed = model.counter
@@ -173,14 +160,13 @@ def initialize_model_train_and_get_features(experiment_name,
                                             run_id,
                                             create_split,
                                             num_epochs,
+                                            model_type,
                                             num_cluster_config=None,
-                                            manual_annotation_file=None,
                                             manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                                             supervise_weight=150,
                                             beta=5,
                                             reconstruction_weight=1,
-                                            model_type="classifier",
-                                            num_units=[64, 128, 32],
+                                            num_units=None,
                                             save_reconstructed_images=True,
                                             split_name="Split_1",
                                             train_val_data_iterator=None,
@@ -195,6 +181,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             num_decoder_layer=4,
                                             test_data_iterator=None):
     dao = get_dao(dataset_name, split_name)
+    if num_units is None:
+        num_units = [64, 128, 32]
     exp_config = ExperimentConfig(root_path=root_path,
                                   num_decoder_layer=num_decoder_layer,
                                   z_dim=z_dim,
@@ -206,7 +194,7 @@ def initialize_model_train_and_get_features(experiment_name,
                                   dataset_name=dataset_name,
                                   split_name=split_name,
                                   model_name="VAE",
-                                  batch_size=128,
+                                  batch_size=64,
                                   eval_interval=eval_interval,
                                   name=experiment_name,
                                   num_val_samples=num_val_samples,
@@ -216,7 +204,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                   activation_hidden_layer="RELU",
                                   activation_output_layer=activation_output_layer,
                                   save_reconstructed_images=save_reconstructed_images,
-                                  learning_rate=learning_rate
+                                  learning_rate=learning_rate,
+                                  run_evaluation_during_training=run_evaluation_during_training
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)
@@ -253,12 +242,12 @@ def initialize_model_train_and_get_features(experiment_name,
 
     if test_data_iterator is None:
         test_data_location = exp_config.DATASET_ROOT_PATH + "/test/"
-        if not os.path.isfile(test_data_location+"test.json"):
+        if not os.path.isfile(test_data_location + "test.json"):
             test_data_iterator = DataIterator(exp_config.DATASET_ROOT_PATH,
-                         split_location=test_data_location,
-                         split_names=["test"],
-                         batch_size=exp_config.BATCH_SIZE,
-                         dao=dao)
+                                              split_location=test_data_location,
+                                              split_names=["test"],
+                                              batch_size=exp_config.BATCH_SIZE,
+                                              dao=dao)
         else:
             test_data_iterator = DataIterator.from_existing_split("test",
                                                                   split_location=test_data_location,
@@ -267,41 +256,20 @@ def initialize_model_train_and_get_features(experiment_name,
                                                                   )
     with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as sess:
         if model_type == MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER:
-            model = ClassifierModel(exp_config=exp_config,
-                                    sess=sess,
-                                    epoch=num_epochs,
-                                    batch_size=exp_config.BATCH_SIZE,
-                                    z_dim=exp_config.Z_DIM,
-                                    dataset_name=exp_config.dataset_name,
-                                    beta=exp_config.beta,
-                                    num_units_in_layer=exp_config.num_units,
-                                    train_val_data_iterator=train_val_data_iterator,
-                                    log_dir=exp.config.LOG_PATH,
-                                    checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
-                                    result_dir=exp.config.PREDICTION_RESULTS_PATH,
-                                    reconstruction_weight=exp.config.reconstruction_weight,
-                                    reconstructed_image_dir=exp.config.reconstructed_images_path,
-                                    run_evaluation_during_training=run_evaluation_during_training,
-                                    dao=dao,
-                                    write_predictions=write_predictions
-                                    )
+            model = VAE(exp_config=exp_config,
+                        sess=sess,
+                        epoch=num_epochs,
+                        num_units_in_layer=exp_config.num_units,
+                        train_val_data_iterator=train_val_data_iterator,
+                        dao=dao,
+                        )
         elif model_type == MODEL_TYPE_SUPERVISED_CLASSIFIER:
             model = SupervisedClassifierModel(exp_config=exp_config,
                                               sess=sess,
                                               epoch=num_epochs,
-                                              batch_size=exp_config.BATCH_SIZE,
-                                              z_dim=exp_config.Z_DIM,
-                                              dataset_name=exp_config.dataset_name,
-                                              beta=exp_config.beta,
                                               num_units_in_layer=exp_config.num_units,
                                               train_val_data_iterator=train_val_data_iterator,
-                                              log_dir=exp.config.LOG_PATH,
-                                              checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
-                                              result_dir=exp.config.PREDICTION_RESULTS_PATH,
-                                              reconstruction_weight=exp.config.reconstruction_weight,
-                                              reconstructed_image_dir=exp.config.reconstructed_images_path,
                                               dao=dao,
-                                              write_predictions=write_predictions,
                                               test_data_iterator=test_data_iterator
                                               )
         elif model_type == "cifar_arch_vaal":
@@ -311,7 +279,6 @@ def initialize_model_train_and_get_features(experiment_name,
                                       batch_size=exp_config.BATCH_SIZE,
                                       z_dim=exp_config.Z_DIM,
                                       dataset_name=exp_config.dataset_name,
-                                      beta=exp_config.beta,
                                       num_units_in_layer=exp_config.num_units,
                                       train_val_data_iterator=train_val_data_iterator,
                                       log_dir=exp.config.LOG_PATH,
@@ -334,7 +301,7 @@ def initialize_model_train_and_get_features(experiment_name,
 
 
 def train_and_get_features(exp: Experiment,
-                           model: ClassifierModel,
+                           model: Model,
                            train_val_data_iterator: TrainValDataIterator,
                            num_epochs):
     exp.model = model
@@ -353,7 +320,7 @@ def train_and_get_features(exp: Experiment,
 
 
 def test(exp: Experiment,
-         model: ClassifierModel,
+         model: VAAL_ARCHITECTURE_FOR_CIFAR,
          data_iterator: DataIterator
          ):
     exp.model = model
@@ -365,9 +332,9 @@ def test(exp: Experiment,
 def load_model_and_test(experiment_name,
                         z_dim,
                         run_id,
+                        model_type,
                         num_cluster_config=None,
-                        model_type="classifier",
-                        num_units=[64, 128, 32],
+                        num_units=None,
                         save_reconstructed_images=True,
                         split_name="Split_1",
                         data_iterator=None,
@@ -377,6 +344,8 @@ def load_model_and_test(experiment_name,
                         write_predictions=True,
                         num_decoder_layer=4
                         ):
+    if num_units is None:
+        num_units = [64, 128, 32]
     dao = get_dao(dataset_name, split_name)
     exp_config = ExperimentConfig(root_path=root_path,
                                   num_decoder_layer=num_decoder_layer,
@@ -410,48 +379,28 @@ def load_model_and_test(experiment_name,
 
     with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as sess:
         if model_type == MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER:
-            model = ClassifierModel(exp_config=exp_config,
-                                    sess=sess,
-                                    epoch=-1,
-                                    batch_size=exp_config.BATCH_SIZE,
-                                    z_dim=exp_config.Z_DIM,
-                                    dataset_name=exp_config.dataset_name,
-                                    beta=exp_config.beta,
-                                    num_units_in_layer=exp_config.num_units,
-                                    train_val_data_iterator=data_iterator,
-                                    log_dir=exp.config.LOG_PATH,
-                                    checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
-                                    result_dir=exp.config.PREDICTION_RESULTS_PATH,
-                                    reconstruction_weight=exp.config.reconstruction_weight,
-                                    reconstructed_image_dir=exp.config.reconstructed_images_path,
-                                    dao=dao
-                                    )
+            model = VAE(exp_config=exp_config,
+                        sess=sess,
+                        epoch=-1,
+                        num_units_in_layer=exp_config.num_units,
+                        train_val_data_iterator=data_iterator,
+                        dao=dao
+                        )
         elif model_type == MODEL_TYPE_SUPERVISED_CLASSIFIER:
             model = SupervisedClassifierModel(exp_config=exp_config,
                                               sess=sess,
                                               epoch=-1,
-                                              batch_size=exp_config.BATCH_SIZE,
-                                              z_dim=exp_config.Z_DIM,
-                                              dataset_name=exp_config.dataset_name,
-                                              beta=exp_config.beta,
                                               num_units_in_layer=exp_config.num_units,
                                               train_val_data_iterator=data_iterator,
-                                              log_dir=exp.config.LOG_PATH,
-                                              checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
-                                              result_dir=exp.config.PREDICTION_RESULTS_PATH,
-                                              reconstruction_weight=exp.config.reconstruction_weight,
-                                              reconstructed_image_dir=exp.config.reconstructed_images_path,
                                               dao=dao,
-                                              write_predictions=write_predictions
                                               )
-        elif model_type == "cifar_arch_vaal":
+        elif model_type == VAAL_ARCHITECTURE_FOR_CIFAR:
             model = Cifar10Classifier(exp_config=exp_config,
                                       sess=sess,
                                       epoch=-1,
                                       batch_size=exp_config.BATCH_SIZE,
                                       z_dim=exp_config.Z_DIM,
                                       dataset_name=exp_config.dataset_name,
-                                      beta=exp_config.beta,
                                       num_units_in_layer=exp_config.num_units,
                                       train_val_data_iterator=data_iterator,
                                       log_dir=exp.config.LOG_PATH,

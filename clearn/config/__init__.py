@@ -1,7 +1,7 @@
 import os
 import json
 
-from clearn.dao.mnist import MnistDao
+from clearn.dao.dao_factory import get_dao
 from clearn.utils.dir_utils import check_and_create_folder
 ROOT_PATH = "/Users/sunilkumar/concept_learning_exp/"
 
@@ -28,13 +28,12 @@ def get_base_path(exp_config,
                   run_id: int = 0
                   ) -> str:
     """
-
     :rtype:
     """
     if exp_config.num_cluster_config is None:
-        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{exp_config.num_units[3]}_{exp_config.num_units[2]}_{exp_config.num_units[1]}_{exp_config.num_units[0]}_{exp_config.Z_DIM}_{run_id}/")
+        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{exp_config.Z_DIM * 2}_{exp_config.num_units[2]}_{exp_config.num_units[1]}_{exp_config.num_units[0]}_{exp_config.Z_DIM}_{run_id}/")
     else:
-        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{exp_config.num_units[3]}_{exp_config.num_units[2]}_{exp_config.num_units[1]}_{exp_config.num_units[0]}_{exp_config.Z_DIM}_{exp_config.num_cluster_config}_{run_id}/")
+        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{exp_config.Z_DIM * 2}_{exp_config.num_units[2]}_{exp_config.num_units[1]}_{exp_config.num_units[0]}_{exp_config.Z_DIM}_{exp_config.num_cluster_config}_{run_id}/")
 
 
 class ExperimentConfig:
@@ -65,7 +64,15 @@ class ExperimentConfig:
                  activation_hidden_layer="RELU",
                  activation_output_layer="SIGMOID",
                  save_reconstructed_images=True,
-                 learning_rate=0.005):
+                 learning_rate=0.005,
+                 max_checkpoints_to_keep=20,
+                 beta1_adam=0.9,
+                 run_evaluation_during_training=True,
+                 model_save_interval=1,
+                 write_predictions=True,
+                 eval_interval_in_epochs=1,
+                 return_latent_vector=True
+                 ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
         :rtype: object
@@ -104,11 +111,18 @@ class ExperimentConfig:
         self.confidence_decay_factor = confidence_decay_factor
         self.manual_labels_config = manual_labels_config
         self.reconstruction_weight = reconstruction_weight
-
         self.num_train_samples = ((total_training_samples - num_val_samples) // batch_size) * batch_size
         self.activation_hidden_layer = activation_hidden_layer
         self.activation_output_layer = activation_output_layer
         self.save_reconstructed_images = save_reconstructed_images
+        self.max_checkpoints_to_keep = max_checkpoints_to_keep
+        self.beta1_adam = beta1_adam
+        self.run_evaluation_during_training = run_evaluation_during_training
+        self.model_save_interval = model_save_interval
+        self.write_predictions = write_predictions
+        self.eval_interval_in_epochs = eval_interval_in_epochs
+        self.return_latent_vector = return_latent_vector
+
 
     def as_json(self):
         config_json = dict()
@@ -133,6 +147,13 @@ class ExperimentConfig:
         config_json["SAVE_RECONSTRUCTED_IMAGES"] = self.save_reconstructed_images
         config_json["NUM_VAL_SAMPLES"] = self.num_val_samples
         config_json["LEARNING_RATE"] = self.learning_rate
+        config_json["MAX_CHECKPOINTS_TO_KEEP"] = self.max_checkpoints_to_keep
+        config_json["BETA1_ADAM"] = self.beta1_adam
+        config_json["RUN_EVALUATION_DURING_TRAINING"] = self.run_evaluation_during_training
+        config_json["MODEL_SAVE_INTERVAL"] = self.model_save_interval
+        config_json["WRITE_PREDICTIONS"] = self.write_predictions
+        config_json["EVAL_INTERVAL_IN_EPOCHS"] = self.eval_interval_in_epochs
+        config_json["RETURN_LATENT_VECTOR"] = self.return_latent_vector
 
         return config_json
 
@@ -198,7 +219,7 @@ class ExperimentConfig:
         with open(json_file_name) as json_fp:
             exp_config_dict = json.load(json_fp)
         exp_config = cls()
-        exp_config.initialize_from_dictionary(exp_config, exp_config_dict)
+        exp_config.initialize_from_dictionary(exp_config_dict)
 
         if len(num_units) != exp_config.num_decoder_layer - 1:
             print(num_units, exp_config.num_decoder_layer)
@@ -209,11 +230,9 @@ class ExperimentConfig:
         exp_config.num_units = num_units + [exp_config.Z_DIM * 2]
         exp_config.name = experiment_name
 
-        # set this based on dataset
-        if dataset_name == "MNIST":
-            dao = MnistDao()
-            total_training_samples = dao.number_of_training_samples()
-        exp_config.num_train_samples = ((total_training_samples - exp_config.num_val_samples) // exp_config.BATCH_SIZE) * exp_config.batch_size
+        dao = get_dao(dataset_name, split_name)
+        total_training_samples = dao.number_of_training_samples()
+        exp_config.num_train_samples = ((total_training_samples - exp_config.num_val_samples) // exp_config.BATCH_SIZE) * exp_config.BATCH_SIZE
 
         return exp_config
 
@@ -228,6 +247,7 @@ class ExperimentConfig:
         self.model_name = exp_config_dict["MODEL_NAME"]
         self.BATCH_SIZE = exp_config_dict["BATCH_SIZE"]
         self.eval_interval = exp_config_dict["EVAL_INTERVAL"]
+        self.beta1_adam = exp_config_dict["BETA1_ADAM"]
         self.beta = exp_config_dict["BETA"]
         self.supervise_weight = exp_config_dict["SUPERVISE_WEIGHT"]
         self.MODEL_NAME_WITH_CONFIG = "{}_{}_{:2d}_{:02d}".format(self.model_name,
@@ -244,5 +264,9 @@ class ExperimentConfig:
         self.activation_hidden_layer = exp_config_dict["ACTIVATION_HIDDEN_LAYER"]
         self.activation_output_layer = exp_config_dict["ACTIVATION_OUTPUT_LAYER"]
         self.save_reconstructed_images = exp_config_dict["SAVE_RECONSTRUCTED_IMAGES"]
-
-        return exp_config_dict
+        self.max_checkpoints_to_keep = exp_config_dict["MAX_CHECKPOINTS_TO_KEEP"]
+        self.run_evaluation_during_training = exp_config_dict["RUN_EVALUATION_DURING_TRAINING"]
+        self.model_save_interval = exp_config_dict["MODEL_SAVE_INTERVAL"]
+        self.write_predictions = exp_config_dict["WRITE_PREDICTIONS"]
+        self.eval_interval_in_epochs = exp_config_dict["EVAL_INTERVAL_IN_EPOCHS"]
+        self.return_latent_vector = exp_config_dict["RETURN_LATENT_VECTOR"]

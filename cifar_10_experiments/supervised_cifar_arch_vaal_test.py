@@ -3,6 +3,7 @@ import argparse
 from clearn.experiments.experiment import load_model_and_test
 from clearn.config import ExperimentConfig
 import os
+from clearn.experiments.experiment import VAAL_ARCHITECTURE_FOR_CIFAR
 
 create_split = False
 z_dim = 32
@@ -55,11 +56,11 @@ if __name__ == '__main__':
     z_dim_range = [5, 17, 2]
     data_iterator = None
     num_units = [128, 256, 512, 1024]
-    exp_config, predicted_df = load_model_and_test(experiment_name,
-                                                   z_dim,
-                                                   run_id,
-                                                   num_cluster_config,
-                                                   model_type="cifar_arch_vaal",
+    exp_config, predicted_df = load_model_and_test(experiment_name=experiment_name,
+                                                   z_dim=z_dim,
+                                                   run_id=run_id,
+                                                   num_cluster_config=num_cluster_config,
+                                                   model_type=VAAL_ARCHITECTURE_FOR_CIFAR,
                                                    num_units=num_units,
                                                    save_reconstructed_images=False,
                                                    split_name="test",

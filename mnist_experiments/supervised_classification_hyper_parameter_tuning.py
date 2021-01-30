@@ -1,11 +1,11 @@
 import tensorflow as tf
 import argparse
-from clearn.experiments.experiment import initialize_model_train_and_get_features
+from clearn.experiments.experiment import initialize_model_train_and_get_features, MODEL_TYPE_SUPERVISED_CLASSIFIER
 from clearn.config import ExperimentConfig
 
 create_split = False
 z_dim = 10
-experiment_name = "supervised_classification_split_70_30"
+experiment_name = "Experiment_2"
 
 
 def parse_args():
@@ -61,18 +61,17 @@ if __name__ == '__main__':
                       [4, 8, 2],
                       [2, 4, 1], [1, 2, 1]][3:]:
         for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
-            train_val_data_iterator, exp_config, model = initialize_model_train_and_get_features(experiment_name,
-                                                                                                 z_dim,
-                                                                                                 run_id,
-                                                                                                 create_split,
-                                                                                                 num_epochs,
-                                                                                                 num_cluster_config,
-                                                                                                 manual_annotation_file=None,
+            train_val_data_iterator, exp_config, model = initialize_model_train_and_get_features(experiment_name=experiment_name,
+                                                                                                 z_dim=z_dim,
+                                                                                                 run_id=run_id,
+                                                                                                 create_split=create_split,
+                                                                                                 num_epochs=num_epochs,
+                                                                                                 num_cluster_config=num_cluster_config,
                                                                                                  manual_labels_config=ExperimentConfig.USE_ACTUAL,
                                                                                                  supervise_weight=1,
                                                                                                  beta=0,
                                                                                                  reconstruction_weight=0,
-                                                                                                 model_type="supervised_classifier",
+                                                                                                 model_type=MODEL_TYPE_SUPERVISED_CLASSIFIER,
                                                                                                  num_units=num_units,
                                                                                                  save_reconstructed_images=False,
                                                                                                  split_name="Split_70_30",

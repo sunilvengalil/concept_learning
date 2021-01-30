@@ -23,74 +23,30 @@ class SupervisedClassifierModel(ClassifierModel):
     dataset_type_train = "train"
     dataset_type_val = "val"
 
-
     def __init__(self,
                  exp_config,
                  sess,
                  epoch,
-                 batch_size,
-                 z_dim, dataset_name, beta=5,
                  num_units_in_layer=None,
-                 log_dir=None,
-                 checkpoint_dir=None,
-                 result_dir=None,
                  train_val_data_iterator=None,
                  read_from_existing_checkpoint=True,
                  check_point_epochs=None,
-                 reconstruction_weight=1,
-                 reconstructed_image_dir=None,
                  dao: IDao = MnistDao(),
-                 write_predictions=True,
-                 run_evaluation_during_training=True,
-                 eval_interval_in_epochs=1,
                  test_data_iterator=None,
-                 model_save_interval=1,
                  ):
+        super().__init__(exp_config, sess, epoch)
         self.test_data_iterator=test_data_iterator
-        self.model_save_interval = model_save_interval
         self.dao = dao
-        self.write_predictions = write_predictions
-        self.run_evaluation_during_training=run_evaluation_during_training
-        self.eval_interval_in_epochs = eval_interval_in_epochs
-        self.sess = sess
-        self.dataset_name = dataset_name
-        self.batch_size = batch_size
-        self.log_dir = log_dir
-        self.checkpoint_dir = checkpoint_dir
-        self.result_dir = result_dir
-        self.reconstructed_image_dir = reconstructed_image_dir
-        self.beta = beta
-        self.reconstruction_weight = reconstruction_weight
-        self.exp_config = exp_config
-        self.input_height = dao.image_shape[0]
-        self.input_width = dao.image_shape[1]
-        self.output_height = dao.image_shape[0]
-        self.output_width = dao.image_shape[1]
         self.label_dim = dao.num_classes
-        self.z_dim = z_dim
-        self.c_dim = dao.image_shape[2]
         if num_units_in_layer is None or len(num_units_in_layer) == 0:
-            self.n = [128, 64, 32, z_dim]
+            self.n = [128, 64, 32, exp_config.Z_DIM]
         else:
             self.n = num_units_in_layer
-        self.strides = [2, 2]
         self.sample_num = 64  # number of generated images to be saved
-        self.beta1 = 0.5
-        self.eval_interval = 300
         self.num_images_per_row = 4  # should be a factor of sample_num
         self.images = None
-        self._build_model()
-        # initialize all variables
-        tf.compat.v1.global_variables_initializer().run()
         # graph inputs for visualize training results
-        self.sample_z = prior.gaussian(self.batch_size, self.z_dim)
-        self.max_to_keep = 20
-        self.counter, self.start_batch_id, self.start_epoch = self._initialize(train_val_data_iterator,
-                                                                               read_from_existing_checkpoint,
-                                                                               check_point_epochs)
-        if epoch == -1:
-            epoch = self.start_epoch
-        else:
+        if epoch != -1:
             self.epoch = epoch
 
         self.metrics_to_compute = ["accuracy"]
@@ -104,6 +60,9 @@ class SupervisedClassifierModel(ClassifierModel):
             self.metrics[SupervisedClassifierModel.dataset_type_val][metric] = []
             self.metrics[SupervisedClassifierModel.dataset_type_test][metric] = []
 
+    # def _set_model_parameters(self):
+    #     self.strides = [2, 2]
+
     def _encoder(self, x, reuse=False):
         # Encoder models the probability  P(z/X)
         # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
@@ -116,18 +75,18 @@ class SupervisedClassifierModel(ClassifierModel):
                 self.conv2 = lrelu((conv2d(self.conv1,
                                            self.n[1],
                                            3, 3, self.strides[1], self.strides[1], name='en_conv2')))
-                self.reshaped_en = tf.reshape(self.conv2, [self.batch_size, -1])
+                self.reshaped_en = tf.reshape(self.conv2, [self.exp_config.BATCH_SIZE, -1])
                 self.dense2_en = lrelu(linear(self.reshaped_en, self.n[2], scope='en_fc3'))
             elif self.exp_config.activation_hidden_layer == "LINEAR":
                 self.conv1 = conv2d(x, self.n[0], 3, 3, self.strides[0], self.strides[0], name='en_conv1')
                 self.conv2 = (conv2d(self.conv1, self.n[1], 3, 3, self.strides[1], self.strides[1], name='en_conv2'))
-                self.reshaped_en = tf.reshape(self.conv2, [self.batch_size, -1])
+                self.reshaped_en = tf.reshape(self.conv2, [self.exp_config.BATCH_SIZE, -1])
                 self.dense2_en = linear(self.reshaped_en, self.n[2], scope='en_fc3')
             else:
                 raise Exception(f"Activation {self.exp_config.activation} not supported")
 
             # with tf.control_dependencies([net_before_gauss]):
-            z, w["en_fc4"], b["en_fc4"] = linear(self.dense2_en, 2 * self.z_dim,
+            z, w["en_fc4"], b["en_fc4"] = linear(self.dense2_en, 2 * self.exp_config.Z_DIM,
                                                  scope='en_fc4',
                                                  with_w=True)
 
@@ -139,12 +98,13 @@ class SupervisedClassifierModel(ClassifierModel):
         # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
         # Architecture : FC1024_BR-FC7x7x128_BR-(64)4dc2s_BR-(1)4dc2s_S
         image_shape = self.dao.image_shape
-        input_shape = [self.batch_size, image_shape[0], image_shape[1], image_shape[2]]
-        layer_4_size = [self.batch_size,
+        input_shape = [self.exp_config.BATCH_SIZE, image_shape[0], image_shape[1], image_shape[2]]
+
+        layer_4_size = [self.exp_config.BATCH_SIZE,
                         image_shape[0] // self.strides[0],
                         image_shape[1] // self.strides[0],
                         self.n[0]]
-        layer_3_size = [self.batch_size,
+        layer_3_size = [self.exp_config.BATCH_SIZE,
                         layer_4_size[1] // self.strides[1],
                         layer_4_size[2] // self.strides[1],
                         self.n[1]]
@@ -169,7 +129,7 @@ class SupervisedClassifierModel(ClassifierModel):
                                            layer_4_size,
                                            3, 3, self.strides[1], self.strides[1], name='de_dc3')
             else:
-                raise Exception(f"Activation {self.exp_config.activation} not supported")
+                raise Exception(f"Activation {self.exp_config.activation_hidden_layer} not supported")
 
             if self.exp_config.activation_output_layer == "SIGMOID":
                 out = tf.nn.sigmoid(deconv2d(self.deconv1_de,
@@ -181,8 +141,9 @@ class SupervisedClassifierModel(ClassifierModel):
 
     def _build_model(self):
         # some parameters
-        image_dims = [self.input_height, self.input_width, self.c_dim]
-        bs = self.batch_size
+        image_dims = self.dao.image_shape
+        bs = self.exp_config.BATCH_SIZE
+        self.strides = [2, 2]
 
         """ Graph Input """
         # images
@@ -190,7 +151,7 @@ class SupervisedClassifierModel(ClassifierModel):
 
         # random vectors with  multi-variate gaussian distribution
         # 0 mean and covariance matrix as Identity
-        self.standard_normal = tf.compat.v1.placeholder(tf.float32, [bs, self.z_dim], name='z')
+        self.standard_normal = tf.compat.v1.placeholder(tf.float32, [bs, self.exp_config.Z_DIM], name='z')
 
         # Whether the sample was manually annotated.
         self.is_manual_annotated = tf.compat.v1.placeholder(tf.float32, [bs], name="is_manual_annotated")
@@ -212,7 +173,7 @@ class SupervisedClassifierModel(ClassifierModel):
         # optimizers
         t_vars = tf.compat.v1.trainable_variables()
         with tf.control_dependencies(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
-            self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate, beta1=self.beta1) \
+            self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate, beta1=self.exp_config.beta1_adam) \
                 .minimize(self.loss, var_list=t_vars)
 
         """" Testing """
@@ -231,7 +192,7 @@ class SupervisedClassifierModel(ClassifierModel):
         counter = self.counter
         start_batch_id = self.start_batch_id
         start_epoch = self.start_epoch
-        num_batches_train = train_val_data_iterator.get_num_samples("train") // self.batch_size
+        num_batches_train = train_val_data_iterator.get_num_samples("train") // self.exp_config.BATCH_SIZE
 
         for epoch in range(start_epoch, self.epoch):
             # get batch data
@@ -239,7 +200,7 @@ class SupervisedClassifierModel(ClassifierModel):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
                 batch_images, _, manual_labels = train_val_data_iterator.get_next_batch("train")
-                batch_z = prior.gaussian(self.batch_size, self.z_dim)
+                batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
                 # update autoencoder
                 _, summary_str, loss, supervised_loss = self.sess.run([self.optim,
@@ -258,8 +219,8 @@ class SupervisedClassifierModel(ClassifierModel):
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model
             print(f"Completed {epoch} epochs")
-            if self.run_evaluation_during_training:
-                if np.mod(epoch, self.eval_interval_in_epochs) == 0:
+            if self.exp_config.run_evaluation_during_training:
+                if np.mod(epoch, self.exp_config.eval_interval_in_epochs) == 0:
                     train_val_data_iterator.reset_counter("train")
                     train_val_data_iterator.reset_counter("val")
                     self.evaluate(train_val_data_iterator, epoch, "train")
@@ -276,19 +237,19 @@ class SupervisedClassifierModel(ClassifierModel):
 
             start_batch_id = 0
             # save model
-            if np.mod(epoch, self.model_save_interval) == 0:
-                self.save(self.checkpoint_dir, counter)
+            if np.mod(epoch, self.exp_config.model_save_interval) == 0:
+                self.save(self.exp_config.PREDICTION_RESULTS_PATH, counter)
         # save metrics
         # TODO save all metrics. not just accuracy
         if "accuracy" in self.metrics_to_compute:
             df = pd.DataFrame(self.metrics["train"]["accuracy"], columns=["epoch", "train_accuracy"])
-            df["val_accuracy"] = np.asarray(self.metrics["val"]["accuracy"])[:,1]
-            df["test_accuracy"] = np.asarray(self.metrics["test"]["accuracy"])[:,1]
+            df["val_accuracy"] = np.asarray(self.metrics["val"]["accuracy"])[:, 1]
+            df["test_accuracy"] = np.asarray(self.metrics["test"]["accuracy"])[:, 1]
             df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"accuracy_{start_epoch}.csv"),
                       index=False)
 
         # save model for final step
-        self.save(self.checkpoint_dir, counter)
+        self.save(self.exp_config.PREDICTION_RESULTS_PATH, counter)
 
     def evaluate(self, train_val_data_iterator, epoch=-1, dataset_type="train", return_latent_vector=False):
         if epoch == -1:
@@ -337,7 +298,7 @@ class SupervisedClassifierModel(ClassifierModel):
             encoded_df[mean_col_names] = mu
             encoded_df[sigma_col_names] = sigma
             encoded_df[z_col_names] = z
-        if self.write_predictions:
+        if self.exp_config.write_predictions:
             output_csv_file = get_encoded_csv_file(self.exp_config, epoch, dataset_type)
             encoded_df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, output_csv_file), index=False)
         return encoded_df

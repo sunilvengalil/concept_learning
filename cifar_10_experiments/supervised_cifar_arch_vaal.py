@@ -49,19 +49,18 @@ def check_args(_args):
 if __name__ == '__main__':
     # parse arguments
     args = parse_args()
-    num_epochs = 50
+    num_epochs = 30
     num_cluster_config = ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW
-    run_id = 5
+    run_id = 1
     z_dim_range = [5, 17, 2]
     train_val_data_iterator = None
-    num_units = [32, 64, 64, 64]
+    num_units = [128,256, 512,1024 ]
     train_val_data_iterator, exp_config, model = initialize_model_train_and_get_features(experiment_name,
                                                                                          z_dim,
                                                                                          run_id,
                                                                                          create_split,
                                                                                          num_epochs,
                                                                                          num_cluster_config,
-                                                                                         manual_annotation_file=None,
                                                                                          manual_labels_config=ExperimentConfig.USE_ACTUAL,
                                                                                          supervise_weight=1,
                                                                                          beta=0,

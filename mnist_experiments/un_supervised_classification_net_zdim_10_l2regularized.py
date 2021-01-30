@@ -12,7 +12,7 @@ experiment_name = "unsupervised_vae_z_dim_10_l2_regularized"
 num_epochs = 10
 create_split = True
 z_dim = 10
-run_id = 0
+run_id = 1000
 exp_config = ExperimentConfig(root_path="/Users/sunilv/concept_learning_exp",
                               num_decoder_layer=4,
                               z_dim=z_dim,
@@ -68,17 +68,8 @@ with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
     model = ClassifierModel(exp_config=exp_config,
                             sess=sess,
                             epoch=num_epochs,
-                            batch_size=exp_config.BATCH_SIZE,
-                            z_dim=exp_config.Z_DIM,
-                            dataset_name=exp_config.dataset_name,
-                            beta=exp_config.beta,
                             num_units_in_layer=exp_config.num_units,
                             train_val_data_iterator=train_val_data_iterator,
-                            log_dir=exp.config.LOG_PATH,
-                            checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
-                            result_dir=exp.config.PREDICTION_RESULTS_PATH,
-                            supervise_weight=exp.config.supervise_weight,
                             reconstruction_weight=exp.config.reconstruction_weight,
-                            reconstructed_image_dir=exp.config.reconstructed_images_path
                             )
     train_and_get_features(exp, model, train_val_data_iterator, num_epochs)

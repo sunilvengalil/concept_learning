@@ -1,7 +1,7 @@
 from sklearn.cluster import KMeans
 import tensorflow as tf
 import numpy as np
-from clearn.models.generative_models.vae import VAE
+from clearn.models.vae import VAE
 from clearn.analysis.encode_decode import decode
 import math
 from matplotlib import pyplot as plt
@@ -42,8 +42,6 @@ def plot_features(exp_config, features, digits, dimensions_to_be_plotted,  new_f
 
     """
 
-    from mpl_toolkits.axes_grid.inset_locator import inset_axes
-
     # Load Model
     tf.reset_default_graph()
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
@@ -53,7 +51,6 @@ def plot_features(exp_config, features, digits, dimensions_to_be_plotted,  new_f
                                 batch_size=exp_config.BATCH_SIZE,
                                 z_dim=exp_config.z_dim,
                                 dataset_name=exp_config.DATASET_NAME,
-                                beta=exp_config.beta,
                                 num_units_in_layer=exp_config.num_units,
                                 log_dir=exp_config.LOG_PATH,
                                 checkpoint_dir=exp_config.TRAINED_MODELS_PATH,
@@ -93,13 +90,7 @@ def decode_latent_vectors(cluster_centers, exp_config):
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
         model = VAE(sess,
                     epoch=1,
-                    batch_size=exp_config.BATCH_SIZE,
-                    z_dim=exp_config.Z_DIM,
-                    dataset_name=exp_config.dataset_name,
-                    beta=exp_config.beta,
                     num_units_in_layer=exp_config.num_units,
-                    log_dir=exp_config.LOG_PATH,
-                    checkpoint_dir=exp_config.TRAINED_MODELS_PATH,
                     result_dir=exp_config.PREDICTION_RESULTS_PATH
                     )
         z = np.zeros([cluster_centers.shape[0], exp_config.Z_DIM])

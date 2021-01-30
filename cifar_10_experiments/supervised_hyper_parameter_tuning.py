@@ -62,7 +62,6 @@ if __name__ == '__main__':
                                                                                                  create_split,
                                                                                                  num_epochs,
                                                                                                  num_cluster_config,
-                                                                                                 manual_annotation_file=None,
                                                                                                  manual_labels_config=ExperimentConfig.USE_ACTUAL,
                                                                                                  supervise_weight=1,
                                                                                                  beta=0,

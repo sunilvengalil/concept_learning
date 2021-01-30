@@ -5,7 +5,7 @@ import argparse
 create_split = False
 experiment_name = "Experiment_1"
 ROOT_PATH = "/Users/sunilv/concept_learning_exp"
-z_dim_range = [22, 24, 2]
+z_dim_range = [21, 24, 2]
 num_epochs = 10
 num_runs = 1
 eval_interval = 900

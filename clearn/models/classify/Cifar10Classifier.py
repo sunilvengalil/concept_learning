@@ -19,16 +19,6 @@ class Cifar10Classifier(SupervisedClassifierModel):
                  beta=5,
                  num_units_in_layer=None,
                  log_dir=None,
-                 checkpoint_dir=None,
-                 result_dir=None,
-                 train_val_data_iterator=None,
-                 read_from_existing_checkpoint=True,
-                 check_point_epochs=None,
-                 reconstruction_weight=1,
-                 reconstructed_image_dir=None,
-                 dao: IDao = MnistDao(),
-                 write_predictions=True,
-                 test_data_iterator=None
                  ):
         super().__init__(exp_config,
                          sess,
@@ -39,16 +29,7 @@ class Cifar10Classifier(SupervisedClassifierModel):
                          beta,
                          num_units_in_layer,
                          log_dir,
-                         checkpoint_dir,
-                         result_dir,
-                         train_val_data_iterator,
-                         read_from_existing_checkpoint,
-                         check_point_epochs,
-                         reconstruction_weight,
-                         reconstructed_image_dir,
-                         dao,
-                         write_predictions,
-                         test_data_iterator=test_data_iterator)
+                         )
         self.strides = [2, 2, 2, 2]
 
     def _encoder(self, x, reuse=False):
@@ -88,9 +69,9 @@ class Cifar10Classifier(SupervisedClassifierModel):
                 conv4 = tf.compat.v1.layers.batch_normalization(conv4)
                 self.conv4 = lrelu(conv4,0.01)
 
-                self.reshaped = tf.reshape(self.conv3, [self.batch_size, -1])
+                self.reshaped = tf.reshape(self.conv3, [self.exp_config.BATCH_SIZE, -1])
 
-                #self.dense2_en = lrelu(linear(reshaped, self.n[4], scope='en_fc1'), 0.0)
+                # self.dense2_en = lrelu(linear(reshaped, self.n[4], scope='en_fc1'), 0.0)
 
             else:
                 raise Exception(f"Activation {self.exp_config.activation} not implemented")
@@ -124,56 +105,55 @@ class Cifar10Classifier(SupervisedClassifierModel):
         # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
         # Architecture : FC1024_BR-FC7x7x128_BR-(64)4dc2s_BR-(1)4dc2s_S
 
-        output_shape = [self.batch_size, self.dao.image_shape[0], self.dao.image_shape[1], self.dao.image_shape[2]]
-        layer_4_size = [self.batch_size,
+        output_shape = [self.exp_config.BATCH_SIZE, self.dao.image_shape[0], self.dao.image_shape[1], self.dao.image_shape[2]]
+        layer_4_size = [self.exp_config.BATCH_SIZE,
                         output_shape[1] // self.strides[0],
                         output_shape[2] // self.strides[0],
                         self.n[0]]
-        layer_3_size = [self.batch_size,
+        layer_3_size = [self.exp_config.BATCH_SIZE,
                         layer_4_size[1] // self.strides[1],
                         layer_4_size[2] // self.strides[1],
                         self.n[1]]
-        layer_2_size = [self.batch_size,
+        layer_2_size = [self.exp_config.BATCH_SIZE,
                         layer_3_size[1] // self.strides[2],
                         layer_3_size[2] // self.strides[2],
                         self.n[2]]
-        layer_1_size = [self.batch_size,
+        layer_1_size = [self.exp_config.BATCH_SIZE,
                         layer_2_size[1] // self.strides[3],
                         layer_2_size[2] // self.strides[3],
                         self.n[3]]
 
         with tf.variable_scope("decoder", reuse=reuse):
             if self.exp_config.activation_hidden_layer == "RELU":
-                # TODO remove hard coding
 
-                self.dense1_de = lrelu((linear(z, self.n[4], scope="de_fc1")))
-                self.dense2_de = lrelu(linear(self.dense1_de, 1024 * 4 * 4, scope='de_fc2'))
-                self.reshaped_de = tf.reshape(self.dense2_de, layer_1_size)
+                self.dense1_de = lrelu(linear(z, layer_1_size[1] * layer_1_size[2] * layer_1_size[3] , scope="de_fc1"), 0)
+                #self.dense2_de = lrelu(linear(self.dense1_de, 1024 * 4 * 4, scope='de_fc2'))
+                self.reshaped_de = tf.reshape(self.dense1_de, layer_1_size)
                 deconv1 = lrelu(deconv2d(self.reshaped_de,
                                                  layer_2_size,
-                                                 3, 3, self.strides[1], self.strides[1], name='de_dc1'))
+                                                 3, 3, self.strides[1], self.strides[1], name='de_dc1'), 0)
                 self.deconv1 = lrelu(tf.compat.v1.layers.batch_normalization(deconv1))
 
                 deconv2 = lrelu(deconv2d(self.self.deconv1,
                                                  layer_3_size,
-                                                 3, 3, self.strides[2], self.strides[2], name='de_dc2'))
+                                                 3, 3, self.strides[2], self.strides[2], name='de_dc2'), 0)
                 self.deconv2 = lrelu(tf.compat.v1.layers.batch_normalization(deconv2))
 
                 deconv3 = lrelu(deconv2d(self.deconv2,
                                                  layer_4_size,
-                                                 3, 3, self.strides[3], self.strides[3], name='de_dc3'))
+                                                 3, 3, self.strides[3], self.strides[3], name='de_dc3'), 0)
                 self.deconv3 = lrelu(tf.compat.v1.layers.batch_normalization(deconv3))
 
                 out = lrelu(deconv2d(self.deconv3,
                                                  output_shape,
-                                                 3, 3, self.strides[4], self.strides[4], name='de_dc4'))
+                                                 3, 3, self.strides[4], self.strides[4], name='de_dc4'), 0)
             else:
                 raise Exception(f"Activation {self.exp_config.activation} not supported")
             return out
 
     def _build_model(self):
-        image_dims = [self.input_height, self.input_width, self.c_dim]
-        bs = self.batch_size
+        image_dims = self.dao.image_shape
+        bs = self.exp_config.BATCH_SIZE
 
         """ Graph Input """
         # images
