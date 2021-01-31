@@ -14,7 +14,7 @@ class Cifar10Classifier(SupervisedClassifierModel):
                  sess,
                  epoch,
                  num_units_in_layer=None,
-                 dao:IDao=MnistDao(),
+                 dao: IDao = MnistDao(),
                  test_data_iterator=None
                  ):
         super().__init__(exp_config,
@@ -49,11 +49,11 @@ class Cifar10Classifier(SupervisedClassifierModel):
             if self.exp_config.activation_hidden_layer == "RELU":
                 conv1 = conv2d(x, self.n[0], 3, 3, self.strides[0], self.strides[0], name='en_conv1')
                 conv1 = tf.compat.v1.layers.batch_normalization(conv1)
-                self.conv1 = lrelu(conv1,0.0)
+                self.conv1 = lrelu(conv1, 0.0)
 
                 conv2 = conv2d(self.conv1, self.n[1], 3, 3, self.strides[0], self.strides[0], name='en_conv2')
                 conv2 = tf.compat.v1.layers.batch_normalization(conv2)
-                self.conv2 = lrelu(conv2,0.0)
+                self.conv2 = lrelu(conv2, 0.0)
 
                 conv3 = conv2d(self.conv2, self.n[2], 3, 3, self.strides[0], self.strides[0], name='en_conv3')
                 conv3 = tf.compat.v1.layers.batch_normalization(conv3)
@@ -61,7 +61,7 @@ class Cifar10Classifier(SupervisedClassifierModel):
 
                 conv4 = conv2d(self.conv3, self.n[3], 3, 3, self.strides[0], self.strides[0], name='en_conv4')
                 conv4 = tf.compat.v1.layers.batch_normalization(conv4)
-                self.conv4 = lrelu(conv4,0.01)
+                self.conv4 = lrelu(conv4, 0.01)
 
                 self.reshaped = tf.reshape(self.conv3, [self.exp_config.BATCH_SIZE, -1])
 
@@ -120,8 +120,8 @@ class Cifar10Classifier(SupervisedClassifierModel):
         with tf.variable_scope("decoder", reuse=reuse):
             if self.exp_config.activation_hidden_layer == "RELU":
 
-                self.dense1_de = lrelu(linear(z, layer_1_size[1] * layer_1_size[2] * layer_1_size[3] , scope="de_fc1"), 0)
-                #self.dense2_de = lrelu(linear(self.dense1_de, 1024 * 4 * 4, scope='de_fc2'))
+                self.dense1_de = lrelu(linear(z, layer_1_size[1] * layer_1_size[2] * layer_1_size[3], scope="de_fc1"), 0)
+                # self.dense2_de = lrelu(linear(self.dense1_de, 1024 * 4 * 4, scope='de_fc2'))
                 self.reshaped_de = tf.reshape(self.dense1_de, layer_1_size)
                 deconv1 = lrelu(deconv2d(self.reshaped_de,
                                                  layer_2_size,
@@ -160,7 +160,7 @@ class Cifar10Classifier(SupervisedClassifierModel):
 
         # Whether the sample was manually annotated.
         self.is_manual_annotated = tf.compat.v1.placeholder(tf.float32, [bs], name="is_manual_annotated")
-        self.labels = tf.compat.v1.placeholder(tf.float32, [bs, self.dao.num_classes], name='manual_label')
+        self.labels = tf.compat.v1.placeholder(tf.float32, [bs, self.label_dim], name='manual_label')
 
         """ Loss Function """
         # encoding

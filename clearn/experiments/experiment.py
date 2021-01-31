@@ -205,7 +205,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                   activation_output_layer=activation_output_layer,
                                   save_reconstructed_images=save_reconstructed_images,
                                   learning_rate=learning_rate,
-                                  run_evaluation_during_training=run_evaluation_during_training
+                                  run_evaluation_during_training=run_evaluation_during_training,
+                                  write_predictions=write_predictions
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)

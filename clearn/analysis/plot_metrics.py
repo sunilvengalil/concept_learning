@@ -74,7 +74,9 @@ def plot_z_dim_vs_accuracy(root_path: str,
 
 def read_accuracy_from_file(file_prefix):
     df = None
+    print(file_prefix)
     for file in glob.glob(file_prefix):
+        print(file_prefix, file)
         temp_df = pd.read_csv(file)
         if df is None:
             df = temp_df
@@ -123,7 +125,9 @@ def plot_epoch_vs_accuracy(root_path: str,
 
     file_prefix = "/accuracy_*.csv"
     df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
+    print(df.shape)
     for dataset_name in dataset_types:
+        print(dataset_name)
         plt.plot(df["epoch"], df[f"{dataset_name}_accuracy"], label=f"{dataset_name}_z_dim_{z_dim}")
 
 

@@ -55,7 +55,9 @@ if __name__ == '__main__':
     run_id = 1
     z_dim_range = [5, 17, 2]
     data_iterator = None
-    num_units = [128, 256, 512, 1024]
+    # num_units = [128, 256, 512, 1024]
+    num_units = [32, 64, 64, 64]
+
     exp_config, predicted_df = load_model_and_test(experiment_name=experiment_name,
                                                    z_dim=z_dim,
                                                    run_id=run_id,
