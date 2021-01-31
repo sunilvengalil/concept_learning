@@ -236,18 +236,19 @@ class SupervisedClassifierModel(ClassifierModel):
             start_batch_id = 0
             # save model
             if np.mod(epoch, self.exp_config.model_save_interval) == 0:
-                self.save(self.exp_config.PREDICTION_RESULTS_PATH, counter)
-        # save metrics
-        # TODO save all metrics. not just accuracy
-        if "accuracy" in self.metrics_to_compute:
-            df = pd.DataFrame(self.metrics["train"]["accuracy"], columns=["epoch", "train_accuracy"])
-            df["val_accuracy"] = np.asarray(self.metrics["val"]["accuracy"])[:, 1]
-            df["test_accuracy"] = np.asarray(self.metrics["test"]["accuracy"])[:, 1]
-            df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"accuracy_{start_epoch}.csv"),
-                      index=False)
+                self.save(self.exp_config.TRAINED_MODELS_PATH, counter)
+
+            # save metrics
+            # TODO save all metrics. not just accuracy
+            if "accuracy" in self.metrics_to_compute:
+                df = pd.DataFrame(self.metrics["train"]["accuracy"], columns=["epoch", "train_accuracy"])
+                df["val_accuracy"] = np.asarray(self.metrics["val"]["accuracy"])[:, 1]
+                df["test_accuracy"] = np.asarray(self.metrics["test"]["accuracy"])[:, 1]
+                df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"accuracy_{start_epoch}.csv"),
+                          index=False)
 
         # save model for final step
-        self.save(self.exp_config.PREDICTION_RESULTS_PATH, counter)
+        self.save(self.exp_config.TRAINED_MODELS_PATH, counter)
 
     def evaluate(self, train_val_data_iterator, epoch=-1, dataset_type="train", return_latent_vector=False):
         if epoch == -1:
