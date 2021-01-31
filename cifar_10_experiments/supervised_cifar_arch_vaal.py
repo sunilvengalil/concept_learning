@@ -48,31 +48,32 @@ if __name__ == '__main__':
     num_epochs = 100
     create_split = True
     z_dim = 32
-    experiment_name = "cifar_arch_vaal_split_1"
+    experiment_name = "Experiment_3"
     num_cluster_config = ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW
     run_id = 1
     train_val_data_iterator = None
-    num_units = [[128, 256, 512, 1024],[32, 64, 64, 64] ]
-    train_val_data_iterator, exp_config, model = initialize_model_train_and_get_features(experiment_name=experiment_name,
-                                                                                         z_dim=z_dim,
-                                                                                         run_id=run_id,
-                                                                                         create_split=create_split,
-                                                                                         num_epochs=num_epochs,
-                                                                                         num_cluster_config=num_cluster_config,
-                                                                                         manual_labels_config=ExperimentConfig.USE_ACTUAL,
-                                                                                         supervise_weight=1,
-                                                                                         beta=0,
-                                                                                         reconstruction_weight=0,
-                                                                                         num_units=num_units,
-                                                                                         save_reconstructed_images=False,
-                                                                                         split_name="split_1",
-                                                                                         train_val_data_iterator=train_val_data_iterator,
-                                                                                         num_val_samples=5000,
-                                                                                         learning_rate=0.005,
-                                                                                         dataset_name="cifar_10",
-                                                                                         activation_output_layer="LINEAR",
-                                                                                         write_predictions=False,
-                                                                                         num_decoder_layer=5,
-                                                                                         model_type=VAAL_ARCHITECTURE_FOR_CIFAR
-                                                                                         )
+
+    for num_units in [[128, 256, 512, 1024],[32, 64, 64, 64] ]:
+        train_val_data_iterator, exp_config, model = initialize_model_train_and_get_features(experiment_name=experiment_name,
+                                                                                             z_dim=z_dim,
+                                                                                             run_id=run_id,
+                                                                                             create_split=create_split,
+                                                                                             num_epochs=num_epochs,
+                                                                                             num_cluster_config=num_cluster_config,
+                                                                                             manual_labels_config=ExperimentConfig.USE_ACTUAL,
+                                                                                             supervise_weight=1,
+                                                                                             beta=0,
+                                                                                             reconstruction_weight=0,
+                                                                                             num_units=num_units,
+                                                                                             save_reconstructed_images=False,
+                                                                                             split_name="split_1",
+                                                                                             train_val_data_iterator=train_val_data_iterator,
+                                                                                             num_val_samples=5000,
+                                                                                             learning_rate=0.005,
+                                                                                             dataset_name="cifar_10",
+                                                                                             activation_output_layer="LINEAR",
+                                                                                             write_predictions=False,
+                                                                                             num_decoder_layer=5,
+                                                                                             model_type=VAAL_ARCHITECTURE_FOR_CIFAR
+                                                                                             )
     tf.reset_default_graph()
