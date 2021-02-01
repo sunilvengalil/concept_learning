@@ -168,14 +168,17 @@ class VAE(GenerativeModel):
             marginal_likelihood = tf.reduce_sum(self.inputs * tf.log(self.out) +
                                                 (1 - self.inputs) * tf.log(1 - self.out),
                                                 [1, 2])
+            self.neg_loglikelihood = -tf.reduce_mean(marginal_likelihood)
+
         else:
             #Linear activation
             marginal_likelihood = tf.compat.v1.losses.mean_squared_error(self.inputs, self.out)
+            self.neg_loglikelihood = tf.reduce_mean(marginal_likelihood)
+
         kl = 0.5 * tf.reduce_sum(tf.square(self.mu) +
                                  tf.square(self.sigma) -
                                  tf.log(1e-8 + tf.square(self.sigma)) - 1, [1])
 
-        self.neg_loglikelihood = -tf.reduce_mean(marginal_likelihood)
         self.KL_divergence = tf.reduce_mean(kl)
 
         # evidence_lower_bound = -self.neg_loglikelihood - self.exp_config.beta * self.KL_divergence
