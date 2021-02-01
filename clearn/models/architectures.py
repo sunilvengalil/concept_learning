@@ -115,9 +115,12 @@ def deconv_4_layer(model, z, reuse=False):
                                      3, 3, model.strides[3], model.strides[3], name='de_dc3'), 0)
             model.deconv3 = lrelu(tf.compat.v1.layers.batch_normalization(deconv3))
 
-            out = lrelu(deconv2d(model.deconv3,
-                                 output_shape,
-                                 3, 3, model.strides[4], model.strides[4], name='de_dc4'), 0)
+            if model.exp_config.activation_output_layer == "SIGMOID":
+                out = tf.nn.sigmoid(
+                    deconv2d(model.deconv3, output_shape, 3, 3, model.strides[4], model.strides[4], name='de_dc4'))
+            elif model.exp_config.activation_output_layer == "LINEAR":
+                out = deconv2d(model.deconv3, output_shape, 3, 3, model.strides[4], model.strides[4], name='de_dc4')
+
         else:
             raise Exception(f"Activation {model.exp_config.activation} not supported")
         return out

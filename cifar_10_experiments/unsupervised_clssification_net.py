@@ -5,7 +5,7 @@ experiment_name = "Experiment_4"
 root_path = "/Users/sunilv/concept_learning_exp/"
 z_dim = 32
 learning_rate = 0.001
-num_epochs = 20
+num_epochs = 50
 num_runs = 1
 create_split = True
 completed_z_dims = 0
@@ -14,7 +14,7 @@ completed_runs = 0
 run_id = 1
 # for run_id in range(num_runs):
 num_cluster_config = ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW
-num_units = [32, 64, 64, 64]
+num_units = [64, 128, 64, 32]
 train_val_data_iterator = None
 initialize_model_train_and_get_features(experiment_name=experiment_name,
                                         z_dim=z_dim,
