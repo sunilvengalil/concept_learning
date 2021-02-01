@@ -4,6 +4,7 @@ import json
 import os
 
 from clearn.models.classify.Cifar10Classifier import Cifar10Classifier
+from clearn.models.classify.cifar_10_vae import Cifar10Vae
 from clearn.models.vae import VAE
 from clearn.models.classify.supervised_classifier import SupervisedClassifierModel
 from clearn.dao.dao_factory import get_dao
@@ -13,6 +14,7 @@ from clearn.utils.data_loader import TrainValDataIterator, DataIterator
 from clearn.config import ExperimentConfig
 from clearn.utils.utils import show_all_variables
 
+MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10 = "VAE_UNSUPERVISED_CIFAR10"
 MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER = "VAE_UNSUPERVISED"
 MODEL_TYPE_SUPERVISED_CLASSIFIER = "CLASSIFIER_SUPERVISED"
 VAAL_ARCHITECTURE_FOR_CIFAR = "ACTIVE_LEARNING_VAAL_CIFAR"
@@ -279,6 +281,14 @@ def initialize_model_train_and_get_features(experiment_name,
                                       num_units_in_layer=exp_config.num_units,
                                       dao=dao,
                                       test_data_iterator=test_data_iterator
+                                      )
+        elif model_type == MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10:
+            model = Cifar10Vae(exp_config=exp_config,
+                                      sess=sess,
+                                      epoch=num_epochs,
+                                      num_units_in_layer=exp_config.num_units,
+                                      test_data_iterator=test_data_iterator,
+                                      dao=dao
                                       )
         else:
             raise Exception(

@@ -87,7 +87,7 @@ def read_accuracy_from_file(file_prefix):
 
 def plot_epoch_vs_accuracy(root_path: str,
                            experiment_name: str,
-                           num_units: List,
+                           num_units: List[int],
                            num_cluster_config: str,
                            z_dim: int,
                            run_id: int,
@@ -129,7 +129,6 @@ def plot_epoch_vs_accuracy(root_path: str,
     for dataset_name in dataset_types:
         print(dataset_name)
         plt.plot(df["epoch"], df[f"{dataset_name}_accuracy"], label=f"{dataset_name}_z_dim_{z_dim}")
-
 
     plt.xlabel("Epochs")
     plt.ylabel("Accuracy")

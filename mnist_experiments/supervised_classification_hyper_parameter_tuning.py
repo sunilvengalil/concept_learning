@@ -59,22 +59,25 @@ if __name__ == '__main__':
                       [16, 32, 8],
                       [8, 16, 4],
                       [4, 8, 2],
-                      [2, 4, 1], [1, 2, 1]][3:]:
+                      [2, 4, 1], [1, 2, 1]][6:]:
         for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
-            train_val_data_iterator, exp_config, model = initialize_model_train_and_get_features(experiment_name=experiment_name,
-                                                                                                 z_dim=z_dim,
-                                                                                                 run_id=run_id,
-                                                                                                 create_split=create_split,
-                                                                                                 num_epochs=num_epochs,
-                                                                                                 num_cluster_config=num_cluster_config,
-                                                                                                 manual_labels_config=ExperimentConfig.USE_ACTUAL,
-                                                                                                 supervise_weight=1,
-                                                                                                 beta=0,
-                                                                                                 reconstruction_weight=0,
-                                                                                                 model_type=MODEL_TYPE_SUPERVISED_CLASSIFIER,
-                                                                                                 num_units=num_units,
-                                                                                                 save_reconstructed_images=False,
-                                                                                                 split_name="Split_70_30",
-                                                                                                 train_val_data_iterator=train_val_data_iterator,
-                                                                                                 num_val_samples=-1)
+
+            train_val_data_iterator, _, _ = initialize_model_train_and_get_features(experiment_name=experiment_name,
+                                                                                    z_dim=z_dim,
+                                                                                    run_id=run_id,
+                                                                                    create_split=create_split,
+                                                                                    num_epochs=num_epochs,
+                                                                                    num_cluster_config=num_cluster_config,
+                                                                                    manual_labels_config=ExperimentConfig.USE_ACTUAL,
+                                                                                    supervise_weight=1,
+                                                                                    beta=0,
+                                                                                    reconstruction_weight=0,
+                                                                                    model_type=MODEL_TYPE_SUPERVISED_CLASSIFIER,
+                                                                                    num_decoder_layer=3,
+                                                                                    num_units=num_units[0:2],
+                                                                                    save_reconstructed_images=False,
+                                                                                    split_name="Split_70_30",
+                                                                                    train_val_data_iterator=train_val_data_iterator,
+                                                                                    num_val_samples=-1,
+                                                                                    write_predictions=False)
             tf.reset_default_graph()

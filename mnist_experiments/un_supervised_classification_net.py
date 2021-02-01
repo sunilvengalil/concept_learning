@@ -9,6 +9,7 @@ num_epochs = 10
 num_runs = 1
 create_split = False
 completed_z_dims = 0
+
 for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
     completed_runs = 0
     for run_id in range(num_runs):

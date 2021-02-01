@@ -9,11 +9,12 @@ from sklearn.metrics import accuracy_score
 from clearn.config.common_path import get_encoded_csv_file
 from clearn.dao.idao import IDao
 from clearn.dao.mnist import MnistDao
-from clearn.utils import prior_factory as prior
 
 from clearn.models.classify.classifier import ClassifierModel
 import tensorflow as tf
-from clearn.utils.tensorflow_wrappers import conv2d, linear, deconv2d, lrelu
+
+from clearn.utils.data_loader import DataIterator
+from clearn.utils.tensorflow_wrappers import conv2d, linear, lrelu
 from clearn.utils.utils import get_latent_vector_column
 
 
@@ -30,11 +31,10 @@ class SupervisedClassifierModel(ClassifierModel):
                  num_units_in_layer=None,
                  check_point_epochs=None,
                  dao: IDao = MnistDao(),
-                 test_data_iterator=None,
+                 test_data_iterator: DataIterator = None,
                  ):
         super().__init__(exp_config, sess, epoch, check_point_epochs=check_point_epochs, dao=dao)
-        self.test_data_iterator=test_data_iterator
-        self.dao = dao
+        self.test_data_iterator = test_data_iterator
         self.label_dim = dao.num_classes
         if num_units_in_layer is None or len(num_units_in_layer) == 0:
             self.n = [128, 64, 32, exp_config.Z_DIM]
@@ -69,73 +69,33 @@ class SupervisedClassifierModel(ClassifierModel):
         b = dict()
         with tf.compat.v1.variable_scope("encoder", reuse=reuse):
             if self.exp_config.activation_hidden_layer == "RELU":
-                self.conv1 = lrelu(conv2d(x, self.n[0], 3, 3, self.strides[0], self.strides[0], name='en_conv1'))
-                self.conv2 = lrelu((conv2d(self.conv1,
-                                           self.n[1],
-                                           3, 3, self.strides[1], self.strides[1], name='en_conv2')))
-                self.reshaped_en = tf.reshape(self.conv2, [self.exp_config.BATCH_SIZE, -1])
-                self.dense2_en = lrelu(linear(self.reshaped_en, self.n[2], scope='en_fc3'))
+                layer_num = 0
+                self.conv1 = lrelu(
+                    conv2d(x, self.n[layer_num], 3, 3, self.strides[0], self.strides[0], name='en_conv1'))
+                layer_num += 1
+                final_conv = self.conv1
+                if self.exp_config.num_decoder_layer == 4:
+                    self.conv2 = lrelu((conv2d(self.conv1,
+                                               self.n[layer_num],
+                                               3, 3, self.strides[1], self.strides[1], name='en_conv2')))
+                    layer_num += 1
+                    final_conv = self.conv2
+                self.reshaped_en = tf.reshape(final_conv, [self.exp_config.BATCH_SIZE, -1])
+                # self.dense2_en = lrelu(linear(self.reshaped_en, self.n[layer_num], scope='en_fc3'))
+                layer_num += 1
             elif self.exp_config.activation_hidden_layer == "LINEAR":
                 self.conv1 = conv2d(x, self.n[0], 3, 3, self.strides[0], self.strides[0], name='en_conv1')
                 self.conv2 = (conv2d(self.conv1, self.n[1], 3, 3, self.strides[1], self.strides[1], name='en_conv2'))
                 self.reshaped_en = tf.reshape(self.conv2, [self.exp_config.BATCH_SIZE, -1])
                 self.dense2_en = linear(self.reshaped_en, self.n[2], scope='en_fc3')
             else:
-                raise Exception(f"Activation {self.exp_config.activation} not supported")
+                raise Exception(f"Activation {self.exp_config.activation_hidden_layer} not supported")
 
-            # with tf.control_dependencies([net_before_gauss]):
-            z, w["en_fc4"], b["en_fc4"] = linear(self.dense2_en, 2 * self.exp_config.Z_DIM,
+            z, w["en_fc4"], b["en_fc4"] = linear(self.reshaped_en, self.exp_config.Z_DIM,
                                                  scope='en_fc4',
                                                  with_w=True)
 
         return z
-
-    # Bernoulli decoder
-    def decoder(self, z, reuse=False):
-        # Models the probability P(X/z)
-        # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
-        # Architecture : FC1024_BR-FC7x7x128_BR-(64)4dc2s_BR-(1)4dc2s_S
-        image_shape = self.dao.image_shape
-        input_shape = [self.exp_config.BATCH_SIZE, image_shape[0], image_shape[1], image_shape[2]]
-
-        layer_4_size = [self.exp_config.BATCH_SIZE,
-                        image_shape[0] // self.strides[0],
-                        image_shape[1] // self.strides[0],
-                        self.n[0]]
-        layer_3_size = [self.exp_config.BATCH_SIZE,
-                        layer_4_size[1] // self.strides[1],
-                        layer_4_size[2] // self.strides[1],
-                        self.n[1]]
-        layer_2_size =  self.n[1] * layer_3_size[1] * layer_3_size[1]
-        with tf.variable_scope("decoder", reuse=reuse):
-            if self.exp_config.activation_hidden_layer == "RELU":
-                self.dense1_de = lrelu((linear(z, self.n[2], scope='de_fc1')))
-                self.dense2_de = lrelu((linear(self.dense1_de, layer_2_size)))
-                #TODO remove hard coding
-                self.reshaped_de = tf.reshape(self.dense2_de, layer_3_size)
-                self.deconv1_de = lrelu(deconv2d(self.reshaped_de,
-                                                 layer_4_size,
-                                                 3, 3, self.strides[1], self.strides[1], name='de_dc3'))
-            elif self.exp_config.activation_hidden_layer == "LINEAR":
-                self.dense1_de = linear(z, self.n[2], scope='de_fc1')
-                self.dense2_de = linear(self.dense1_de, layer_2_size)
-                #TODO remove hard coding
-
-                self.reshaped_de = tf.reshape(self.dense2_de,
-                                              layer_3_size)
-                self.deconv1_de = deconv2d(self.reshaped_de,
-                                           layer_4_size,
-                                           3, 3, self.strides[1], self.strides[1], name='de_dc3')
-            else:
-                raise Exception(f"Activation {self.exp_config.activation_hidden_layer} not supported")
-
-            if self.exp_config.activation_output_layer == "SIGMOID":
-                out = tf.nn.sigmoid(deconv2d(self.deconv1_de,
-                                             input_shape, 3, 3, self.strides[0], self.strides[0], name='de_dc4'))
-            elif self.exp_config.activation_output_layer == "LINEAR":
-                out = deconv2d(self.deconv1_de, input_shape, 3, 3, self.strides[0], self.strides[0], name='de_dc4')
-
-            return out
 
     def _build_model(self):
         # some parameters
@@ -147,12 +107,7 @@ class SupervisedClassifierModel(ClassifierModel):
         # images
         self.inputs = tf.compat.v1.placeholder(tf.float32, [bs] + image_dims, name='real_images')
 
-        # random vectors with  multi-variate gaussian distribution
-        # 0 mean and covariance matrix as Identity
-        self.standard_normal = tf.compat.v1.placeholder(tf.float32, [bs, self.exp_config.Z_DIM], name='z')
-
         # Whether the sample was manually annotated.
-        self.is_manual_annotated = tf.compat.v1.placeholder(tf.float32, [bs], name="is_manual_annotated")
         self.labels = tf.compat.v1.placeholder(tf.float32, [bs, self.label_dim], name='manual_label')
 
         """ Loss Function """
@@ -162,8 +117,7 @@ class SupervisedClassifierModel(ClassifierModel):
         # supervised loss for labelled samples
         self.y_pred = linear(self.z, self.dao.num_classes)
         self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
-                                                                         logits=self.y_pred,
-                                                                         weights=self.is_manual_annotated
+                                                                         logits=self.y_pred
                                                                          )
         self.loss = self.exp_config.supervise_weight * self.supervised_loss
 
@@ -171,8 +125,9 @@ class SupervisedClassifierModel(ClassifierModel):
         # optimizers
         t_vars = tf.compat.v1.trainable_variables()
         with tf.control_dependencies(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
-            self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate, beta1=self.exp_config.beta1_adam) \
-                .minimize(self.loss, var_list=t_vars)
+            self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate,
+                                                          beta1=self.exp_config.beta1_adam).minimize(self.loss,
+                                                                                                     var_list=t_vars)
 
         """" Testing """
         # for test
@@ -198,7 +153,6 @@ class SupervisedClassifierModel(ClassifierModel):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
                 batch_images, _, manual_labels = train_val_data_iterator.get_next_batch("train")
-                batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
                 # update autoencoder
                 _, summary_str, loss, supervised_loss = self.sess.run([self.optim,
@@ -207,11 +161,7 @@ class SupervisedClassifierModel(ClassifierModel):
                                                                        self.supervised_loss],
                                                                       feed_dict={self.inputs: batch_images,
                                                                                  self.labels: manual_labels[:,
-                                                                                              :self.dao.num_classes],
-                                                                                 self.is_manual_annotated: manual_labels[
-                                                                                                           :,
-                                                                                                           self.dao.num_classes],
-                                                                                 self.standard_normal: batch_z})
+                                                                                              :self.dao.num_classes]})
 
                 counter += 1
             # After an epoch, start_batch_id is set to zero
@@ -226,12 +176,12 @@ class SupervisedClassifierModel(ClassifierModel):
                     if self.test_data_iterator is not None:
                         self.evaluate(self.test_data_iterator, epoch, dataset_type="test")
                         self.test_data_iterator.reset_counter("test")
-                    train_val_data_iterator.reset_counter("train")
-                    train_val_data_iterator.reset_counter("val")
+            train_val_data_iterator.reset_counter("train")
+            train_val_data_iterator.reset_counter("val")
             for metric in self.metrics_to_compute:
-                print(f"Accuracy: train: {self.metrics[SupervisedClassifierModel.dataset_type_train][metric][-1]}" )
-                print(f"Accuracy: val: {self.metrics[SupervisedClassifierModel.dataset_type_val][metric][-1]}" )
-                print(f"Accuracy: test: {self.metrics[SupervisedClassifierModel.dataset_type_test][metric][-1]}" )
+                print(f"Accuracy: train: {self.metrics[SupervisedClassifierModel.dataset_type_train][metric][-1]}")
+                print(f"Accuracy: val: {self.metrics[SupervisedClassifierModel.dataset_type_val][metric][-1]}")
+                print(f"Accuracy: test: {self.metrics[SupervisedClassifierModel.dataset_type_test][metric][-1]}")
 
             start_batch_id = 0
             # save model
@@ -246,6 +196,8 @@ class SupervisedClassifierModel(ClassifierModel):
                 df["test_accuracy"] = np.asarray(self.metrics["test"]["accuracy"])[:, 1]
                 df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"accuracy_{start_epoch}.csv"),
                           index=False)
+                max_accuracy = df["test_accuracy"].max()
+                print(max_accuracy)
 
         # save model for final step
         self.save(self.exp_config.TRAINED_MODELS_PATH, counter)
@@ -289,16 +241,16 @@ class SupervisedClassifierModel(ClassifierModel):
             accuracy = accuracy_score(labels, labels_predicted)
             self.metrics[dataset_type]["accuracy"].append([epoch, accuracy])
 
-        print("Saving evaluation results to ", self.exp_config.ANALYSIS_PATH)
         encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
                                   columns=["label", "label_predicted"])
         if return_latent_vector:
-            mean_col_names, sigma_col_names, z_col_names, l3_col_names = get_latent_vector_column(self.exp_config.z_dim)
+            mean_col_names, sigma_col_names, z_col_names, l3_col_names = get_latent_vector_column(self.exp_config.Z_DIM)
             encoded_df[mean_col_names] = mu
             encoded_df[sigma_col_names] = sigma
             encoded_df[z_col_names] = z
         if self.exp_config.write_predictions:
             output_csv_file = get_encoded_csv_file(self.exp_config, epoch, dataset_type)
+            print("Saving evaluation results to ", self.exp_config.ANALYSIS_PATH)
             encoded_df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, output_csv_file), index=False)
         return encoded_df
 

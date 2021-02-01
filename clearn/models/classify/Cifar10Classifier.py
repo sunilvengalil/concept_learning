@@ -2,6 +2,7 @@ import tensorflow as tf
 
 from clearn.dao.idao import IDao
 from clearn.dao.mnist import MnistDao
+from clearn.models.architectures import cnn_4_layer
 from clearn.utils.tensorflow_wrappers import conv2d, linear, deconv2d, lrelu
 from clearn.models.classify.supervised_classifier import SupervisedClassifierModel
 
@@ -27,123 +28,7 @@ class Cifar10Classifier(SupervisedClassifierModel):
         self.strides = [2, 2, 2, 2]
 
     def _encoder(self, x, reuse=False):
-        # Encoder models the probability  P(z/X)
-        # pytorch code
-        # self.encoder = nn.Sequential(
-        #     nn.Conv2d(nc, 128, 4, 2, 1, bias=False),              # B,  128, 32, 32
-        #     nn.BatchNorm2d(128),
-        #     nn.ReLU(True),
-        #     nn.Conv2d(128, 256, 4, 2, 1, bias=False),             # B,  256, 16, 16
-        #     nn.BatchNorm2d(256),
-        #     nn.ReLU(True),
-        #     nn.Conv2d(256, 512, 4, 2, 1, bias=False),             # B,  512,  8,  8
-        #     nn.BatchNorm2d(512),
-        #     nn.ReLU(True),
-        #     nn.Conv2d(512, 1024, 4, 2, 1, bias=False),            # B, 1024,  4,  4
-        #     nn.BatchNorm2d(1024),
-        #     nn.ReLU(True),
-        #     View((-1, 1024*2*2)),                                 # B, 1024*4*4
-        # )
-
-        with tf.compat.v1.variable_scope("encoder", reuse=reuse):
-            if self.exp_config.activation_hidden_layer == "RELU":
-                conv1 = conv2d(x, self.n[0], 3, 3, self.strides[0], self.strides[0], name='en_conv1')
-                conv1 = tf.compat.v1.layers.batch_normalization(conv1)
-                self.conv1 = lrelu(conv1, 0.0)
-
-                conv2 = conv2d(self.conv1, self.n[1], 3, 3, self.strides[0], self.strides[0], name='en_conv2')
-                conv2 = tf.compat.v1.layers.batch_normalization(conv2)
-                self.conv2 = lrelu(conv2, 0.0)
-
-                conv3 = conv2d(self.conv2, self.n[2], 3, 3, self.strides[0], self.strides[0], name='en_conv3')
-                conv3 = tf.compat.v1.layers.batch_normalization(conv3)
-                self.conv3 = lrelu(conv3, 0.0)
-
-                conv4 = conv2d(self.conv3, self.n[3], 3, 3, self.strides[0], self.strides[0], name='en_conv4')
-                conv4 = tf.compat.v1.layers.batch_normalization(conv4)
-                self.conv4 = lrelu(conv4, 0.01)
-
-                self.reshaped = tf.reshape(self.conv3, [self.exp_config.BATCH_SIZE, -1])
-
-                # self.dense2_en = lrelu(linear(reshaped, self.n[4], scope='en_fc1'), 0.0)
-
-            else:
-                raise Exception(f"Activation {self.exp_config.activation_hidden_layer} not implemented")
-
-            z = linear(self.reshaped,
-                       self.exp_config.Z_DIM,
-                       scope='en_fc2')
-        return z
-
-    # Bernoulli decoder
-    def decoder(self, z, reuse=False):
-        # py pytorch code
-        # self.fc_mu = nn.Linear(1024 * 2 * 2, z_dim)  # B, z_dim
-        # self.fc_logvar = nn.Linear(1024 * 2 * 2, z_dim)  # B, z_dim
-        # self.decoder = nn.Sequential(
-        #     nn.Linear(z_dim, 1024 * 4 * 4),  # B, 1024*8*8
-        #     View((-1, 1024, 4, 4)),  # B, 1024,  8,  8
-        #     nn.ConvTranspose2d(1024, 512, 4, 2, 1, bias=False),  # B,  512, 16, 16
-        #     nn.BatchNorm2d(512),
-        #     nn.ReLU(True),
-        #     nn.ConvTranspose2d(512, 256, 4, 2, 1, bias=False),  # B,  256, 32, 32
-        #     nn.BatchNorm2d(256),
-        #     nn.ReLU(True),
-        #     nn.ConvTranspose2d(256, 128, 4, 2, 1, bias=False),  # B,  128, 64, 64
-        #     nn.BatchNorm2d(128),
-        #     nn.ReLU(True),
-        #     nn.ConvTranspose2d(128, nc, 1),  # B,   nc, 64, 64
-        # )
-
-        # Models the probability P(X/z)
-        # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
-        # Architecture : FC1024_BR-FC7x7x128_BR-(64)4dc2s_BR-(1)4dc2s_S
-
-        output_shape = [self.exp_config.BATCH_SIZE, self.dao.image_shape[0], self.dao.image_shape[1], self.dao.image_shape[2]]
-        layer_4_size = [self.exp_config.BATCH_SIZE,
-                        output_shape[1] // self.strides[0],
-                        output_shape[2] // self.strides[0],
-                        self.n[0]]
-        layer_3_size = [self.exp_config.BATCH_SIZE,
-                        layer_4_size[1] // self.strides[1],
-                        layer_4_size[2] // self.strides[1],
-                        self.n[1]]
-        layer_2_size = [self.exp_config.BATCH_SIZE,
-                        layer_3_size[1] // self.strides[2],
-                        layer_3_size[2] // self.strides[2],
-                        self.n[2]]
-        layer_1_size = [self.exp_config.BATCH_SIZE,
-                        layer_2_size[1] // self.strides[3],
-                        layer_2_size[2] // self.strides[3],
-                        self.n[3]]
-
-        with tf.variable_scope("decoder", reuse=reuse):
-            if self.exp_config.activation_hidden_layer == "RELU":
-
-                self.dense1_de = lrelu(linear(z, layer_1_size[1] * layer_1_size[2] * layer_1_size[3], scope="de_fc1"), 0)
-                # self.dense2_de = lrelu(linear(self.dense1_de, 1024 * 4 * 4, scope='de_fc2'))
-                self.reshaped_de = tf.reshape(self.dense1_de, layer_1_size)
-                deconv1 = lrelu(deconv2d(self.reshaped_de,
-                                                 layer_2_size,
-                                                 3, 3, self.strides[1], self.strides[1], name='de_dc1'), 0)
-                self.deconv1 = lrelu(tf.compat.v1.layers.batch_normalization(deconv1))
-
-                deconv2 = lrelu(deconv2d(self.self.deconv1,
-                                                 layer_3_size,
-                                                 3, 3, self.strides[2], self.strides[2], name='de_dc2'), 0)
-                self.deconv2 = lrelu(tf.compat.v1.layers.batch_normalization(deconv2))
-
-                deconv3 = lrelu(deconv2d(self.deconv2,
-                                                 layer_4_size,
-                                                 3, 3, self.strides[3], self.strides[3], name='de_dc3'), 0)
-                self.deconv3 = lrelu(tf.compat.v1.layers.batch_normalization(deconv3))
-
-                out = lrelu(deconv2d(self.deconv3,
-                                                 output_shape,
-                                                 3, 3, self.strides[4], self.strides[4], name='de_dc4'), 0)
-            else:
-                raise Exception(f"Activation {self.exp_config.activation} not supported")
-            return out
+        return cnn_4_layer(self, x, self.exp_config.Z_DIM, reuse)
 
     def _build_model(self):
         image_dims = self.dao.image_shape
