@@ -31,8 +31,8 @@ def get_base_path(exp_config,
     :rtype:
     """
     if len(exp_config.num_units)  >= 3:
-        units_ = str(exp_config.num_units[2])
-        for i in exp_config.num_units[3:]:
+        units_ = str(exp_config.num_units[-1])
+        for i in exp_config.num_units[2:-1][::-1]:
             units_ += "_" + str(units_)
     else:
         units_ = "0"
