@@ -30,16 +30,18 @@ def get_base_path(exp_config,
     """
     :rtype:
     """
+
+    num_units = exp_config.num_units
     if len(exp_config.num_units)  >= 3:
         units_ = str(exp_config.num_units[-1])
         for i in exp_config.num_units[2:-1][::-1]:
-            units_ += "_" + str(units_)
+            units_ += "_" + str(i)
     else:
         units_ = "0"
     if exp_config.num_cluster_config is None:
-        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{units_}_{exp_config.num_units[1]}_{exp_config.num_units[0]}_{exp_config.Z_DIM}_{run_id}/")
+        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{units_}_{num_units[1]}_{num_units[0]}_{exp_config.Z_DIM}_{run_id}/")
     else:
-        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{units_}_{exp_config.num_units[1]}_{exp_config.num_units[0]}_{exp_config.Z_DIM}_{exp_config.num_cluster_config}_{run_id}/")
+        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{units_}_{num_units[1]}_{num_units[0]}_{exp_config.Z_DIM}_{exp_config.num_cluster_config}_{run_id}/")
 
 
 class ExperimentConfig:
@@ -276,3 +278,24 @@ class ExperimentConfig:
         self.write_predictions = exp_config_dict["WRITE_PREDICTIONS"]
         self.eval_interval_in_epochs = exp_config_dict["EVAL_INTERVAL_IN_EPOCHS"]
         self.return_latent_vector = exp_config_dict["RETURN_LATENT_VECTOR"]
+
+if __name__ == "__main__":
+    _root_path = "/Users/sunilv/concept_learning_exp"
+    num_units = [128, 256, 512, 1024]
+    exp_config = ExperimentConfig(root_path=_root_path,
+                                  num_decoder_layer=5,
+                                  z_dim=32,
+                                  num_units=num_units,
+                                  num_cluster_config=None,
+                                  confidence_decay_factor=5,
+                                  beta=5,
+                                  supervise_weight=1,
+                                  dataset_name="cifar_10",
+                                  split_name="split_1",
+                                  model_name="VAE",
+                                  batch_size=64,
+                                  eval_interval=300,
+                                  name="Experiment_3",
+                                  num_val_samples=5000,
+                                  )
+    print(get_base_path(exp_config, 1))
