@@ -53,7 +53,7 @@ if __name__ == '__main__':
     run_id = 1
     train_val_data_iterator = None
 
-    for num_units in [[128, 256, 512, 1024],[32, 64, 64, 64] ]:
+    for num_units in [[32, 64, 64, 32], [32, 64, 32, 32], [32, 64, 32, 16], [32, 32, 32, 16], [32, 16, 16, 8]]:
         train_val_data_iterator, exp_config, model = initialize_model_train_and_get_features(experiment_name=experiment_name,
                                                                                              z_dim=z_dim,
                                                                                              run_id=run_id,

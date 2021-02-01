@@ -30,14 +30,16 @@ def get_base_path(exp_config,
     """
     :rtype:
     """
-    if len(exp_config.num_units) == 3:
-        units_ = exp_config.num_units[2]
+    if len(exp_config.num_units)  >= 3:
+        units_ = str(exp_config.num_units[2])
+        for i in exp_config.num_units[3:]:
+            units_ += "_" + str(units_)
     else:
-        units_ = 0
+        units_ = "0"
     if exp_config.num_cluster_config is None:
-        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{exp_config.Z_DIM * 2}_{units_}_{exp_config.num_units[1]}_{exp_config.num_units[0]}_{exp_config.Z_DIM}_{run_id}/")
+        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{units_}_{exp_config.num_units[1]}_{exp_config.num_units[0]}_{exp_config.Z_DIM}_{run_id}/")
     else:
-        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{exp_config.Z_DIM * 2}_{units_}_{exp_config.num_units[1]}_{exp_config.num_units[0]}_{exp_config.Z_DIM}_{exp_config.num_cluster_config}_{run_id}/")
+        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{units_}_{exp_config.num_units[1]}_{exp_config.num_units[0]}_{exp_config.Z_DIM}_{exp_config.num_cluster_config}_{run_id}/")
 
 
 class ExperimentConfig:

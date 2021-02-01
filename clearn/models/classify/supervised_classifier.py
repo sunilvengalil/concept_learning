@@ -153,6 +153,8 @@ class SupervisedClassifierModel(ClassifierModel):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
                 batch_images, _, manual_labels = train_val_data_iterator.get_next_batch("train")
+                if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
+                    break
 
                 # update autoencoder
                 _, summary_str, loss, supervised_loss = self.sess.run([self.optim,

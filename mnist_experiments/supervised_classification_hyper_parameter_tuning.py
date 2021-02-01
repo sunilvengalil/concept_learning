@@ -79,5 +79,6 @@ if __name__ == '__main__':
                                                                                     split_name="Split_70_30",
                                                                                     train_val_data_iterator=train_val_data_iterator,
                                                                                     num_val_samples=-1,
-                                                                                    write_predictions=False)
+                                                                                    write_predictions=False
+                                                                                    )
             tf.reset_default_graph()

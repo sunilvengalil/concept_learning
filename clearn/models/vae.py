@@ -234,6 +234,7 @@ class VAE(GenerativeModel):
                 self.num_steps_completed = batch
                 if self.exp_config.run_evaluation_during_training:
                     if np.mod(batch, self.exp_config.eval_interval) == self.exp_config.eval_interval - 1:
+                        train_val_data_iterator.reset_counter("val")
                         self.evaluate(train_val_data_iterator=train_val_data_iterator,
                                       dataset_type="val")
                         self.writer.add_summary(summary_str, self.counter - 1)
