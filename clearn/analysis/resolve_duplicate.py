@@ -53,11 +53,7 @@ max_epoch = 5
 
 num_rows = max_epoch * number_of_evaluation_per_epoch * NUMBER_OF_ROWS * num_val_images
 # Read all the individual data frames into a dictionary of format {"annotator_id"}
-base_path = get_base_path(exp_config.root_path,
-                          exp_config.Z_DIM,
-                          exp_config.num_units[2],
-                          exp_config.num_units[1],
-                          exp_config.num_cluster_config,
+base_path = get_base_path(exp_config,
                           run_id=run_id
                           )
 for key in keys:
@@ -67,17 +63,14 @@ for key in keys:
         keys.remove(key)
 data_dict = combine_annotation_sessions(keys=keys,
                                         base_path=base_path,
-                                        max_epoch=max_epoch)
+                                        max_epoch=max_epoch,
+                                        exp_config=exp_config)
 # Verify if there is duplicate annotations for the same combination of ( batch, image_no, row_number_with_image )
 data_dict = combine_multiple_annotations(data_dict, exp_config, num_rows, run_id)
 
 # Save the de-duped data frame
 for key in keys:
-    base_path = get_base_path(exp_config.root_path,
-                              exp_config.Z_DIM,
-                              exp_config.num_units[2],
-                              exp_config.num_units[1],
-                              exp_config.num_cluster_config,
+    base_path = get_base_path(exp_config,
                               run_id=run_id
                               )
     file_name = exp_config.get_annotation_result_path(base_path) + f"/{key}.csv"

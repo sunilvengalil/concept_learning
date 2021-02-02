@@ -2,6 +2,9 @@ import numpy as np
 
 
 def decode(model, z, batch_size):
+    """
+    z =
+    """
     # TODO remove this hard-coding
     feature_dimension = [len(z), 28, 28, 1]
     reconstructed_images = np.zeros(feature_dimension)
@@ -15,6 +18,28 @@ def decode(model, z, batch_size):
         last_batch = np.zeros([batch_size, z.shape[1]])
         last_batch[0:left_out, :] = z[num_batches * batch_size:]
         decoded_images = model.decode(last_batch)
+        reconstructed_images[num_batches * batch_size:] = decoded_images[0:left_out]
+
+    return reconstructed_images
+
+
+def decode_l3(model, z, batch_size):
+    """
+    z =
+    """
+    # TODO remove this hard-coding
+    feature_dimension = [len(z), 28, 28, 1]
+    reconstructed_images = np.zeros(feature_dimension)
+    num_latent_vectors = z.shape[0]
+    num_batches = num_latent_vectors // batch_size
+    for batch_num in range(num_batches):
+        decoded_images = model.decode_l3(z[batch_num * batch_size: (batch_num + 1) * batch_size])
+        reconstructed_images[batch_num * batch_size: (batch_num + 1) * batch_size] = decoded_images
+    left_out = num_latent_vectors % batch_size
+    if left_out != 0:
+        last_batch = np.zeros([batch_size, z.shape[1]])
+        last_batch[0:left_out, :] = z[num_batches * batch_size:]
+        decoded_images = model.decode_l3(last_batch)
         reconstructed_images[num_batches * batch_size:] = decoded_images[0:left_out]
 
     return reconstructed_images
@@ -37,6 +62,25 @@ def decode_layer1(model, z, batch_size):
         reconstructed_images[num_batches * batch_size:] = decoded_images[0:left_out]
 
     return reconstructed_images
+
+
+def classify_images(model, images, batch_size, num_classes):
+    num_images = images.shape[0]
+    num_batches = num_images // batch_size
+    logits = np.zeros([num_batches * batch_size, num_classes])
+    for batch_num in range(num_batches):
+        _logits = model.classify(images[batch_num * batch_size: (batch_num + 1) * batch_size])[0]
+        logits[batch_num * batch_size: (batch_num + 1) * batch_size] = _logits
+    left_out = num_images % batch_size
+    if left_out > 0:
+        # TODO remove this hard-coding
+        feature_dimension = [batch_size, 28, 28, 1]
+        last_batch = np.zeros(feature_dimension)
+        last_batch[0:left_out] = images[num_batches * batch_size:]
+        _logits = model.classify(last_batch)[0]
+        logits[num_batches * batch_size:] = _logits[0:left_out]
+
+    return logits
 
 
 def encode(model, images, batch_size, z_dim):
@@ -99,36 +143,25 @@ def decode_and_get_features(model, z, batch_size):
 def encode_and_get_features(model, images, batch_size, z_dim):
     num_images = images.shape[0]
     num_batches = num_images // batch_size
-    batch_num = 0
-    mus = []
-    sigmas = []
+    mus = np.zeros([len(images), z_dim])
+    sigmas = np.zeros([len(images), z_dim])
     latent_vectors = np.zeros([len(images), z_dim])
-    dense2_ens = []
+    # TODO remove the hard coding of feature dimension. Instead, ddd an api to get the dimension
+    dense2_ens = np.zeros([len(images), 32])
     reshapeds = []
     conv2_ens = []
     conv1_ens = []
-    if num_batches >= 1:
-        # Run for first batch to get the dimensions
-        batch_num = 0
-        mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en = model.encode_and_get_features(images[batch_num * batch_size: (batch_num + 1) * batch_size])
-        mus.append(mu)
-        sigmas.append(sigma)
+
+    for batch_num in range(num_batches):
+        mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en = model.encode_and_get_features(
+            images[batch_num * batch_size: (batch_num + 1) * batch_size])
+        mus[batch_num * batch_size: (batch_num + 1) * batch_size] = mu
+        sigmas[batch_num * batch_size: (batch_num + 1) * batch_size] = sigma
         latent_vectors[batch_num * batch_size: (batch_num + 1) * batch_size] = z
-        dense2_ens.append(dense2_en)
+        dense2_ens[batch_num * batch_size: (batch_num + 1) * batch_size] = dense2_en
         reshapeds.append(reshaped)
         conv2_ens.append(conv2_en)
         conv1_ens.append(conv1_en)
-
-        for batch_num in range(1, num_batches):
-            mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en = model.encode_and_get_features(
-                images[batch_num * batch_size: (batch_num + 1) * batch_size])
-            mus.append(mu)
-            sigmas.append(sigma)
-            latent_vectors[batch_num * batch_size: (batch_num + 1) * batch_size] = z
-            dense2_ens.append(dense2_en)
-            reshapeds.append(reshaped)
-            conv2_ens.append(conv2_en)
-            conv1_ens.append(conv1_en)
 
     left_out = num_images % batch_size
     if left_out > 0:
@@ -136,12 +169,11 @@ def encode_and_get_features(model, images, batch_size, z_dim):
         feature_dimension = [batch_size, 28, 28, 1]
         last_batch = np.zeros(feature_dimension)
         last_batch[0:left_out] = images[num_batches * batch_size:]
-        mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en = model.encode_and_get_features(
-            last_batch)
-        mus.append(mu)
-        sigmas.append(sigma)
+        mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en = model.encode_and_get_features(last_batch)
+        mus[num_batches * batch_size:] = mu[0:left_out]
+        sigmas[num_batches * batch_size:] = sigma[0:left_out]
         latent_vectors[num_batches * batch_size:] = z[0:left_out]
-        dense2_ens.append(dense2_en)
+        dense2_ens[num_batches * batch_size:] = dense2_en[0:left_out]
         reshapeds.append(reshaped)
         conv2_ens.append(conv2_en)
         conv1_ens.append(conv1_en)

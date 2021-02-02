@@ -10,23 +10,18 @@ from collections import defaultdict
 
 from clearn.analysis import CSV_COL_NAME_EPOCH, CSV_COL_NAME_STEP, CSV_COL_NAME_IMAGE_ID
 from clearn.analysis import CSV_COL_NAME_ROW_ID_WITHIN_IMAGE
-# import ROOT_PATH, z_dim, N_3, N_2, exp_config, run_id, max_epoch
-
-from clearn.config import get_base_path
+from clearn.config import get_base_path, get_keys
 from clearn.utils.dir_utils import get_eval_result_dir
 from clearn.utils.pandas_utils import space_separated_string, has_multiple_value
 from clearn.analysis.annotate_v3 import show_image_and_get_annotations_v2
-
-ANNOTATION_FOLDER_NAME_PREFIX="manual_annotation_"
+from clearn.analysis import ANNOTATION_FOLDER_NAME_PREFIX, COMBINED_AND_CORRECTED_COLUMN_NAME
 annotator = "sunil"
 
 KEY_FOR_DATA_FRAME = "data_frame"
 
 
-""" Return labels for validation set"""
-
-
 def read_label(label_file, num_label_files):
+    """ Return labels for validation set"""
     labels = {}
     for file_number in range(num_label_files):
         label_df = pd.read_csv(label_file.format(file_number))
@@ -34,12 +29,12 @@ def read_label(label_file, num_label_files):
     return labels
 
 
-def get_label_reconstructed(_df, num_rows_per_image, num_digits_per_row):
+def get_label_reconstructed(_df, num_rows_per_image, num_digits_per_row, text_column_name):
     labels = np.ones(num_rows_per_image * num_digits_per_row) * -2
     _df = _df.fillna("xxxx")
     for row in _df.iterrows():
         text_ = [-1] * num_digits_per_row
-        row_text_ = row[1]["text"]
+        row_text_ = row[1][text_column_name]
         # print("row_text_", row_text_)
         if isinstance(row_text_, float):
             row_text_ = str(row_text_)
@@ -64,44 +59,61 @@ def get_label_reconstructed(_df, num_rows_per_image, num_digits_per_row):
     return labels
 
 
-def get_combined_and_corrected_annotations(annotated_path, batches=None):
+def get_labels_and_annotations(epoch, step, df_batch, text_column_name, num_label_files, labels):
+    labels_batch = []
+    reconstructed_batch = []
+    for image_no in range(num_label_files):
+        _df = df_batch[df_batch["_idx"] == image_no]
+
+        if _df.shape[0] > 0:
+            try:
+                reconstructed = get_label_reconstructed(_df[["num_rows_annotated", text_column_name]],
+                                                        num_rows_per_image=16,
+                                                        num_digits_per_row=4,
+                                                        text_column_name=text_column_name)
+            except Exception as e:
+                print(f"Invalid character in annotation,epoch {epoch:01d} , step {step:01d}, image {image_no}")
+                print(str(e))
+                continue
+            _reconstructed_indices = reconstructed != -2
+            reconstructed_batch.extend(reconstructed[_reconstructed_indices])
+            labels_batch.extend(labels[image_no][_reconstructed_indices])
+    return labels_batch, reconstructed_batch
+
+
+def convert_data_type(df):
+    df["epoch"] = df["epoch"].astype(int)
+    df["step"] = df["step"].astype(int)
+    df["_idx"] = df["_idx"].astype(int)
+    df["num_rows_annotated"] = df["num_rows_annotated"].astype(int)
+    df["batch"] = df["batch"].astype(int)
+
+
+def get_combined_and_corrected_annotations(annotated_path,
+                                           batches=None):
     print("Reading annotation from ", annotated_path)
     combined_and_corrected_annotation_file_name = "combined_corrected.csv"
     if os.path.isfile(annotated_path + combined_and_corrected_annotation_file_name):
         df = pd.read_csv(os.path.join(annotated_path, combined_and_corrected_annotation_file_name))
-        unique = df.groupby(["epoch", "step"]).size().reset_index().rename(columns={0: 'count'})
-        df["epoch"] = df["epoch"].astype(int)
-        df["step"] = df["step"].astype(int)
-        df["_idx"] = df["_idx"].astype(int)
-        df["num_rows_annotated"] = df["num_rows_annotated"].astype(int)
-        df["batch"] = df["batch"].astype(int)
     else:
-        raise Exception("File does not exist", annotated_path + combined_and_corrected_annotation_file_name)
-    if batches is None:
-        return df, unique
-    else:
+        raise Exception(f"File does not exist {annotated_path + combined_and_corrected_annotation_file_name}")
+
+    if batches is not None:
         df = df[df["batch"] == batches]
-        unique = df.groupby(["epoch", "step"]).size().reset_index().rename(columns={0: 'count'})
-        return df, unique
+    unique = df.groupby(["epoch", "step"]).size().reset_index().rename(columns={0: 'count'})
+    convert_data_type(df)
+    return df, unique
 
 
-
-"""
-If reviewed annotation exist get that, otherwise get un-reviewed annotation
-"""
-
-
-def get_annotations(annotated_path, batches=None):
+def get_annotations(annotated_path, batches=None, exp_config=None):
+    """
+    If reviewed annotation exist get that, otherwise get un-reviewed annotation
+    """
     print("Reading annotation from ", annotated_path)
     if os.path.isfile(annotated_path + "/manual_annotation_corrected.csv"):
-        # TODO check why f-string formatting is not working here
         df = pd.read_csv(os.path.join(annotated_path, "manual_annotation_corrected.csv"))
         unique = df.groupby(["epoch", "step"]).size().reset_index().rename(columns={0: 'count'})
-        df["epoch"] = df["epoch"].astype(int)
-        df["step"] = df["step"].astype(int)
-        df["_idx"] = df["_idx"].astype(int)
-        df["num_rows_annotated"] = df["num_rows_annotated"].astype(int)
-        df["batch"] = df["batch"].astype(int)
+        convert_data_type(df)
     else:
         df = None
         for annotation_file in os.listdir(annotated_path):
@@ -114,12 +126,17 @@ def get_annotations(annotated_path, batches=None):
                     df = pd.concat([df, _df])
         df = df.fillna("xxxx")
         unique = df.groupby(["epoch", "step"]).size().reset_index().rename(columns={0: 'count'})
-        df["epoch"] = df["epoch"].astype(int)
-        df["step"] = df["step"].astype(int)
-        df["_idx"] = df["_idx"].astype(int)
-        df["num_rows_annotated"] = df["num_rows_annotated"].astype(int)
-        df["batch"] = df["epoch"] * 935 + (df["step"] * 300)
-        df["batch"] = df["batch"].astype(int)
+        try:
+            df["epoch"] = df["epoch"].astype(int)
+            df["step"] = df["step"].astype(int)
+            df["_idx"] = df["_idx"].astype(int)
+            df["num_rows_annotated"] = df["num_rows_annotated"].astype(int)
+            df["batch"] = df["epoch"] * 935 + (df["step"] * exp_config.eval_interval)
+            df["batch"] = df["batch"].astype(int)
+        except Exception as ex:
+            print(f"Error while processing data in csv file located at {annotated_path}")
+            print(ex)
+            exit(0)
     if batches is None:
         return df, unique
     else:
@@ -129,39 +146,37 @@ def get_annotations(annotated_path, batches=None):
 
 
 def _compute_accuracy(df,
-                      step,
                       epoch,
+                      step,
                       num_label_files,
-                      labels,
-                      num_rows_per_image,
-                      num_digits_per_row
+                      labels
                       ):
-    df1 = df[(df["epoch"] == epoch) & (df["step"] == step)]
-    labels_batch = []
-    reconstructed_batch = []
-    for image_no in range(num_label_files):
-        _df = df1[df1["_idx"] == image_no]
-        if _df.shape[0] > 0:
-            try:
-                reconstructed = get_label_reconstructed(_df[["num_rows_annotated", "text"]],
-                                                        num_rows_per_image,
-                                                        num_digits_per_row)
-            except Exception as e:
-                print(f"Invalid character in annotation,epoch {epoch:01d} , step {step:01d}, image {image_no}")
-                print(str(e))
-                continue
-            _reconstructed_indices = reconstructed != -2
-            reconstructed_batch.extend(reconstructed[_reconstructed_indices])
-            labels_batch.extend(labels[image_no][_reconstructed_indices])
+    df_batch = df[(df["epoch"] == epoch) & (df["step"] == step)]
+    print(df_batch.shape)
+    print(epoch, step)
+    text_column_name = COMBINED_AND_CORRECTED_COLUMN_NAME
+    if text_column_name not in df_batch.columns:
+        raise Exception(f"Dataframe does not have column {text_column_name}")
+    number_of_nulls = df_batch[text_column_name].isnull().sum()
+    print(text_column_name, number_of_nulls)
+    if number_of_nulls > 0:
+        raise Exception(f"Dataframe has {number_of_nulls} null values in column  {text_column_name}")
+    labels_batch, reconstructed_batch = get_labels_and_annotations(epoch,
+                                                                   step,
+                                                                   df_batch,
+                                                                   text_column_name,
+                                                                   num_label_files,
+                                                                   labels)
+    print(f"Computed for  {text_column_name} for epoch {epoch} and step {step} ")
+
     accuracy = accuracy_score(labels_batch, reconstructed_batch)
     return accuracy
 
 
-def compute_accuracy(labels, gt_dir,
+def compute_accuracy(labels,
+                     gt_dir,
                      max_epoch,
                      num_label_files,
-                     num_rows_per_image,
-                     num_digits_per_row,
                      eval_interval,
                      corrected_annotation_file=None
                      ):
@@ -172,12 +187,10 @@ def compute_accuracy(labels, gt_dir,
         epoch = unique_combination[1]["epoch"]
         step = unique_combination[1]["step"]
         accuracy = _compute_accuracy(df,
-                                     step,
                                      epoch,
+                                     step,
                                      num_label_files,
-                                     labels,
-                                     num_rows_per_image,
-                                     num_digits_per_row
+                                     labels
                                      )
         accuracies.append(accuracy)
         total_batches_finished.append(epoch * 935 + step * eval_interval)
@@ -188,11 +201,11 @@ def compute_accuracy(labels, gt_dir,
     return accuracy_df
 
 
-def get_images(pred_path, batches=None):
+def get_images(pred_path, batches=None, exp_config=None):
     if batches is None:
         return None
-    epoch = 1 + batches // 935
-    batch = (batches % 935) - 1
+    epoch = (int(batches) % 935 // exp_config.eval_interval)
+    batch = (batches % 935)
     reconstructed_path = os.path.join(pred_path, f"reconstructed_{epoch:02d}_{batch:04d}")
     images = {}
     for file in os.listdir(reconstructed_path):
@@ -250,16 +263,12 @@ def get_images_dict(keys, exp_config, epoch, step, run_id, eval_interval=300):
     batch = epoch * 935 + step * eval_interval
     images_for_batch = dict()
     for key in keys:
-        base_path = get_base_path(exp_config.ROOT_PATH,
-                                  exp_config.z_dim,
-                                  exp_config.num_units[2],
-                                  exp_config.num_units[1],
-                                  exp_config.num_cluster_config,
+        base_path = get_base_path(exp_config,
                                   run_id=run_id)
         prediction_results_path = os.path.join(base_path,
                                                "prediction_results/")
         _images_dict = get_images(prediction_results_path,
-                                  batches=batch)
+                                  batches=batch, exp_config=exp_config)
         images_for_batch[key] = {"images": _images_dict}
     return images_for_batch
 
@@ -269,6 +278,7 @@ Join all dataframes in dictionary into a single dataframe
 
 
 def get_combined_data_frame(data_dict):
+    # TODO handle the case when there is no common keys(epoch, step, id, num_rows_annotated) in two dataframe
     df_combined = None
     for key in data_dict.keys():
         if df_combined is None:
@@ -292,25 +302,32 @@ def get_combined_annotation(row, column_names):
 
 
 def get_corrections_for_de_duping(df, exp_config, filter_column, manually_de_duped_file=None):
-    epoch_step_dict = defaultdict()
-    for index, row in df.iterrows():
+    epoch_step_dict = {}
+
+    group_by_columns = [CSV_COL_NAME_EPOCH, CSV_COL_NAME_STEP]
+    unique_df = df[group_by_columns].drop_duplicates()
+
+    for index, row in unique_df.iterrows():
         _epoch = row.epoch
         _step = row.step
-        _batch = _epoch * 935 + _step * 300
+        _batch = _epoch * 935 + _step * exp_config.eval_interval
         batch_filter = df["batch"] == _batch
         rows_to_annotate_all_images = list()
         for image_no in [0, 1]:
             filter_condition = (batch_filter & (df[filter_column]) & (df["_idx"] == image_no))
             rows_to_correct = df["num_rows_annotated"][filter_condition].values.tolist()
             rows_to_annotate_all_images.append(rows_to_correct)
+        # TODO do this for all validation images if there are more than two validation image
         if len(rows_to_annotate_all_images[0]) + len(rows_to_annotate_all_images[1]) > 0:
-            epoch_step_dict[_batch] = rows_to_annotate_all_images
+            epoch_step_dict[int(_batch)] = rows_to_annotate_all_images
     if manually_de_duped_file is None:
-        corrected_text_all_images =  show_image_and_get_annotations(epoch_step_dict,exp_config)
+        corrected_text_all_images = show_image_and_get_annotations(epoch_step_dict, exp_config)
     else:
+        print(epoch_step_dict)
         corrected_text_all_images = show_image_and_get_annotations_v2(epoch_step_dict,
                                                                       exp_config,
                                                                       manually_de_duped_file)
+        print(corrected_text_all_images)
     return corrected_text_all_images, epoch_step_dict
 
 
@@ -327,9 +344,9 @@ def show_image_and_get_annotations(epoch_step_dict, exp_config):
 
     for _batch in epoch_step_dict.keys():
         epoch = _batch // 935
-        step = (_batch % 935 // 300)
+        step = (_batch % 935 // exp_config.eval_interval)
         reconstructed_dir = get_eval_result_dir(exp_config.PREDICTION_RESULTS_PATH,
-                                                epoch + 1,
+                                                epoch,
                                                 (step * exp_config.eval_interval))
         for _idx in [0, 1]:
             rows_to_annotate = epoch_step_dict[_batch][_idx]
@@ -371,15 +388,15 @@ def get_annotations_for_keys(keys: dict, max_epoch: int, use_corrected=False):
         if use_corrected:
             df, _ = get_combined_and_corrected_annotations(annotation_path)
         else:
-            df, _ = get_annotations(annotation_path, batches=None)
+            df, _ = get_annotations(annotation_path, batches=None,exp_config=None)
         df = df[df["epoch"] < max_epoch]
         data_dict[key] = {KEY_FOR_DATA_FRAME: df}
     return data_dict
 
 
-def combine_annotation_sessions(keys: list, base_path: str, max_epoch: int):
-    """ Read all the individual data frames from location  into a dictionary of format {"annotator_id"}
-    @:param keys List of keys- each key corresponds to annotation by one different user
+def combine_annotation_sessions(keys: list, base_path: str, max_epoch: int, exp_config):
+    """ Read all the individual data frames from location `base_path`+key  into a dictionary of format {"annotator_id":dataframe}
+    @:param keys List of keys- each key corresponds to annotation by a different user
     """
     data_dict = dict()
     for key in keys:
@@ -387,7 +404,7 @@ def combine_annotation_sessions(keys: list, base_path: str, max_epoch: int):
         if not os.listdir(annotation_path):
             print(f"No csv files found in directory {annotation_path}")
             return data_dict
-        df, _ = get_annotations(annotation_path, batches=None)
+        df, _ = get_annotations(annotation_path, batches=None, exp_config=exp_config)
         df = df[df["epoch"] < max_epoch]
         if "text" not in df.columns:
             print(f"Files in  {annotation_path} does not have a column called text")
@@ -402,6 +419,7 @@ def combine_annotation_sessions(keys: list, base_path: str, max_epoch: int):
                          )
         unique_df = unique_df.rename(columns={"text": f"text_{key}"})
         data_dict[key] = {KEY_FOR_DATA_FRAME: unique_df}
+        print(f"Dataframe for key {key} {unique_df.shape} ")
     return data_dict
 
 
@@ -415,6 +433,7 @@ def save_manually_de_duped_json(manually_de_duped_file,
     manually_de_duped = dict()
     if corrected_text_all_images is not None:
         manually_de_duped["corrected_text_all_images"] = corrected_text_all_images
+        #manually_de_duped["corrected_text_all_images"] = {9015:"sunil"}
     # if batches_with_duplicate is not None:
     #     manually_de_duped["batches_with_duplicate"] = batches_with_duplicate
     # if rows_to_fix_for_duplicate is not None:
@@ -428,8 +447,8 @@ def save_manually_de_duped_json(manually_de_duped_file,
 
 
 def get_manual_annotation(manually_de_duped_file, df, exp_config, filter_column):
+    # See if manually de-duped file already exists. If yes go to the next annotator
     if os.path.isfile(manually_de_duped_file):
-
         with open(manually_de_duped_file, "r") as json_file:
             manually_de_duped = json.load(json_file)
 
@@ -445,6 +464,7 @@ def get_manual_annotation(manually_de_duped_file, df, exp_config, filter_column)
             exp_config,
             filter_column,
             manually_de_duped_file)
+        print("Saving manually deduped json")
         save_manually_de_duped_json(manually_de_duped_file,
                                     corrected_text_all_images,
                                     epoch_step_dict)
@@ -454,17 +474,12 @@ def get_manual_annotation(manually_de_duped_file, df, exp_config, filter_column)
 def combine_multiple_annotations(data_dict, exp_config, num_rows, run_id):
     keys_to_remove = []
     for key in data_dict.keys():
-        base_path = get_base_path(exp_config.root_path,
-                                  exp_config.Z_DIM,
-                                  exp_config.num_units[2],
-                                  exp_config.num_units[1],
-                                  exp_config.num_cluster_config,
+        base_path = get_base_path(exp_config,
                                   run_id=run_id
                                   )
         annotation_path = base_path + key
         df = data_dict[key][KEY_FOR_DATA_FRAME]
 
-        # See if manually de-duped file already exists. If yes go to the next annotator
         manually_de_duped_file = os.path.join(annotation_path, "manually_de_duped.json")
         corrected_text_all_images, epoch_step_dict = get_manual_annotation(manually_de_duped_file,
                                                                            df,
@@ -472,17 +487,18 @@ def combine_multiple_annotations(data_dict, exp_config, num_rows, run_id):
                                                                            "has_multiple_value")
         # If no manual correction, return the data_dict as it is
         if epoch_step_dict is None or len(epoch_step_dict) == 0:
-            if df.shape[0] != num_rows:
-                keys_to_remove.append(key)
+            # if df.shape[0] != num_rows:
+            #     keys_to_remove.append(key)
             continue
 
         # Update the corrected text in the data frame
         for _batch in epoch_step_dict.keys():
             epoch = int(_batch) // 935
-            step = (int(_batch) % 935 // 300)
+            step = (int(_batch) % 935 // exp_config.eval_interval)
             for image_no in [0, 1]:
                 column_name = f"text_{key}"
                 num_rows_annotated = epoch_step_dict[_batch][image_no]
+                print(f"batch {_batch}  image {image_no}")
                 corrected_text = corrected_text_all_images[_batch][image_no]
                 df.loc[(df["has_multiple_value"]) & (df["epoch"] == epoch) & (df["step"] == step) & (
                 df["num_rows_annotated"].isin(num_rows_annotated)) & (
@@ -491,13 +507,15 @@ def combine_multiple_annotations(data_dict, exp_config, num_rows, run_id):
                        df["_idx"] == image_no), "has_multiple_value"] = False
 
         # put the de-duped data frame back into data_dict
-        if df.shape[0] == num_rows:
-            data_dict[key][KEY_FOR_DATA_FRAME] = df
-        else:
-            print(f"Key {key} have {df.shape[0]} rows. Expected {num_rows} rows. Skipping this key")
-            keys_to_remove.append(key)
+        # if df.shape[0] == num_rows:
+        #    data_dict[key][KEY_FOR_DATA_FRAME] = df
+        # else:
+        #     print(f"Key {key} have {df.shape[0]} rows. Expected {num_rows} rows. Skipping this key")
+        #     keys_to_remove.append(key)
+
+        data_dict[key][KEY_FOR_DATA_FRAME] = df
+
     for key in keys_to_remove:
         del data_dict[key]
 
     return data_dict
-

@@ -1,8 +1,10 @@
-#Column names in annotated csv file
+# Column names in annotated csv file
 CSV_COL_NAME_EPOCH = "epoch"
 CSV_COL_NAME_STEP = "step"
 CSV_COL_NAME_IMAGE_ID = "_idx"
 CSV_COL_NAME_ROW_ID_WITHIN_IMAGE = "num_rows_annotated"
+ANNOTATION_FOLDER_NAME_PREFIX = "manual_annotation_"
+COMBINED_AND_CORRECTED_COLUMN_NAME = "text"
 
 
 class ManualAnnotation:
@@ -48,7 +50,7 @@ class Cluster:
         self.next_level_clusters = ClusterGroup("Clusters_level_{}".format(level))
 
     def set_next_level_clusters(self, cluster_group_dict):
-        #TODO ***IMPORTANT***  Create  Cluster Group object from dict.
+        # TODO ***IMPORTANT***  Create  Cluster Group object from dict.
         self.next_level_clusters = cluster_group_dict
 
     def next_lever_cluster_count(self):

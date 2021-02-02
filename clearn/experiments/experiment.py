@@ -1,59 +1,28 @@
 import tensorflow as tf
-import argparse
-from clearn.analysis.encode_images import encode_images
+from clearn.analysis.encode_images import encode_images, encode_images_and_get_features
 import json
 import os
 
-from clearn.models.classify.classifier import ClassifierModel
-from clearn.utils.data_loader import TrainValDataIterator
-from clearn.utils.utils import show_all_variables
+from clearn.models.classify.Cifar10Classifier import Cifar10Classifier
+from clearn.models.classify.cifar_10_vae import Cifar10Vae
+from clearn.models.vae import VAE
+from clearn.models.classify.supervised_classifier import SupervisedClassifierModel
+from clearn.dao.dao_factory import get_dao
+from clearn.models.model import Model
+
+from clearn.utils.data_loader import TrainValDataIterator, DataIterator
 from clearn.config import ExperimentConfig
-from clearn.config import RUN_ID
-create_split = False
+from clearn.utils.utils import show_all_variables
 
-
-def parse_args():
-    desc = "Tensorflow implementation of GAN collections"
-    parser = argparse.ArgumentParser(description=desc)
-
-    parser.add_argument('--gan_type', type=str, default='VAE',
-                        choices=['GAN', 'CGAN', 'infoGAN', 'ACGAN',
-                                 'EBGAN', 'BEGAN', 'WGAN', 'WGAN_GP', 'DRAGAN',
-                                 'LSGAN', 'VAE', 'CVAE'],
-                        help='The type of GAN', required=False)
-    parser.add_argument('--dataset', type=str, default='mnist',
-                        choices=['mnist', 'fashion-mnist', 'celebA', 'documents'],
-                        help='The name of dataset')
-    parser.add_argument('--epoch', type=int, default=5, help='The number of epochs to run')
-    parser.add_argument('--batch_size', type=int, default=64, help='The size of batch')
-    parser.add_argument('--z_dim', type=int, default=10, help='Dimension of noise vector')
-    parser.add_argument('--checkpoint_dir', type=str, default='checkpoint',
-                        help='Directory name to save the checkpoints')
-    parser.add_argument('--result_dir', type=str, default='results',
-                        help='Directory name to save the generated images')
-    parser.add_argument('--log_dir', type=str, default='logs',
-                        help='Directory name to save training logs')
-
-    return check_args(parser.parse_args())
-
-
-def check_args(_args):
-    # --epoch
-    assert _args.epoch >= 1, 'number of epochs must be larger than or equal to one'
-
-    # --batch_size
-    assert _args.batch_size >= 1, 'batch size must be larger than or equal to one'
-
-    # --z_dim
-    assert _args.z_dim >= 1, 'dimension of noise vector must be larger than or equal to one'
-
-    return _args
+MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10 = "VAE_UNSUPERVISED_CIFAR10"
+MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER = "VAE_UNSUPERVISED"
+MODEL_TYPE_SUPERVISED_CLASSIFIER = "CLASSIFIER_SUPERVISED"
+VAAL_ARCHITECTURE_FOR_CIFAR = "ACTIVE_LEARNING_VAAL_CIFAR"
 
 
 class Experiment:
-    def __init__(self, exp_id, name, num_val_samples, config1: ExperimentConfig, _run_id=None):
+    def __init__(self, exp_id, name, config1: ExperimentConfig, _run_id=None):
         """
-
         :type config1: ExperimentConfig
         """
         if _run_id is None:
@@ -62,7 +31,6 @@ class Experiment:
             self.run_id = _run_id
         self.id = exp_id
         self.name = name
-        self.num_validation_samples = num_val_samples
         self.config = config1
         self.model = None
 
@@ -79,104 +47,363 @@ class Experiment:
         config_json["RUN_ID"] = self.run_id
         config_json["ID"] = self.id
         config_json["name"] = self.name
-        config_json["NUM_VALIDATION_SAMPLES"] = self.num_validation_samples
         return config_json
 
-    def train(self, _train_val_data_iterator=None, _create_split=False):
-        if _train_val_data_iterator is None:
+    def train(self, train_val_data_iterator=None, _create_split=False):
+        if train_val_data_iterator is None:
 
             if _create_split:
-                _train_val_data_iterator = TrainValDataIterator(self.config.DATASET_ROOT_PATH,
-                                                                shuffle=True,
-                                                                stratified=True,
-                                                                validation_samples=self.num_validation_samples,
-                                                                split_names=["train", "validation"],
-                                                                split_location=self.config.DATASET_PATH,
-                                                                batch_size=self.config.BATCH_SIZE)
+                train_val_data_iterator = TrainValDataIterator(self.config.DATASET_ROOT_PATH,
+                                                               shuffle=True,
+                                                               stratified=True,
+                                                               validation_samples=self.config.num_val_samples,
+                                                               split_names=["train", "validation"],
+                                                               split_location=self.config.DATASET_PATH,
+                                                               batch_size=self.config.BATCH_SIZE)
             else:
-                _train_val_data_iterator = TrainValDataIterator.from_existing_split(self.config.split_name,
-                                                                                    self.config.DATASET_PATH,
-                                                                                    self.config.BATCH_SIZE,
-                                                                                    manual_labels_config=exp.config.manual_labels_config)
-        self.model.train(_train_val_data_iterator)
+                train_val_data_iterator = TrainValDataIterator.from_existing_split(self.config.split_name,
+                                                                                   self.config.DATASET_PATH,
+                                                                                   self.config.BATCH_SIZE,
+                                                                                   manual_labels_config=self.config.manual_labels_config)
+        self.model.train(train_val_data_iterator)
+
         print(" [*] Training finished!")
 
-    def encode_latent_vector(self, _train_val_data_iterator, epoch, dataset_type):
-        encode_images(self.model,
-                      _train_val_data_iterator,
-                      self.config,
-                      epoch,
-                      dataset_type
-                      )
+    def test(self, data_iterator):
+        return self.model.evaluate(data_iterator, dataset_type="test")
 
+    def encode_latent_vector(self, _train_val_data_iterator, epoch, dataset_type,
+                             save_results=True):
+        return encode_images(self.model,
+                             _train_val_data_iterator,
+                             self.config,
+                             epoch,
+                             dataset_type,
+                             save_results
+                             )
 
-if __name__ == '__main__':
-    # parse arguments
-    args = parse_args()
-    num_epochs = 1
-
-    _config = ExperimentConfig.get_exp_config()
-    _config.check_and_create_directories(RUN_ID)
-    BATCH_SIZE = _config.BATCH_SIZE
-    DATASET_NAME = _config.dataset_name
-    _config.check_and_create_directories(RUN_ID, create=False)
-
-    # TODO make this a configuration
-    # to change output type from sigmoid to leaky relu, do the following
-    # 1. In vae.py change the output layer type in decode()
-    # 2. Change the loss function in build_model
-
-    exp = Experiment(1, "VAE_MNIST", 128, _config, RUN_ID)
-
-    print(exp.as_json())
-    with open(_config.BASE_PATH + "config.json", "w") as config_file:
-        json.dump(_config.as_json(), config_file)
-    if create_split:
-        train_val_data_iterator = TrainValDataIterator(exp.config.DATASET_ROOT_PATH,
-                                                       shuffle=True,
-                                                       stratified=True,
-                                                       validation_samples=exp.num_validation_samples,
-                                                       split_names=["train", "validation"],
-                                                       split_location=exp.config.DATASET_PATH,
-                                                       batch_size=exp.config.BATCH_SIZE)
-    else:
-        manual_annotation_file = os.path.join(_config.ANALYSIS_PATH,
-                                              f"manual_annotation_epoch_{num_epochs - 1:.1f}.csv"
+    def encode_latent_vector_and_get_features(self, _train_val_data_iterator, epoch, dataset_type,
+                                              save_results=True):
+        return encode_images_and_get_features(self.model,
+                                              _train_val_data_iterator,
+                                              self.config,
+                                              epoch,
+                                              dataset_type,
+                                              save_results
                                               )
 
-        train_val_data_iterator = TrainValDataIterator.from_existing_split(exp.config.split_name,
-                                                                           exp.config.DATASET_PATH,
-                                                                           exp.config.BATCH_SIZE,
-                                                                           manual_labels_config=exp.config.manual_labels_config,
-                                                                           manual_annotation_file=None)
 
+def load_trained_model(experiment_name,
+                       z_dim,
+                       run_id,
+                       model_type,
+                       num_cluster_config=None,
+                       manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
+                       supervise_weight=150,
+                       beta=5,
+                       reconstruction_weight=1,
+                       ):
+    exp_config = ExperimentConfig(root_path="/Users/sunilv/concept_learning_exp",
+                                  num_decoder_layer=4,
+                                  z_dim=z_dim,
+                                  num_units=[64, 128, 32],
+                                  num_cluster_config=num_cluster_config,
+                                  confidence_decay_factor=5,
+                                  beta=beta,
+                                  supervise_weight=supervise_weight,
+                                  dataset_name="mnist",
+                                  split_name="Split_1",
+                                  model_name="VAE",
+                                  batch_size=64,
+                                  eval_interval=300,
+                                  name=experiment_name,
+                                  num_val_samples=128,
+                                  total_training_samples=60000,
+                                  manual_labels_config=manual_labels_config,
+                                  reconstruction_weight=reconstruction_weight,
+                                  activation_hidden_layer="RELU",
+                                  activation_output_layer="SIGMOID"
+                                  )
+    exp_config.check_and_create_directories(run_id)
+    tf.reset_default_graph()
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
-        model = ClassifierModel(exp_config=_config,
-                                sess=sess,
-                                epoch=num_epochs,
-                                batch_size=_config.BATCH_SIZE,
-                                z_dim=_config.Z_DIM,
-                                dataset_name=DATASET_NAME,
-                                beta=_config.beta,
-                                num_units_in_layer=_config.num_units,
-                                train_val_data_iterator=train_val_data_iterator,
-                                log_dir=exp.config.LOG_PATH,
-                                checkpoint_dir=exp.config.TRAINED_MODELS_PATH,
-                                result_dir=exp.config.PREDICTION_RESULTS_PATH,
-                                supervise_weight=exp.config.supervise_weight,
-                                reconstruction_weight=exp.config.reconstruction_weight,
-                                reconstructed_image_dir=exp.config.reconstructed_images_path
-                                )
-        exp.model = model
-        # show network architecture
-        show_all_variables()
+        if model_type == MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER:
+            model = VAE(exp_config,
+                        sess,
+                        epoch=1,
+                        num_units_in_layer=exp_config.num_units,
+                        )
+            print(model.get_trainable_vars())
+            num_steps_completed = model.counter
+            print("Number of steps completed={}".format(num_steps_completed))
+            num_batches = exp_config.num_train_samples / exp_config.BATCH_SIZE
+            epochs_completed = num_steps_completed // num_batches
+            print("Number of epochs completed {}".format(epochs_completed))
+        elif model_type == MODEL_TYPE_SUPERVISED_CLASSIFIER:
+            model = SupervisedClassifierModel(exp_config,
+                                              sess,
+                                              epoch=1,
+                                              num_units_in_layer=exp_config.num_units,
+                                              )
+            print(model.get_trainable_vars())
+            num_steps_completed = model.counter
+            print("Number of steps completed={}".format(num_steps_completed))
+            num_batches = exp_config.num_train_samples / exp_config.BATCH_SIZE
+            epochs_completed = num_steps_completed // num_batches
+            print("Number of epochs completed {}".format(epochs_completed))
+        else:
+            raise Exception(
+                f"model_type should be one of [{MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER}, {MODEL_TYPE_SUPERVISED_CLASSIFIER}]")
+        return model, exp_config, model.get_encoder_weights_bias(), model.get_decoder_weights_bias(), epochs_completed
 
-        exp.train(train_val_data_iterator)
 
+def initialize_model_train_and_get_features(experiment_name,
+                                            z_dim,
+                                            run_id,
+                                            create_split,
+                                            num_epochs,
+                                            model_type,
+                                            num_cluster_config=None,
+                                            manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
+                                            supervise_weight=150,
+                                            beta=5,
+                                            reconstruction_weight=1,
+                                            num_units=None,
+                                            save_reconstructed_images=True,
+                                            split_name="Split_1",
+                                            train_val_data_iterator=None,
+                                            num_val_samples=128,
+                                            root_path="/Users/sunilv/concept_learning_exp",
+                                            learning_rate=0.001,
+                                            run_evaluation_during_training=True,
+                                            eval_interval=300,
+                                            dataset_name="mnist",
+                                            activation_output_layer="SIGMOID",
+                                            write_predictions=True,
+                                            num_decoder_layer=4,
+                                            test_data_iterator=None):
+    dao = get_dao(dataset_name, split_name)
+    if num_units is None:
+        num_units = [64, 128, 32]
+    exp_config = ExperimentConfig(root_path=root_path,
+                                  num_decoder_layer=num_decoder_layer,
+                                  z_dim=z_dim,
+                                  num_units=num_units,
+                                  num_cluster_config=num_cluster_config,
+                                  confidence_decay_factor=5,
+                                  beta=beta,
+                                  supervise_weight=supervise_weight,
+                                  dataset_name=dataset_name,
+                                  split_name=split_name,
+                                  model_name="VAE",
+                                  batch_size=64,
+                                  eval_interval=eval_interval,
+                                  name=experiment_name,
+                                  num_val_samples=num_val_samples,
+                                  total_training_samples=dao.number_of_training_samples,
+                                  manual_labels_config=manual_labels_config,
+                                  reconstruction_weight=reconstruction_weight,
+                                  activation_hidden_layer="RELU",
+                                  activation_output_layer=activation_output_layer,
+                                  save_reconstructed_images=save_reconstructed_images,
+                                  learning_rate=learning_rate,
+                                  run_evaluation_during_training=run_evaluation_during_training,
+                                  write_predictions=write_predictions
+                                  )
+    exp_config.check_and_create_directories(run_id, create=True)
+    exp = Experiment(1, experiment_name, exp_config, run_id)
+    print(exp.as_json())
+    with open(exp_config.BASE_PATH + "config.json", "w") as config_file:
+        json.dump(exp_config.as_json(), config_file)
+    if train_val_data_iterator is None:
+        split_filename = exp.config.DATASET_PATH + split_name + ".json"
+        manual_annotation_file = os.path.join(exp_config.ANALYSIS_PATH,
+                                              f"manual_annotation_epoch_{num_epochs - 1:.1f}.csv"
+                                              )
+        print(split_filename)
+        if os.path.isfile(split_filename):
+            if manual_annotation_file is not None:
+                train_val_data_iterator = TrainValDataIterator.from_existing_split(exp.config.split_name,
+                                                                                   exp.config.DATASET_PATH,
+                                                                                   exp.config.BATCH_SIZE,
+                                                                                   manual_labels_config=exp.config.manual_labels_config,
+                                                                                   manual_annotation_file=manual_annotation_file,
+                                                                                   dao=dao)
+        elif create_split:
+            train_val_data_iterator = TrainValDataIterator(exp.config.DATASET_ROOT_PATH,
+                                                           shuffle=True,
+                                                           stratified=True,
+                                                           validation_samples=exp.config.num_val_samples,
+                                                           split_names=["train", "validation"],
+                                                           split_location=exp.config.DATASET_PATH,
+                                                           batch_size=exp.config.BATCH_SIZE,
+                                                           manual_labels_config=exp.config.manual_labels_config,
+                                                           manual_annotation_file=manual_annotation_file,
+                                                           dao=dao)
+        else:
+            raise Exception(f"File does not exists {split_filename}")
+
+    if test_data_iterator is None:
+        test_data_location = exp_config.DATASET_ROOT_PATH + "/test/"
+        if not os.path.isfile(test_data_location + "test.json"):
+            test_data_iterator = DataIterator(exp_config.DATASET_ROOT_PATH,
+                                              split_location=test_data_location,
+                                              split_names=["test"],
+                                              batch_size=exp_config.BATCH_SIZE,
+                                              dao=dao)
+        else:
+            test_data_iterator = DataIterator.from_existing_split("test",
+                                                                  split_location=test_data_location,
+                                                                  batch_size=exp_config.BATCH_SIZE,
+                                                                  dao=dao
+                                                                  )
+    with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as sess:
+        if model_type == MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER:
+            model = VAE(exp_config=exp_config,
+                        sess=sess,
+                        epoch=num_epochs,
+                        num_units_in_layer=exp_config.num_units,
+                        train_val_data_iterator=train_val_data_iterator,
+                        dao=dao,
+                        )
+        elif model_type == MODEL_TYPE_SUPERVISED_CLASSIFIER:
+            model = SupervisedClassifierModel(exp_config=exp_config,
+                                              sess=sess,
+                                              epoch=num_epochs,
+                                              num_units_in_layer=exp_config.num_units,
+                                              dao=dao,
+                                              test_data_iterator=test_data_iterator
+                                              )
+        elif model_type == VAAL_ARCHITECTURE_FOR_CIFAR:
+            model = Cifar10Classifier(exp_config=exp_config,
+                                      sess=sess,
+                                      epoch=num_epochs,
+                                      num_units_in_layer=exp_config.num_units,
+                                      dao=dao,
+                                      test_data_iterator=test_data_iterator
+                                      )
+        elif model_type == MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10:
+            model = Cifar10Vae(exp_config=exp_config,
+                                      sess=sess,
+                                      epoch=num_epochs,
+                                      num_units_in_layer=exp_config.num_units,
+                                      test_data_iterator=test_data_iterator,
+                                      dao=dao
+                                      )
+        else:
+            raise Exception(
+                f"model_type should be one of [{MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER}, {MODEL_TYPE_SUPERVISED_CLASSIFIER}]")
+        print("Starting training")
+        train_and_get_features(exp, model, train_val_data_iterator, num_epochs)
         train_val_data_iterator.reset_counter("train")
         train_val_data_iterator.reset_counter("val")
-        exp.encode_latent_vector(train_val_data_iterator, num_epochs, "train")
+        return train_val_data_iterator, exp_config, model
 
-        train_val_data_iterator.reset_counter("train")
-        train_val_data_iterator.reset_counter("val")
-        exp.encode_latent_vector(train_val_data_iterator, num_epochs, "val")
+
+def train_and_get_features(exp: Experiment,
+                           model: Model,
+                           train_val_data_iterator: TrainValDataIterator,
+                           num_epochs):
+    exp.model = model
+    # show network architecture
+    show_all_variables()
+
+    exp.train(train_val_data_iterator)
+
+    train_val_data_iterator.reset_counter("train")
+    train_val_data_iterator.reset_counter("val")
+    exp.encode_latent_vector(train_val_data_iterator, num_epochs, "train")
+
+    train_val_data_iterator.reset_counter("train")
+    train_val_data_iterator.reset_counter("val")
+    exp.encode_latent_vector(train_val_data_iterator, num_epochs, "val")
+
+
+def test(exp: Experiment,
+         model: VAAL_ARCHITECTURE_FOR_CIFAR,
+         data_iterator: DataIterator
+         ):
+    exp.model = model
+    show_all_variables()
+    predicted_df = exp.test(data_iterator)
+    return predicted_df
+
+
+def load_model_and_test(experiment_name,
+                        z_dim,
+                        run_id,
+                        model_type,
+                        num_cluster_config=None,
+                        num_units=None,
+                        save_reconstructed_images=True,
+                        split_name="Split_1",
+                        data_iterator=None,
+                        num_val_samples=128,
+                        root_path="/Users/sunilv/concept_learning_exp",
+                        dataset_name="mnist",
+                        write_predictions=True,
+                        num_decoder_layer=4
+                        ):
+    if num_units is None:
+        num_units = [64, 128, 32]
+    dao = get_dao(dataset_name, split_name)
+    exp_config = ExperimentConfig(root_path=root_path,
+                                  num_decoder_layer=num_decoder_layer,
+                                  z_dim=z_dim,
+                                  num_units=num_units,
+                                  num_cluster_config=num_cluster_config,
+                                  confidence_decay_factor=5,
+                                  dataset_name=dataset_name,
+                                  split_name=split_name,
+                                  model_name="VAE",
+                                  batch_size=128,
+                                  name=experiment_name,
+                                  num_val_samples=num_val_samples,
+                                  save_reconstructed_images=save_reconstructed_images,
+                                  )
+    exp_config.check_and_create_directories(run_id, create=False)
+    exp = Experiment(1, experiment_name, exp_config, run_id)
+    print(exp.as_json())
+
+    if data_iterator is None:
+        split_filename = exp.config.DATASET_PATH + split_name + ".json"
+        print(split_filename)
+        if os.path.isfile(split_filename):
+            data_iterator = DataIterator.from_existing_split(exp.config.split_name,
+                                                             exp.config.DATASET_PATH,
+                                                             exp.config.BATCH_SIZE,
+                                                             dao=dao)
+
+        else:
+            raise Exception(f"File does not exists {split_filename}")
+
+    with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as sess:
+        if model_type == MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER:
+            model = VAE(exp_config=exp_config,
+                        sess=sess,
+                        epoch=-1,
+                        num_units_in_layer=exp_config.num_units,
+                        train_val_data_iterator=data_iterator,
+                        dao=dao
+                        )
+        elif model_type == MODEL_TYPE_SUPERVISED_CLASSIFIER:
+            model = SupervisedClassifierModel(exp_config=exp_config,
+                                              sess=sess,
+                                              epoch=-1,
+                                              num_units_in_layer=exp_config.num_units,
+                                              dao=dao,
+                                              )
+        elif model_type == VAAL_ARCHITECTURE_FOR_CIFAR:
+            model = Cifar10Classifier(exp_config=exp_config,
+                                      sess=sess,
+                                      epoch=-1,
+                                      num_units_in_layer=exp_config.num_units,
+                                      dao=dao
+                                      )
+        else:
+            raise Exception(
+                f"model_type should be one of [{MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER}, {MODEL_TYPE_SUPERVISED_CLASSIFIER},{VAAL_ARCHITECTURE_FOR_CIFAR} ]")
+        print("Starting Inference")
+        predicted_df = test(exp, model, data_iterator)
+        data_iterator.reset_counter("test")
+        return exp_config, predicted_df

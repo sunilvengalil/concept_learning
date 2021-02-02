@@ -1,13 +1,88 @@
 from sklearn.cluster import KMeans
 import tensorflow as tf
 import numpy as np
-from clearn.models.generative_models.vae import VAE
+from clearn.models.vae import VAE
 from clearn.analysis.encode_decode import decode
 import math
 from matplotlib import pyplot as plt
 from clearn.analysis import Cluster
 from clearn.analysis import ClusterGroup
 from clearn.analysis import ManualAnnotation
+from clearn.models.classify.classifier import ClassifierModel
+
+
+def trace_dim(f, num_trace_steps, dim, feature_dim, z_min, z_max):
+    """
+    Returns a tensor of dimension (`num_trace_steps`, `feature_dim`) with each row containing feature vector `f`
+    with values in dimension `dim` changed from `z_min` to `z_max`
+    @param f feature vector
+    @param num_trace_steps number of steps to trace
+    @param dim dimension which should be modified during tracing
+    @param feature_dim dimension of feature vector
+    @param z_min starting value of tracing
+    @param z_max end value of tracing
+    """
+    z = np.zeros([num_trace_steps, feature_dim])
+    for i in range(num_trace_steps):
+        z[i] = f
+
+    step = 1 / num_trace_steps
+    for i in range(num_trace_steps):
+        alpha_i = step * i
+        z[i, dim] = alpha_i * z_min + (1 - alpha_i) * z_max
+    return z
+
+
+def plot_features(exp_config, features, digits, dimensions_to_be_plotted,  new_fig=True):
+    """
+    Plot the mean latent vector corresponding to symbols `digits`
+
+    @param digits list of symbols for which the feature should be plotted
+    @param dimensions_to_be_plotted indices of the feature dimensions that needs to be plotted
+
+    """
+
+    # Load Model
+    tf.reset_default_graph()
+    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
+        model = ClassifierModel(exp_config,
+                                sess,
+                                epoch=1,
+                                batch_size=exp_config.BATCH_SIZE,
+                                z_dim=exp_config.z_dim,
+                                dataset_name=exp_config.DATASET_NAME,
+                                num_units_in_layer=exp_config.num_units,
+                                log_dir=exp_config.LOG_PATH,
+                                checkpoint_dir=exp_config.TRAINED_MODELS_PATH,
+                                result_dir=exp_config.PREDICTION_RESULTS_PATH
+                                )
+        print(model.get_trainable_vars())
+        num_steps_completed = model.counter
+        print("Number of steps completed={}".format(num_steps_completed))
+        num_batches = exp_config.num_train_samples / exp_config.BATCH_SIZE
+        epochs_completed = num_steps_completed // num_batches
+        print("Number of epochs completed {}".format(epochs_completed))
+        means = np.asarray([np.mean(features[digit], axis=0) for digit in digits])
+        if new_fig:
+            plt.figure(figsize=(15, 10))
+
+        # TODO remove subplot
+        # ax = fig.add_subplot(2, 2, i % 4 + 1)
+        for d, mean in zip(digits, means):
+            # TODO plot only sensitive dimensions
+
+            plt.plot(mean[dimensions_to_be_plotted[d]])
+
+            # plt.xticks(list(range(len(sensitive_dimensions))), sensitive_dimensions[d])
+            # ax = plt.gca()
+            # iax = inset_axes(ax, width="50%", height=1, loc=1)
+
+            # plt.axes([0.65, 0.65, 0.2, 0.2], facecolor='y')
+
+        reconstructed_image_for_means = decode(model, means.reshape([len(digits), 10]), exp_config.BATCH_SIZE)
+        # plt.imshow(np.squeeze(reconstructed_image),cmap="gray")
+    tf.reset_default_graph()
+    return reconstructed_image_for_means
 
 
 def decode_latent_vectors(cluster_centers, exp_config):
@@ -15,13 +90,7 @@ def decode_latent_vectors(cluster_centers, exp_config):
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
         model = VAE(sess,
                     epoch=1,
-                    batch_size=exp_config.BATCH_SIZE,
-                    z_dim=exp_config.Z_DIM,
-                    dataset_name=exp_config.dataset_name,
-                    beta=exp_config.beta,
                     num_units_in_layer=exp_config.num_units,
-                    log_dir=exp_config.LOG_PATH,
-                    checkpoint_dir=exp_config.TRAINED_MODELS_PATH,
                     result_dir=exp_config.PREDICTION_RESULTS_PATH
                     )
         z = np.zeros([cluster_centers.shape[0], exp_config.Z_DIM])
@@ -80,6 +149,7 @@ def assign_manual_label_and_confidence(df,
     df["manual_annotation"] = np.ones(df.shape[0]) * -1
     df["manual_annotation_confidence"] = np.zeros(df.shape[0])
     df["distance_to_confidence"] = np.zeros(df.shape[0])
+    # manually given label for each cluster center -1 for unknown (cluster which has no semantic meaning)
     manual_labels = manual_annotation_dict["manual_labels"]
     cluster_labels = np.asarray(manual_annotation_dict["cluster_labels"])
 
@@ -119,27 +189,28 @@ def assign_manual_label_and_confidence(df,
             df["distance_to_confidence"].iloc[indices] = dist_to_conf(dist)
         else:
             print("unknown")
+            # TODO second level clustering is not used now so commenting the code
             # unknown, check if second level clustering is done or not
-            _, cluster = get_cluster(annotate_cluster, cluster_group_dict)
-            print(type(cluster.next_level_clusters))
-            print(list(cluster.next_level_clusters.keys()))
-
-            for cluster_group_name, cluster_group in cluster.next_level_clusters.items():
-                for _cluster in cluster_group:
-                    _distance_df = df[f"distance_level_2_{cluster.id}_{_cluster.id}"]
-                    _manual_label = _cluster.manual_annotation.label
-                    if isinstance(_manual_label, tuple) or isinstance(_manual_label, list):
-                        # TODO add this code
-                        pass
-                    elif _manual_label != -1:
-                        print("Manual_label", manual_label)
-                        indices = np.where((np.asarray(cluster_labels) == cluster.id)
-                                           & (df[cluster_column_name_2].values == _cluster.id))[0]
-                        df["manual_annotation"].iloc[indices] = _manual_label
-                        _dist = _distance_df.iloc[indices]
-                        df["manual_annotation_confidence"].iloc[
-                            indices] = _cluster.manual_annotation.confidence * dist_to_conf(_dist)
-                        df["distance_to_confidence"].iloc[indices] = dist_to_conf(_dist)
+            # _, cluster = get_cluster(annotate_cluster, cluster_group_dict)
+            # print(type(cluster.next_level_clusters))
+            # print(list(cluster.next_level_clusters.keys()))
+            #
+            # for cluster_group_name, cluster_group in cluster.next_level_clusters.items():
+            #     for _cluster in cluster_group:
+            #         _distance_df = df[f"distance_level_2_{cluster.id}_{_cluster.id}"]
+            #         _manual_label = _cluster.manual_annotation.label
+            #         if isinstance(_manual_label, tuple) or isinstance(_manual_label, list):
+            #             # TODO add this code
+            #             pass
+            #         elif _manual_label != -1:
+            #             print("Manual_label", manual_label)
+            #             indices = np.where((np.asarray(cluster_labels) == cluster.id)
+            #                                & (df[cluster_column_name_2].values == _cluster.id))[0]
+            #             df["manual_annotation"].iloc[indices] = _manual_label
+            #             _dist = _distance_df.iloc[indices]
+            #             df["manual_annotation_confidence"].iloc[
+            #                 indices] = _cluster.manual_annotation.confidence * dist_to_conf(_dist)
+            #             df["distance_to_confidence"].iloc[indices] = dist_to_conf(_dist)
         print("********************************")
 
 
