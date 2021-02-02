@@ -4,68 +4,47 @@ import os
 import numpy as np
 import pandas as pd
 
-from clearn.config import ExperimentConfig
 from clearn.config.common_path import get_encoded_csv_file
-from clearn.dao.idao import IDao
-from clearn.dao.mnist import MnistDao
-from clearn.models.architectures import cnn_3_layer, deconv_3_layer
-from clearn.models.generative_model import GenerativeModel
+from clearn.models.vae import VAE
 from clearn.utils import prior_factory as prior
 from clearn.utils.utils import save_image, save_single_image, get_latent_vector_column
 from clearn.utils.dir_utils import get_eval_result_dir
+from scipy.special import softmax
 
 import tensorflow as tf
+from clearn.utils.tensorflow_wrappers import linear
 
 
-class VAE(GenerativeModel):
-    _model_name_ = "VAE"
+class SemiSupervisedClassifier(VAE):
+    _model_name_ = "SemiSupervisedClassifier"
 
     def __init__(self,
-                 exp_config: ExperimentConfig,
+                 exp_config,
                  sess,
                  epoch,
                  train_val_data_iterator=None,
                  read_from_existing_checkpoint=True,
                  check_point_epochs=None,
-                 dao: IDao = MnistDao(),
+                 model_save_interval=900
                  ):
         super().__init__(exp_config, sess, epoch)
-        self.dao = dao
         # test
         self.sample_num = 64  # number of generated images to be saved
         self.num_images_per_row = 4  # should be a factor of sample_num
-        self.label_dim = dao.num_classes  # one hot encoding for 10 classes
+        self.model_save_interval = model_save_interval
         self.mu = tf.placeholder(tf.float32, [self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM], name='mu')
         self.sigma = tf.placeholder(tf.float32, [self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM], name='sigma')
         self.images = None
         self._build_model()
         # initialize all variables
         tf.global_variables_initializer().run()
+        # graph inputs for visualize training results
         self.sample_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
+        self.max_to_keep = 20
+
         self.counter, self.start_batch_id, self.start_epoch = self._initialize(train_val_data_iterator,
                                                                                read_from_existing_checkpoint,
                                                                                check_point_epochs)
-        self.num_training_epochs_completed = self.start_epoch
-        self.num_steps_completed = self.start_batch_id
-
-    #   Gaussian Encoder
-    def _encoder(self, x, reuse=False):
-        gaussian_params = cnn_3_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
-        # The mean parameter is unconstrained
-        mean = gaussian_params[:, :self.exp_config.Z_DIM]
-        # The standard deviation must be positive. Parametrize with a softplus and
-        # add a small epsilon for numerical stability
-        stddev = 1e-6 + tf.nn.softplus(gaussian_params[:, self.exp_config.Z_DIM:])
-        return mean, stddev
-
-    # Bernoulli decoder
-    def decoder(self, z, reuse=False):
-        out = deconv_3_layer(self, z, reuse)
-        return out
-
-    def inference(self):
-        z = self.mu + self.sigma * tf.random_normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
-        self.images = self.decoder(z, reuse=True)
 
     def _build_model(self):
         # some parameters
@@ -81,13 +60,23 @@ class VAE(GenerativeModel):
         # 0 mean and covariance matrix as Identity
         self.standard_normal = tf.placeholder(tf.float32, [bs, self.exp_config.Z_DIM], name='z')
 
+        # Whether the sample was manually annotated.
+        self.is_manual_annotated = tf.placeholder(tf.float32, [bs], name="is_manual_annotated")
+        self.labels = tf.placeholder(tf.float32, [bs, self.label_dim], name='manual_label')
 
-        """ Encode the input """
+        """ Loss Function """
         # encoding
         self.mu, self.sigma = self._encoder(self.inputs, reuse=False)
 
         # sampling by re-parameterization technique
         self.z = self.mu + self.sigma * tf.random_normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
+
+        # supervised loss for labelled samples
+        self.y_pred = linear(self.z, 10)
+        self.supervised_loss = tf.losses.softmax_cross_entropy(onehot_labels=self.labels,
+                                                               logits=self.y_pred,
+                                                               weights=self.is_manual_annotated
+                                                               )
 
         # decoding
         out = self.decoder(self.z, reuse=False)
@@ -101,7 +90,7 @@ class VAE(GenerativeModel):
             self.neg_loglikelihood = -tf.reduce_mean(marginal_likelihood)
 
         else:
-            #Linear activation
+            # Linear activation
             marginal_likelihood = tf.compat.v1.losses.mean_squared_error(self.inputs, self.out)
             self.neg_loglikelihood = tf.reduce_mean(marginal_likelihood)
 
@@ -113,7 +102,10 @@ class VAE(GenerativeModel):
 
         # evidence_lower_bound = -self.neg_loglikelihood - self.exp_config.beta * self.KL_divergence
 
-        self.loss = self.neg_loglikelihood + self.exp_config.beta * self.KL_divergence
+        self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
+                    self.exp_config.beta * self.KL_divergence + \
+                    self.exp_config.supervise_weight * self.supervised_loss
+        # self.loss = -evidence_lower_bound + self.exp_config.supervise_weight * self.supervised_loss
 
         """ Training """
         # optimizers
@@ -130,13 +122,12 @@ class VAE(GenerativeModel):
         """ Summary """
         tf.summary.scalar("Negative Log Likelihood", self.neg_loglikelihood)
         tf.summary.scalar("K L Divergence", self.KL_divergence)
+        tf.summary.scalar("Supervised Loss", self.supervised_loss)
+
         tf.summary.scalar("Total Loss", self.loss)
 
         # final summary operations
         self.merged_summary_op = tf.summary.merge_all()
-
-    def get_trainable_vars(self):
-        return tf.trainable_variables()
 
     def train(self, train_val_data_iterator):
         start_batch_id = self.start_batch_id
@@ -148,18 +139,21 @@ class VAE(GenerativeModel):
             for batch in range(start_batch_id, self.num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
-                batch_images,  _,  manual_labels = train_val_data_iterator.get_next_batch("train")
+                batch_images, _, manual_labels = train_val_data_iterator.get_next_batch("train")
                 batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
                 # update autoencoder
-                _, summary_str, loss, nll_loss, kl_loss = self.sess.run( [self.optim,
-                                                                          self.merged_summary_op,
-                                                                          self.loss,
-                                                                          self.neg_loglikelihood,
-                                                                          self.KL_divergence],
-                                                                         feed_dict={self.inputs: batch_images,
-                                                                                    self.standard_normal: batch_z})
-                print(f"Epoch:{epoch} Batch:{batch}  loss={loss} nll={nll_loss} kl_loss={kl_loss}")
+                _, summary_str, loss, nll_loss, kl_loss, supervised_loss = self.sess.run(
+                    [self.optim, self.merged_summary_op,
+                     self.loss, self.neg_loglikelihood,
+                     self.KL_divergence, self.supervised_loss],
+                    feed_dict={self.inputs: batch_images,
+                               self.labels: manual_labels[:, :10],
+                               self.is_manual_annotated: manual_labels[:, 10],
+                               self.standard_normal: batch_z})
+                # print("Epoch: [%2d] [%4d/%4d] time: %4.4f, loss: %.8f, nll: %.8f, kl: %.8f, supervised_loss: %.4f"
+                #       % (epoch, idx, num_batches_train, time.time() - start_time, loss, nll_loss, kl_loss,
+                #          supervised_loss))
                 self.counter += 1
                 self.num_training_epochs_completed = epoch
                 self.num_steps_completed = batch
@@ -175,6 +169,7 @@ class VAE(GenerativeModel):
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model
             start_batch_id = 0
+
             # save model
             print("Saving check point", self.exp_config.TRAINED_MODELS_PATH)
             self.save(self.exp_config.TRAINED_MODELS_PATH, self.counter)
@@ -185,7 +180,8 @@ class VAE(GenerativeModel):
     def evaluate(self, data_iterator, dataset_type, num_batches_train=0, save_images=True ):
         if num_batches_train == 0:
             num_batches_train = self.num_batches_train
-        print(f"Running evaluation after epoch:{self.num_training_epochs_completed} and step:{self.num_steps_completed} ")
+        print(
+            f"Running evaluation after epoch:{self.num_training_epochs_completed} and step:{self.num_steps_completed} ")
         start_eval_batch = 0
         reconstructed_images = []
         num_eval_batches = data_iterator.get_num_samples(dataset_type) // self.exp_config.BATCH_SIZE
@@ -195,6 +191,8 @@ class VAE(GenerativeModel):
         mu = None
         sigma = None
         z = None
+        labels = None
+        labels_predicted = None
         for batch_no in range(start_eval_batch, num_eval_batches):
             batch_eval_images, batch_labels, manual_labels = data_iterator.get_next_batch(dataset_type)
             if batch_eval_images.shape[0] < self.exp_config.BATCH_SIZE:
@@ -202,17 +200,32 @@ class VAE(GenerativeModel):
                 break
             batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
-            reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch = self.sess.run([self.out,
-                                                                                                     self.merged_summary_op,
-                                                                                                     self.mu,
-                                                                                                     self.sigma,
-                                                                                                     self.z
-                                                                                                      ],
-                                                                                                     feed_dict={
-                                                                                                         self.inputs: batch_eval_images,
-                                                                                                         self.standard_normal: batch_z
-                                                                                                     }
-                                                                                                     )
+            reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, y_pred = self.sess.run([self.out,
+                                                                                                              self.merged_summary_op,
+                                                                                                              self.mu,
+                                                                                                              self.sigma,
+                                                                                                              self.z,
+                                                                                                              self.y_pred
+                                                                                                              ],
+                                                                                                             feed_dict={
+                                                                                                                 self.inputs: batch_eval_images,
+                                                                                                                 self.labels: manual_labels[
+                                                                                                                              :,
+                                                                                                                              :10],
+                                                                                                                 self.is_manual_annotated: manual_labels[
+                                                                                                                                           :,
+                                                                                                                                           10],
+                                                                                                                 self.standard_normal: batch_z})
+            labels_predicted_for_batch = np.argmax(softmax(y_pred), axis=1)
+            labels_for_batch = np.argmax(batch_labels, axis=1)
+
+            if labels is None:
+                labels_predicted = labels_predicted_for_batch
+                labels = labels_for_batch
+            else:
+                labels_predicted = np.hstack([labels_predicted, labels_predicted_for_batch])
+                labels = np.hstack([labels, labels_for_batch])
+
             if self.exp_config.return_latent_vector:
                 if mu is None:
                     mu = mu_for_batch
@@ -246,19 +259,13 @@ class VAE(GenerativeModel):
 
         data_iterator.reset_counter(dataset_type)
 
-        # encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
-        #                           columns=["label", "label_predicted"])
+        encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
+                                  columns=["label", "label_predicted"])
         if self.exp_config.return_latent_vector:
             mean_col_names, sigma_col_names, z_col_names, l3_col_names = get_latent_vector_column(self.exp_config.Z_DIM)
-            print(len(mean_col_names), mu.shape)
-            print(mean_col_names)
-            encoded_df = pd.DataFrame(mu, columns=mean_col_names)
-            #print(encoded_df.shape, mu.shape)
-            #
-            # # encoded_df[mean_col_names] = mu
-            # for i, mean_col_name in enumerate(mean_col_names):
-            #     print(encoded_df.shape, mu.shape, mu[:, i].shape)
-            #     encoded_df[mean_col_name] = mu[:, i]
+            # encoded_df[mean_col_names] = mu
+            for i, mean_col_name in enumerate(mean_col_names):
+                encoded_df[mean_col_name] = mu[:, i]
 
             for i, sigma_col_name in enumerate(sigma_col_names):
                 encoded_df[sigma_col_name] = sigma[:, i]
@@ -273,118 +280,13 @@ class VAE(GenerativeModel):
             encoded_df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, output_csv_file), index=False)
         print("Evaluation completed")
 
-    @property
-    def model_dir(self):
-        return "{}_{}_{}_{}".format(
-            self._model_name_, self.exp_config.dataset_name,
-            self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
-
     def encode(self, images):
-        mu, sigma, z = self.sess.run([self.mu, self.sigma, self.z],
+        mu, sigma, z, y_pred = self.sess.run([self.mu, self.sigma, self.z],
                                              feed_dict={self.inputs: images})
-        return mu, sigma, z
+        return mu, sigma, z, y_pred
 
-    def get_decoder_weights_bias(self):
-        name_w_1 = "decoder/de_fc1/Matrix:0"
-        name_w_2 = "decoder/de_dc3/w:0"
-        name_w_3 = "decoder/de_dc4/w:0"
+    def classify(self, images):
+        logits = self.sess.run([self.y_pred],
+                               feed_dict={self.inputs: images})
 
-        name_b_1 = "decoder/de_fc1/bias:0"
-        name_b_2 = "decoder/de_dc3/biases:0"
-        name_b_3 = "decoder/de_dc4/biases:0"
-
-        layer_param_names = [name_w_1,
-                             name_b_1,
-                             name_w_2,
-                             name_b_2,
-                             name_w_3,
-                             name_b_3,
-                             ]
-
-        default_graph = tf.get_default_graph()
-        params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
-        param_values = self.sess.run(params)
-        return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
-
-    def get_encoder_weights_bias(self):
-        name_w_1 = "encoder/en_conv1/w:0"
-        name_w_2 = "encoder/en_conv2/w:0"
-        name_w_3 = "encoder/en_fc3/Matrix:0"
-        name_w_4 = "encoder/en_fc4/Matrix:0"
-
-        name_b_1 = "encoder/en_conv1/biases:0"
-        name_b_2 = "encoder/en_conv2/biases:0"
-        name_b_3 = "encoder/en_fc3/bias:0"
-        name_b_4 = "encoder/en_fc4/bias:0"
-
-        layer_param_names = [name_w_1,
-                             name_b_1,
-                             name_w_2,
-                             name_b_2,
-                             name_w_3,
-                             name_b_3,
-                             name_w_4,
-                             name_b_4
-                             ]
-
-        default_graph = tf.get_default_graph()
-        params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
-        param_values = self.sess.run(params)
-        return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
-
-    def encode_and_get_features(self, images):
-        mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en = self.sess.run([self.mu,
-                                                                               self.sigma,
-                                                                               self.z,
-                                                                               self.dense2_en,
-                                                                               self.reshaped_en,
-                                                                               self.conv2,
-                                                                               self.conv1],
-                                                                              feed_dict={self.inputs: images})
-
-        return mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en
-
-    def decode_and_get_features(self, z):
-        batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
-
-        images, dense1_de, dense2_de, reshaped_de, deconv1_de = self.sess.run([self.out,
-                                                                               self.dense1_de,
-                                                                               self.dense2_de,
-                                                                               self.reshaped_de,
-                                                                               self.deconv1_de
-                                                                               ],
-                                                                              feed_dict={self.z: z,
-                                                                                         self.standard_normal: batch_z
-                                                                                         })
-
-        return images, dense1_de, dense2_de, reshaped_de, deconv1_de
-
-    def decode(self, z):
-        images = self.sess.run(self.out, feed_dict={self.z: z})
-        return images
-
-    def decode_l3(self, z):
-        images = self.sess.run(self.out, feed_dict={self.dense2_en: z})
-        return images
-
-    def decode_layer1(self, z):
-        batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
-        dense1_de = self.sess.run(self.dense1_de, feed_dict={self.z: z,
-                                                             self.standard_normal: batch_z
-                                                             })
-        return dense1_de
-
-    def load_from_checkpoint(self):
-        # initialize all variables
-        tf.global_variables_initializer().run()
-
-        # graph inputs for visualize training results
-        self.sample_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
-
-        # restore check-point if it exits
-        could_load, checkpoint_counter = self._load(self.exp_config.TRAINED_MODELS_PATH)
-        if could_load:
-            print(" [*] Load SUCCESS")
-        else:
-            print(" [!] Load failed...")
-        return checkpoint_counter
+        return logits

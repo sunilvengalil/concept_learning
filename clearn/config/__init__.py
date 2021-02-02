@@ -79,7 +79,8 @@ class ExperimentConfig:
                  model_save_interval=1,
                  write_predictions=True,
                  eval_interval_in_epochs=1,
-                 return_latent_vector=True
+                 return_latent_vector=True,
+                 seed=547
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -130,7 +131,7 @@ class ExperimentConfig:
         self.write_predictions = write_predictions
         self.eval_interval_in_epochs = eval_interval_in_epochs
         self.return_latent_vector = return_latent_vector
-
+        self.seed = seed
 
     def as_json(self):
         config_json = dict()
@@ -162,7 +163,7 @@ class ExperimentConfig:
         config_json["WRITE_PREDICTIONS"] = self.write_predictions
         config_json["EVAL_INTERVAL_IN_EPOCHS"] = self.eval_interval_in_epochs
         config_json["RETURN_LATENT_VECTOR"] = self.return_latent_vector
-
+        config_json["SEED"] = self.seed
         return config_json
 
     def get_exp_name_with_parameters(self, run_id):
@@ -278,6 +279,8 @@ class ExperimentConfig:
         self.write_predictions = exp_config_dict["WRITE_PREDICTIONS"]
         self.eval_interval_in_epochs = exp_config_dict["EVAL_INTERVAL_IN_EPOCHS"]
         self.return_latent_vector = exp_config_dict["RETURN_LATENT_VECTOR"]
+        self.seed = exp_config_dict["SEED"]
+
 
 if __name__ == "__main__":
     _root_path = "/Users/sunilv/concept_learning_exp"

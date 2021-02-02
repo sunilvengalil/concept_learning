@@ -12,24 +12,18 @@ class Cifar10Vae(VAE):
                  exp_config: ExperimentConfig,
                  sess,
                  epoch,
-                 num_units_in_layer=None,
                  train_val_data_iterator=None,
                  read_from_existing_checkpoint=True,
                  check_point_epochs=None,
-                 dao: IDao = MnistDao(),
-                 eval_interval_in_epochs=1,
-                 test_data_iterator=None
+                 dao: IDao = MnistDao()
                  ):
         super().__init__(exp_config,
                          sess,
                          epoch,
-                         num_units_in_layer,
-                         train_val_data_iterator,
-                         read_from_existing_checkpoint,
-                         check_point_epochs,
-                         dao,
-                         eval_interval_in_epochs,
-                         test_data_iterator)
+                         train_val_data_iterator=train_val_data_iterator,
+                         read_from_existing_checkpoint=read_from_existing_checkpoint,
+                         check_point_epochs=check_point_epochs,
+                         dao=dao)
 
     def _encoder(self, x, reuse=False):
         gaussian_params = cnn_4_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)

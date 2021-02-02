@@ -88,10 +88,9 @@ def plot_features(exp_config, features, digits, dimensions_to_be_plotted,  new_f
 def decode_latent_vectors(cluster_centers, exp_config):
     tf.reset_default_graph()
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
-        model = VAE(sess,
-                    epoch=1,
-                    num_units_in_layer=exp_config.num_units,
-                    result_dir=exp_config.PREDICTION_RESULTS_PATH
+        model = VAE(exp_config,
+                    sess,
+                    epoch=1
                     )
         z = np.zeros([cluster_centers.shape[0], exp_config.Z_DIM])
 

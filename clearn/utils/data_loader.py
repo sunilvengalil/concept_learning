@@ -1,9 +1,9 @@
 import os
 import gzip
 import numpy as np
-import cv2
 import pandas as pd
 import json
+import imageio
 
 from clearn.config import ExperimentConfig
 from clearn.dao.dao_factory import get_dao
@@ -173,7 +173,8 @@ class TrainValDataIterator:
                  batch_size=None,
                  manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                  manual_annotation_file=None,
-                 dao:IDao = MnistDao()):
+                 dao:IDao = MnistDao(),
+                 seed=547):
         self.train_idx = 0
         self.val_idx = 0
         self.dataset_path = dataset_path
@@ -191,13 +192,12 @@ class TrainValDataIterator:
                                                percentage_to_be_sampled=percentage_to_be_sampled,
                                                split_location=split_location,
                                                split_names=split_names,
-                                               dao=dao)
-            # TODO remove this later start using dataset_dict instead
+                                               dao=dao,
+                                               seed= seed)
             self.train_x = self.dataset_dict[TrainValDataIterator.TRAIN_X]
             self.train_y = self.dataset_dict[TrainValDataIterator.TRAIN_Y]
             self.val_x = self.dataset_dict[TrainValDataIterator.VALIDATION_X]
             self.val_y = self.dataset_dict[TrainValDataIterator.VALIDATION_Y_ONE_HOT]
-            # TODO fix this later set unique labels based on the shape of the smallest dataset in the dict
             self.unique_labels = np.unique(self.dataset_dict["validation_y_raw"])
             self.manual_labels_config = manual_labels_config
             _manual_annotation = None
@@ -211,9 +211,10 @@ class TrainValDataIterator:
                     # manual confidence as 0.5 or 0
                     print("Warning", "{} path does not exist. Creating random prior with uniform distribution".
                           format(manual_annotation_file))
-                    # create a numpy array of dimension (num_training_samples, num_unique_labels) and  set the one-hot encoded label
-                    # with uniform probability distribution for each label. i.e in case of MNIST each row will be set as one of the symbol
-                    # {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
+                    """
+                    Create a numpy array of dimension (num_training_samples, num_unique_labels) and  set the one-hot encoded label with uniform probability distribution for each label.
+                    In case of MNIST each row will be set as one of the symbol {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
+                    """
                     _manual_annotation = np.random.choice(self.unique_labels, len(self.train_x))
 
             self.get_manual_annotation(manual_annotation_file, _manual_annotation=_manual_annotation)
@@ -281,6 +282,48 @@ class TrainValDataIterator:
             self.unique_labels = np.unique(self.val_y)
         return self.unique_labels
 
+    def save_val_images(self, dataset_path):
+        def inverse_transform(images):
+            return (images + 1.) / 2.
+
+        def merge(images, size):
+            print(images.shape)
+            h, w = images.shape[1], images.shape[2]
+            if (images.shape[3] in (3, 4)):
+                c = images.shape[3]
+                img = np.zeros((h * size[0], w * size[1], c))
+                for idx, image in enumerate(images):
+                    i = idx % size[1]
+                    j = idx // size[1]
+                    img[j * h:j * h + h, i * w:i * w + w, :] = image
+                return img
+            elif images.shape[3] == 1:
+                img = np.zeros((h * size[0], w * size[1]))
+                for idx, image in enumerate(images):
+                    i = idx % size[1]
+                    j = idx // size[1]
+                    img[j * h:j * h + h, i * w:i * w + w] = image[:, :, 0]
+                return img
+            else:
+                raise ValueError('in merge(images,size) images parameter ''must have dimensions: HxW or HxWx3 or HxWx4')
+
+        def imsave(images, size, path):
+            image = np.squeeze(merge(images, size))
+            imageio.imwrite(path, image)
+
+        self.reset_counter("val")
+        batch_no = 0
+        manifold_w = 4
+        manifold_h = self.batch_size // manifold_w
+        while self.has_next("val"):
+            val_images, _, _ = self.get_next_batch("val")
+            file = "im_" + str(batch_no) + ".png"
+            imsave(inverse_transform(val_images), [manifold_h, manifold_w], dataset_path + file)
+            # save_image(val_images, [manifold_h, manifold_w], dataset_path + file)
+            batch_no += 1
+        self.reset_counter("val")
+
+
 
 def load_train(data_dir,
                shuffle=True,
@@ -310,12 +353,15 @@ def load_train_val(data_dir, shuffle=False,
                    percentage_to_be_sampled=0.7,
                    split_location=None,
                    split_names=[],
-                   dao: IDao=MnistDao()):
+                   dao: IDao=MnistDao(),
+                   seed=547):
     return dao.load_train_val(data_dir,
                               shuffle,
                               stratified,
                               percentage_to_be_sampled,
-                              split_location, split_names)
+                              split_location,
+                              split_names,
+                              seed=seed)
 
 def load_test(data_dir,
               split_location=None,

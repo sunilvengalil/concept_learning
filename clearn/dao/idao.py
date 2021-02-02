@@ -49,7 +49,7 @@ class IDao(ABC):
 
     def load_test(self, data_dir,
                   split_location=None,
-                  split_names=[] ):
+                  split_names=[]):
         x, y = self.load_test_1(data_dir)
         dataset_dict = {}
         dataset_dict["split_names"] = split_names
@@ -74,30 +74,31 @@ class IDao(ABC):
                 "test_y": y,
                 "test_y_one_hot": y_one_hot}
 
-    def load_train_val(self, data_dir, shuffle=False,
+    def load_train_val(self,
+                       data_dir,
+                       shuffle=False,
                        stratified=None,
                        percentage_to_be_sampled=0.7,
                        split_location=None,
-                       split_names=[]):
+                       split_names=[],
+                       seed=547):
         x, y = self.load_train_val_1(data_dir)
-        seed = 547
         _stratify = None
         if stratified:
             _stratify = y
 
         if len(split_names) == 2:
-            splitted = train_test_split(x, y, test_size=percentage_to_be_sampled,
-                                        stratify=_stratify, shuffle=shuffle,
-                                        random_state=seed)
+            splitted = train_test_split(x,
+                                        y,
+                                        test_size=percentage_to_be_sampled,
+                                        stratify=_stratify,
+                                        shuffle=shuffle,
+                                        random_state=seed
+                                        )
             train_x = splitted[0]
             val_x = splitted[1]
             train_y = splitted[2]
             val_y = splitted[3]
-            print(x.shape)
-            print(train_x.shape)
-
-            # TODO change this to save only indices.
-            # Alternately save the seed after verifying that same seed generates same split
             split_name = self.get_split_name(split_location)
             dataset_dict = {}
             num_splits = len(split_names)
@@ -118,16 +119,20 @@ class IDao(ABC):
             #     json.dump(dataset_dict, fp)
             # print("Writing json to ", json_)
         else:
-            raise Exception("Split not implemented for for than two splits")
+            raise Exception("Split not implemented for more than two splits")
 
+        data_dict = self.create_data_dict(train_x, train_y, val_x, val_y)
+        return data_dict
+
+    def create_data_dict(self, train_x, train_y, val_x, val_y):
         _val_y = np.eye(self.num_classes)[val_y]
         _train_y = np.eye(self.num_classes)[train_y]
-        # TODO separate normalizing and loading logic
-        return {self.TRAIN_X: train_x / self.max_value,
-                self.TRAIN_Y: _train_y,
-                self.VALIDATION_X: val_x / self.max_value,
-                self.VALIDATION_Y_ONE_HOT: _val_y,
-                self.VALIDATION_Y_RAW: val_y}
+        data_dict = {self.TRAIN_X: train_x / self.max_value,
+                     self.TRAIN_Y: _train_y,
+                     self.VALIDATION_X: val_x / self.max_value,
+                     self.VALIDATION_Y_ONE_HOT: _val_y,
+                     self.VALIDATION_Y_RAW: val_y}
+        return data_dict
 
     def get_split_name(self, split_location):
         if split_location[-1] == "/":
@@ -172,16 +177,8 @@ class IDao(ABC):
         if len(split_names) != 2:
             raise Exception("Split not implemented for for than two splits")
 
-        _val_y = np.eye(self.num_classes)[val_y]
-        _train_y = np.eye(self.num_classes)[train_y]
-
-        # TODO separate normalizing and loading logic
-        return {self.TRAIN_X: train_x / self.max_value,
-                self.TRAIN_Y: _train_y,
-                self.VALIDATION_X: val_x / self.max_value,
-                self.VALIDATION_Y_ONE_HOT: _val_y,
-                self.VALIDATION_Y_RAW: val_y}
-
+        data_dict = self.create_data_dict(train_x, train_y, val_x, val_y)
+        return data_dict
 
     def load_from_existing_split(self, split_name, split_location):
         with open(split_location + split_name + ".json") as fp:
@@ -200,9 +197,9 @@ class IDao(ABC):
             data = data_df[columns].values
 
             x = data.reshape((data.shape[0],
-                                    self.image_shape[0],
-                                    self.image_shape[1],
-                                    self.image_shape[2]))
+                              self.image_shape[0],
+                              self.image_shape[1],
+                              self.image_shape[2]))
             data = data_df[['label']].values
             y = np.asarray(data.reshape(data.shape[0])).astype(np.int)
             y_one_hot = np.eye(self.num_classes)[y]

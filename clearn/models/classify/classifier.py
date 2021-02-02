@@ -212,7 +212,6 @@ class ClassifierModel(Model):
             if np.mod(epoch, self.exp_config.model_save_interval) == 0:
                 self.save(self.exp_config.TRAINED_MODELS_PATH,counter)
 
-
     def evaluate(self, epoch, step, counter, val_data_iterator):
         print("Running evaluation after epoch:{:02d} and step:{:04d} ".format(epoch, step))
         # evaluate reconstruction loss
@@ -273,28 +272,6 @@ class ClassifierModel(Model):
                                              feed_dict={self.inputs: images})
         return mu, sigma, z, y_pred
 
-    def get_decoder_weights_bias(self):
-        name_w_1 = "decoder/de_fc1/Matrix:0"
-        name_w_2 = "decoder/de_dc3/w:0"
-        name_w_3 = "decoder/de_dc4/w:0"
-
-        name_b_1 = "decoder/de_fc1/bias:0"
-        name_b_2 = "decoder/de_dc3/biases:0"
-        name_b_3 = "decoder/de_dc4/biases:0"
-
-        layer_param_names = [name_w_1,
-                             name_b_1,
-                             name_w_2,
-                             name_b_2,
-                             name_w_3,
-                             name_b_3,
-                             ]
-
-        default_graph = tf.get_default_graph()
-        params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
-        param_values = self.sess.run(params)
-        return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
-
     def get_encoder_weights_bias(self):
         name_w_1 = "encoder/en_conv1/w:0"
         name_w_2 = "encoder/en_conv2/w:0"
@@ -338,35 +315,3 @@ class ClassifierModel(Model):
                                feed_dict={self.inputs: images})
 
         return logits
-
-
-    def decode_and_get_features(self, z):
-        batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
-
-        images, dense1_de, dense2_de, reshaped_de, deconv1_de = self.sess.run([self.out,
-                                                                               self.dense1_de,
-                                                                               self.dense2_de,
-                                                                               self.reshaped_de,
-                                                                               self.deconv1_de
-                                                                               ],
-                                                                              feed_dict={self.z: z,
-                                                                                         self.standard_normal: batch_z
-                                                                                         })
-
-        return images, dense1_de, dense2_de, reshaped_de, deconv1_de
-
-    def decode(self, z):
-        images = self.sess.run(self.out, feed_dict={self.z: z})
-        return images
-
-    def decode_l3(self, z):
-        images = self.sess.run(self.out, feed_dict={self.dense2_en: z})
-        return images
-
-    def decode_layer1(self, z):
-        batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
-        dense1_de = self.sess.run(self.dense1_de, feed_dict={self.z: z,
-                                                             self.standard_normal: batch_z
-                                                             })
-        return dense1_de
-

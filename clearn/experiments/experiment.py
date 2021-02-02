@@ -72,14 +72,12 @@ class Experiment:
     def test(self, data_iterator):
         return self.model.evaluate(data_iterator, dataset_type="test")
 
-    def encode_latent_vector(self, _train_val_data_iterator, epoch, dataset_type,
-                             save_results=True):
+    def encode_latent_vector(self, _train_val_data_iterator, dataset_type,
+                             save_images=True):
         return encode_images(self.model,
                              _train_val_data_iterator,
-                             self.config,
-                             epoch,
-                             dataset_type,
-                             save_results
+                             dataset_type=dataset_type,
+                             save_images=save_images
                              )
 
     def encode_latent_vector_and_get_features(self, _train_val_data_iterator, epoch, dataset_type,
@@ -130,8 +128,7 @@ def load_trained_model(experiment_name,
         if model_type == MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER:
             model = VAE(exp_config,
                         sess,
-                        epoch=1,
-                        num_units_in_layer=exp_config.num_units,
+                        epoch=1
                         )
             print(model.get_trainable_vars())
             num_steps_completed = model.counter
@@ -181,7 +178,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             activation_output_layer="SIGMOID",
                                             write_predictions=True,
                                             num_decoder_layer=4,
-                                            test_data_iterator=None):
+                                            test_data_iterator=None,
+                                            seed=547):
     dao = get_dao(dataset_name, split_name)
     if num_units is None:
         num_units = [64, 128, 32]
@@ -208,7 +206,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                   save_reconstructed_images=save_reconstructed_images,
                                   learning_rate=learning_rate,
                                   run_evaluation_during_training=run_evaluation_during_training,
-                                  write_predictions=write_predictions
+                                  write_predictions=write_predictions,
+                                  seed=seed
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)
@@ -239,7 +238,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                                            batch_size=exp.config.BATCH_SIZE,
                                                            manual_labels_config=exp.config.manual_labels_config,
                                                            manual_annotation_file=manual_annotation_file,
-                                                           dao=dao)
+                                                           dao=dao,
+                                                           seed=exp_config.seed)
         else:
             raise Exception(f"File does not exists {split_filename}")
 
@@ -262,7 +262,6 @@ def initialize_model_train_and_get_features(experiment_name,
             model = VAE(exp_config=exp_config,
                         sess=sess,
                         epoch=num_epochs,
-                        num_units_in_layer=exp_config.num_units,
                         train_val_data_iterator=train_val_data_iterator,
                         dao=dao,
                         )
@@ -284,17 +283,15 @@ def initialize_model_train_and_get_features(experiment_name,
                                       )
         elif model_type == MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10:
             model = Cifar10Vae(exp_config=exp_config,
-                                      sess=sess,
-                                      epoch=num_epochs,
-                                      num_units_in_layer=exp_config.num_units,
-                                      test_data_iterator=test_data_iterator,
-                                      dao=dao
-                                      )
+                               sess=sess,
+                               epoch=num_epochs,
+                               dao=dao
+                               )
         else:
             raise Exception(
                 f"model_type should be one of [{MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER}, {MODEL_TYPE_SUPERVISED_CLASSIFIER}]")
         print("Starting training")
-        train_and_get_features(exp, model, train_val_data_iterator, num_epochs)
+        train_and_get_features(exp, model, train_val_data_iterator)
         train_val_data_iterator.reset_counter("train")
         train_val_data_iterator.reset_counter("val")
         return train_val_data_iterator, exp_config, model
@@ -302,8 +299,7 @@ def initialize_model_train_and_get_features(experiment_name,
 
 def train_and_get_features(exp: Experiment,
                            model: Model,
-                           train_val_data_iterator: TrainValDataIterator,
-                           num_epochs):
+                           train_val_data_iterator: TrainValDataIterator):
     exp.model = model
     # show network architecture
     show_all_variables()
@@ -312,11 +308,11 @@ def train_and_get_features(exp: Experiment,
 
     train_val_data_iterator.reset_counter("train")
     train_val_data_iterator.reset_counter("val")
-    exp.encode_latent_vector(train_val_data_iterator, num_epochs, "train")
+    exp.encode_latent_vector(train_val_data_iterator, "train", save_images=False)
 
     train_val_data_iterator.reset_counter("train")
     train_val_data_iterator.reset_counter("val")
-    exp.encode_latent_vector(train_val_data_iterator, num_epochs, "val")
+    exp.encode_latent_vector(train_val_data_iterator, "val")
 
 
 def test(exp: Experiment,
@@ -360,6 +356,7 @@ def load_model_and_test(experiment_name,
                                   name=experiment_name,
                                   num_val_samples=num_val_samples,
                                   save_reconstructed_images=save_reconstructed_images,
+                                  write_predictions=write_predictions
                                   )
     exp_config.check_and_create_directories(run_id, create=False)
     exp = Experiment(1, experiment_name, exp_config, run_id)
@@ -382,7 +379,6 @@ def load_model_and_test(experiment_name,
             model = VAE(exp_config=exp_config,
                         sess=sess,
                         epoch=-1,
-                        num_units_in_layer=exp_config.num_units,
                         train_val_data_iterator=data_iterator,
                         dao=dao
                         )
