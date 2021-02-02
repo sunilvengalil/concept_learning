@@ -237,7 +237,6 @@ class VAE(GenerativeModel):
 
             # self.writer_v.add_summary(summary, counter)
             reconstructed_images.append(reconstructed_image[:manifold_h * manifold_w, :, :, :])
-        print(f"epoch:{self.num_training_epochs_completed} step:{self.num_steps_completed}")
         if save_images:
             reconstructed_dir = get_eval_result_dir(self.exp_config.PREDICTION_RESULTS_PATH,
                                                     self.num_training_epochs_completed,

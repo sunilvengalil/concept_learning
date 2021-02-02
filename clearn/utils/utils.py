@@ -4,6 +4,8 @@ Most codes from https://github.com/carpedm20/DCGAN-tensorflow
 from __future__ import division
 import pandas as pd
 import scipy.misc
+from skimage import img_as_ubyte
+
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
@@ -93,7 +95,7 @@ def save_single_image(images, path, epoch, step, training_batch, eval_batch, eva
         file = f"im_epoch_{epoch}_step_{step}_batch_{training_batch}_eval_image_id_{eval_batch * eval_batch_size + i }.png"
         image = inverse_transform(images[i])
         image = np.squeeze(image)
-        imageio.imwrite(path + file, image)
+        imageio.imwrite(path + file, img_as_ubyte(image))
 
 
 def save_image(image, size, image_file_name):
@@ -136,10 +138,9 @@ def merge(images, size):
     else:
         raise ValueError('in merge(images,size) images parameter ''must have dimensions: HxW or HxWx3 or HxWx4')
 
-
 def imsave(images, size, path):
     image = np.squeeze(merge(images, size))
-    imageio.imwrite(path, image)
+    imageio.imwrite(path, img_as_ubyte(image))
 
 
 def center_crop(x, crop_h, crop_w, resize_h=64, resize_w=64):

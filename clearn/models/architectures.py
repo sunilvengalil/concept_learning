@@ -180,7 +180,9 @@ def deconv_4_layer(model, z, reuse=False):
                 out = tf.nn.sigmoid(
                     deconv2d(model.deconv3, output_shape, 3, 3, model.strides[4], model.strides[4], name='de_dc4'))
             elif model.exp_config.activation_output_layer == "LINEAR":
-                out = deconv2d(model.deconv3, output_shape, 3, 3, model.strides[4], model.strides[4], name='de_dc4')
+                out = lrelu(deconv2d(model.deconv3, output_shape, 3, 3, model.strides[4], model.strides[4], name='de_dc4'),
+                            0
+                            )
 
         else:
             raise Exception(f"Activation {model.exp_config.activation} not supported")
