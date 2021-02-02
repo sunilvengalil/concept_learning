@@ -159,7 +159,7 @@ class VAE(GenerativeModel):
                                                                           self.KL_divergence],
                                                                          feed_dict={self.inputs: batch_images,
                                                                                     self.standard_normal: batch_z})
-                print(f"Epoch:{epoch} Batch:{batch}  loss={loss} nll={nll_loss} kl_loss={kl_loss}")
+                # print(f"Epoch:{epoch} Batch:{batch}  loss={loss} nll={nll_loss} kl_loss={kl_loss}")
                 self.counter += 1
                 self.num_training_epochs_completed = epoch
                 self.num_steps_completed = batch
@@ -176,6 +176,8 @@ class VAE(GenerativeModel):
             # non-zero value is only for the first epoch after loading pre-trained model
             start_batch_id = 0
             # save model
+            print(f"Epoch:{epoch}   loss={loss} nll={nll_loss} kl_loss={kl_loss}")
+
             print("Saving check point", self.exp_config.TRAINED_MODELS_PATH)
             self.save(self.exp_config.TRAINED_MODELS_PATH, self.counter)
             train_val_data_iterator.reset_counter("train")
@@ -250,8 +252,6 @@ class VAE(GenerativeModel):
         #                           columns=["label", "label_predicted"])
         if self.exp_config.return_latent_vector:
             mean_col_names, sigma_col_names, z_col_names, l3_col_names = get_latent_vector_column(self.exp_config.Z_DIM)
-            print(len(mean_col_names), mu.shape)
-            print(mean_col_names)
             encoded_df = pd.DataFrame(mu, columns=mean_col_names)
             #print(encoded_df.shape, mu.shape)
             #
