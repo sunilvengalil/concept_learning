@@ -1,3 +1,4 @@
+from typing import *
 from abc import ABC, abstractmethod
 import json
 import pandas as pd
@@ -18,22 +19,22 @@ class IDao(ABC):
 
     @property
     @abstractmethod
-    def number_of_training_samples(self):
+    def number_of_training_samples(self) -> int:
         pass
 
     @property
     @abstractmethod
-    def image_shape(self):
+    def image_shape(self) -> Tuple[int]:
         pass
 
     @property
     @abstractmethod
-    def max_value(self):
+    def max_value(self) -> int:
         pass
 
     @property
     @abstractmethod
-    def num_classes(self):
+    def num_classes(self) -> int:
         pass
 
     def load_train(self, data_dir, shuffle):

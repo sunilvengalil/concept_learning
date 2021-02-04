@@ -162,9 +162,7 @@ class SemiSupervisedClassifier(VAE):
                         train_val_data_iterator.reset_counter("val")
                         self.evaluate(data_iterator=train_val_data_iterator,
                                       dataset_type="val")
-                        self.writer.add_summary(summary_str, self.counter - 1)
-                    else:
-                        self.writer.add_summary(summary_str, self.counter - 1)
+                self.writer.add_summary(summary_str, self.counter - 1)
 
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model

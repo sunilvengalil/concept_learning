@@ -19,7 +19,7 @@ from clearn.utils.utils import get_latent_vector_column
 
 
 class SupervisedClassifierModel(ClassifierModel):
-    _model_name = "ClassifierModel"
+    _model_name_ = "_SupervisedClassifierModel_"
     dataset_type_test = "test"
     dataset_type_train = "train"
     dataset_type_val = "val"
@@ -98,7 +98,6 @@ class SupervisedClassifierModel(ClassifierModel):
         return z
 
     def _build_model(self):
-        # some parameters
         image_dims = self.dao.image_shape
         bs = self.exp_config.BATCH_SIZE
         self.strides = [2, 2]
@@ -106,8 +105,6 @@ class SupervisedClassifierModel(ClassifierModel):
         """ Graph Input """
         # images
         self.inputs = tf.compat.v1.placeholder(tf.float32, [bs] + image_dims, name='real_images')
-
-        # Whether the sample was manually annotated.
         self.labels = tf.compat.v1.placeholder(tf.float32, [bs, self.label_dim], name='manual_label')
 
         """ Loss Function """
@@ -116,6 +113,9 @@ class SupervisedClassifierModel(ClassifierModel):
 
         # supervised loss for labelled samples
         self.y_pred = linear(self.z, self.dao.num_classes)
+        self.compute_and_optimize_loss()
+
+    def compute_and_optimize_loss(self):
         self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
                                                                          logits=self.y_pred
                                                                          )
@@ -124,10 +124,10 @@ class SupervisedClassifierModel(ClassifierModel):
         """ Training """
         # optimizers
         t_vars = tf.compat.v1.trainable_variables()
+        # TODO add beta1 parameter from exp_config
         with tf.control_dependencies(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
-            self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate,
-                                                          beta1=self.exp_config.beta1_adam).minimize(self.loss,
-                                                                                                     var_list=t_vars)
+            self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate) \
+                .minimize(self.loss, var_list=t_vars)
 
         """" Testing """
         # for test
@@ -138,8 +138,6 @@ class SupervisedClassifierModel(ClassifierModel):
         # final summary operations
         self.merged_summary_op = tf.compat.v1.summary.merge_all()
 
-    def get_trainable_vars(self):
-        return tf.trainable_variables()
 
     def train(self, train_val_data_iterator):
         counter = self.counter
@@ -255,18 +253,3 @@ class SupervisedClassifierModel(ClassifierModel):
             print("Saving evaluation results to ", self.exp_config.ANALYSIS_PATH)
             encoded_df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, output_csv_file), index=False)
         return encoded_df
-
-    def encode(self, images):
-        z, y_pred = self.sess.run([self.z, self.y_pred],
-                                  feed_dict={self.inputs: images})
-        return z, z, z, y_pred
-
-    def encode_and_get_features(self, images):
-        z, dense2_en, reshaped, conv2_en, conv1_en = self.sess.run([self.z,
-                                                                    self.dense2_en,
-                                                                    self.reshaped_en,
-                                                                    self.conv2,
-                                                                    self.conv1],
-                                                                   feed_dict={self.inputs: images})
-
-        return z, z, z, dense2_en, reshaped, conv2_en, conv1_en

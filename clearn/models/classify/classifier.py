@@ -56,10 +56,7 @@ class ClassifierModel(Model):
                                                                                read_from_existing_checkpoint,
                                                                                check_point_epochs)
 
-    def _set_model_parameters(self):
-        pass
-
-#   Gaussian Encoder
+    #   Gaussian Encoder
     def _encoder(self, x, reuse=False):
         # Encoder models the probability  P(z/X)
         # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
@@ -140,8 +137,8 @@ class ClassifierModel(Model):
 
         # evidence_lower_bound = -self.neg_loglikelihood - self.beta * self.KL_divergence
 
-        self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood +\
-                    self.exp_config.beta * self.KL_divergence +\
+        self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
+                    self.exp_config.beta * self.KL_divergence + \
                     self.exp_config.supervise_weight * self.supervised_loss
         # self.loss = -evidence_lower_bound + self.supervise_weight * self.supervised_loss
 
@@ -180,7 +177,7 @@ class ClassifierModel(Model):
             for idx in range(start_batch_id, num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
-                batch_images,  _,  manual_labels = train_val_data_iterator.get_next_batch("train")
+                batch_images, _, manual_labels = train_val_data_iterator.get_next_batch("train")
                 batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
                 # update autoencoder
@@ -197,9 +194,7 @@ class ClassifierModel(Model):
                 if self.exp_config.run_evaluation_during_training:
                     if np.mod(idx, self.exp_config.eval_interval) == self.exp_config.eval_interval - 1:
                         self.evaluate(epoch, idx + 1, counter - 1, val_data_iterator=train_val_data_iterator)
-                        self.writer.add_summary(summary_str, counter-1)
-                    else:
-                        self.writer.add_summary(summary_str, counter-1)
+                self.writer.add_summary(summary_str, counter - 1)
 
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model
@@ -210,7 +205,7 @@ class ClassifierModel(Model):
             self.save(self.exp_config.TRAINED_MODELS_PATH, counter)
             train_val_data_iterator.reset_counter("train")
             if np.mod(epoch, self.exp_config.model_save_interval) == 0:
-                self.save(self.exp_config.TRAINED_MODELS_PATH,counter)
+                self.save(self.exp_config.TRAINED_MODELS_PATH, counter)
 
     def evaluate(self, epoch, step, counter, val_data_iterator):
         print("Running evaluation after epoch:{:02d} and step:{:04d} ".format(epoch, step))
@@ -229,7 +224,7 @@ class ClassifierModel(Model):
             columns = [str(i) for i in range(10)]
             columns.append("label")
             pd.DataFrame(batch_eval_labels,
-                         columns=columns)\
+                         columns=columns) \
                 .to_csv(self.exp_config.PREDICTION_RESULTS_PATH + "label_test_{:02d}.csv".format(_idx),
                         index=False)
 
@@ -266,11 +261,10 @@ class ClassifierModel(Model):
             self._model_name_, self.exp_config.dataset_name,
             self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
-
     def encode(self, images):
-        mu, sigma, z, y_pred = self.sess.run([self.mu, self.sigma, self.z, self.y_pred],
-                                             feed_dict={self.inputs: images})
-        return mu, sigma, z, y_pred
+        z, y_pred = self.sess.run([self.z, self.y_pred],
+                                  feed_dict={self.inputs: images})
+        return z, z, z, y_pred
 
     def get_encoder_weights_bias(self):
         name_w_1 = "encoder/en_conv1/w:0"
@@ -299,16 +293,14 @@ class ClassifierModel(Model):
         return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
 
     def encode_and_get_features(self, images):
-        mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en = self.sess.run([self.mu,
-                                                                               self.sigma,
-                                                                               self.z,
-                                                                               self.dense2_en,
-                                                                               self.reshaped_en,
-                                                                               self.conv2,
-                                                                               self.conv1],
-                                                                              feed_dict={self.inputs: images})
+        z, dense2_en, reshaped, conv2_en, conv1_en = self.sess.run([self.z,
+                                                                    self.dense2_en,
+                                                                    self.reshaped_en,
+                                                                    self.conv2,
+                                                                    self.conv1],
+                                                                   feed_dict={self.inputs: images})
 
-        return mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en
+        return z, dense2_en, reshaped, conv2_en, conv1_en
 
     def classify(self, images):
         logits = self.sess.run([self.y_pred],

@@ -2,10 +2,9 @@ import tensorflow as tf
 
 from clearn.utils.tensorflow_wrappers import conv2d, lrelu, linear, deconv2d
 
+
 def cnn_3_layer(model, x, num_out_units, reuse=False):
     # Encoder models the probability  P(z/X)
-    # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
-    # Architecture : (64)4c2s-(128)4c2s_BL-FC1024_BL-FC62*4
     w = dict()
     b = dict()
     n = model.exp_config.num_units
@@ -25,8 +24,8 @@ def cnn_3_layer(model, x, num_out_units, reuse=False):
 
         # with tf.control_dependencies([net_before_gauss]):
         z, w["en_fc4"], b["en_fc4"] = linear(model.dense2_en, num_out_units,
-                                                           scope='en_fc4',
-                                                           with_w=True)
+                                             scope='en_fc4',
+                                             with_w=True)
         return z
 
 
@@ -180,9 +179,10 @@ def deconv_4_layer(model, z, reuse=False):
                 out = tf.nn.sigmoid(
                     deconv2d(model.deconv3, output_shape, 3, 3, model.strides[4], model.strides[4], name='de_dc4'))
             elif model.exp_config.activation_output_layer == "LINEAR":
-                out = lrelu(deconv2d(model.deconv3, output_shape, 3, 3, model.strides[4], model.strides[4], name='de_dc4'),
-                            0
-                            )
+                out = lrelu(
+                    deconv2d(model.deconv3, output_shape, 3, 3, model.strides[4], model.strides[4], name='de_dc4'),
+                    0
+                    )
 
         else:
             raise Exception(f"Activation {model.exp_config.activation} not supported")

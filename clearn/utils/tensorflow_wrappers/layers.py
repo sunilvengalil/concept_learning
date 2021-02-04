@@ -43,6 +43,10 @@ def conv2d(input_, output_dim, k_h=5, k_w=5, d_h=2, d_w=2, stddev=0.02, name="co
         return conv
 
 
+def batch_norm(input_):
+    return tf.compat.v1.layers.batch_normalization(input_)
+
+
 def deconv2d(input_, output_shape, k_h=5, k_w=5, d_h=2, d_w=2, name="deconv2d", stddev=0.02, with_w=False):
     with tf.variable_scope(name):
         # filter : [height, width, output_channels, in_channels]
@@ -66,6 +70,14 @@ def lrelu(x, leak=0.2, name="lrelu"):
     return tf.maximum(x, leak*x)
 
 
+def relu(x, name="relu"):
+    return tf.maximum(x, 0)
+
+
+def drop_out(x, rate):
+    return tf.nn.dropout(x, rate)
+
+
 def linear(input_, output_size, scope=None, stddev=0.02, bias_start=0.0, with_w=False):
     shape = input_.get_shape().as_list()
 
@@ -78,3 +90,17 @@ def linear(input_, output_size, scope=None, stddev=0.02, bias_start=0.0, with_w=
             return tf.matmul(input_, matrix) + bias, matrix, bias
         else:
             return tf.matmul(input_, matrix) + bias
+
+
+def max_pool_2d(x, kernel_size, strides):
+    return tf.nn.max_pool2d(x, kernel_size, strides, padding="SAME")
+
+
+def avgpool(x, output_size):
+    stride = x.shape[1] // output_size[0]
+    kernel_size = x.shape[1] - (output_size[0] - 1) * stride
+    return tf.nn.avg_pool2d(x, kernel_size, stride, padding="SAME")
+
+
+def flatten(x):
+    return tf.compat.v1.layers.flatten(x)

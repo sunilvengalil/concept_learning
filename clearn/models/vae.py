@@ -8,7 +8,7 @@ from clearn.config import ExperimentConfig
 from clearn.config.common_path import get_encoded_csv_file
 from clearn.dao.idao import IDao
 from clearn.dao.mnist import MnistDao
-from clearn.models.architectures import cnn_3_layer, deconv_3_layer
+from clearn.models.architectures.custom.tensorflow_graphs import cnn_3_layer, deconv_3_layer
 from clearn.models.generative_model import GenerativeModel
 from clearn.utils import prior_factory as prior
 from clearn.utils.utils import save_image, save_single_image, get_latent_vector_column
@@ -168,9 +168,7 @@ class VAE(GenerativeModel):
                         train_val_data_iterator.reset_counter("val")
                         self.evaluate(data_iterator=train_val_data_iterator,
                                       dataset_type="val")
-                        self.writer.add_summary(summary_str, self.counter - 1)
-                    else:
-                        self.writer.add_summary(summary_str, self.counter - 1)
+                self.writer.add_summary(summary_str, self.counter - 1)
 
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model
@@ -235,7 +233,7 @@ class VAE(GenerativeModel):
                                   batch_no,
                                   self.exp_config.BATCH_SIZE)
 
-            # self.writer_v.add_summary(summary, counter)
+            self.writer_v.add_summary(summary, self.counter)
             reconstructed_images.append(reconstructed_image[:manifold_h * manifold_w, :, :, :])
         if save_images:
             reconstructed_dir = get_eval_result_dir(self.exp_config.PREDICTION_RESULTS_PATH,

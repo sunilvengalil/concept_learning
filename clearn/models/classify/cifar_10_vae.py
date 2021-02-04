@@ -2,7 +2,7 @@ import tensorflow as tf
 from clearn.config import ExperimentConfig
 from clearn.dao.idao import IDao
 from clearn.dao.mnist import MnistDao
-from clearn.models.architectures import cnn_4_layer, deconv_4_layer
+from clearn.models.architectures.custom.tensorflow_graphs import cnn_4_layer, deconv_4_layer
 from clearn.models.vae import VAE
 
 

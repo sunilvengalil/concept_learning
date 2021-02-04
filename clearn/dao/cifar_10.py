@@ -1,26 +1,27 @@
+from typing import *
 import numpy as np
 from clearn.dao.idao import IDao
 from tensorflow.keras import datasets
 import ssl
 class CiFar10Dao(IDao):
-    def __init__(self, split_name):
+    def __init__(self, split_name: str):
         self.dataset_name = "cifar_10"
         self.split_name = split_name
 
     @property
-    def number_of_training_samples(self):
+    def number_of_training_samples(self) -> int:
         return 50000
 
     @property
-    def image_shape(self):
+    def image_shape(self) -> Tuple[int]:
         return[32, 32, 3]
 
     @property
-    def max_value(self):
+    def max_value(self) -> int:
         return 255.
 
     @property
-    def num_classes(self):
+    def num_classes(self) -> int:
         return 10
 
     def load_train(self, data_dir, shuffle):
