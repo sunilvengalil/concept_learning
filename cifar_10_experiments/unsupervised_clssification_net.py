@@ -1,6 +1,5 @@
 from clearn.config import ExperimentConfig
 from clearn.dao.dao_factory import get_dao
-from clearn.utils.data_loader import TrainValDataIterator
 from clearn.experiments.experiment import initialize_model_train_and_get_features, MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10
 
 experiment_name = "Experiment_4"
