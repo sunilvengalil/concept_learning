@@ -285,12 +285,12 @@ def initialize_model_train_and_get_features(experiment_name,
                                       )
         elif model_type == CIFAR10_F:
             model = Cifar10F(exp_config=exp_config,
-                                      sess=sess,
-                                      epoch=num_epochs,
-                                      num_units_in_layer=exp_config.num_units,
-                                      dao=dao,
-                                      test_data_iterator=test_data_iterator
-                                      )
+                             sess=sess,
+                             epoch=num_epochs,
+                             num_units_in_layer=exp_config.num_units,
+                             dao=dao,
+                             test_data_iterator=test_data_iterator
+                             )
 
         elif model_type == MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10:
             model = Cifar10Vae(exp_config=exp_config,

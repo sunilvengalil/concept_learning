@@ -201,7 +201,8 @@ class SupervisedClassifierModel(ClassifierModel):
         # save model for final step
         self.save(self.exp_config.TRAINED_MODELS_PATH, counter)
 
-    def evaluate(self, train_val_data_iterator, epoch=-1, dataset_type="train", return_latent_vector=False):
+    def evaluate(self, train_val_data_iterator, epoch=-1, dataset_type="train", return_latent_vector=False,
+                 save_images=True):
         if epoch == -1:
             epoch = self.start_epoch
         labels_predicted = None
