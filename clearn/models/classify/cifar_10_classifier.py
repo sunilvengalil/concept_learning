@@ -8,7 +8,7 @@ from clearn.utils.tensorflow_wrappers import linear
 
 
 class Cifar10Classifier(SupervisedClassifierModel):
-    _model_name_ = "_Cifar10Classifier_"
+    _model_name_ = "Cifar10Classifier"
 
     def __init__(self,
                  exp_config,

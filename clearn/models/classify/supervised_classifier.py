@@ -19,7 +19,7 @@ from clearn.utils.utils import get_latent_vector_column
 
 
 class SupervisedClassifierModel(ClassifierModel):
-    _model_name_ = "_SupervisedClassifierModel_"
+    _model_name_ = "SupervisedClassifierModel"
     dataset_type_test = "test"
     dataset_type_train = "train"
     dataset_type_val = "val"
@@ -126,11 +126,10 @@ class SupervisedClassifierModel(ClassifierModel):
         t_vars = tf.compat.v1.trainable_variables()
         # TODO add beta1 parameter from exp_config
         with tf.control_dependencies(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
-            self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate) \
-                .minimize(self.loss, var_list=t_vars)
+            self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate,
+                                                          self.exp_config.beta1_adam).minimize(self.loss,
+                                                                                               var_list=t_vars)
 
-        """" Testing """
-        # for test
         """ Summary """
         tf.compat.v1.summary.scalar("Supervised Loss", self.supervised_loss)
         tf.compat.v1.summary.scalar("Total Loss", self.loss)

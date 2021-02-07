@@ -50,7 +50,7 @@ if __name__ == '__main__':
     z_dim = 32
     experiment_name = "Experiment_3"
     num_cluster_config = ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW
-    run_id = 1
+    run_id = 100
     train_val_data_iterator = None
     tf.reset_default_graph()
 
@@ -77,7 +77,7 @@ if __name__ == '__main__':
             split_name="split_1",
             train_val_data_iterator=train_val_data_iterator,
             num_val_samples=5000,
-            learning_rate=0.005,
+            learning_rate=0.001,
             dataset_name="cifar_10",
             activation_output_layer="LINEAR",
             write_predictions=False,
