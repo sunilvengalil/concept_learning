@@ -20,7 +20,7 @@ def plot_z_dim_vs_accuracy(root_path: str,
                            batch_size=64,
                            num_decoder_layer=4
                            ):
-    dao = get_dao(dataset_name, split_name)
+    dao = get_dao(dataset_name, split_name, num_val_samples)
     training_accuracies = []
     z_dims = []
     validation_accuracies = []
@@ -97,7 +97,7 @@ def plot_epoch_vs_accuracy(root_path: str,
                            num_val_samples=128,
                            num_decoder_layer=4
                            ):
-    dao = get_dao(dataset_name, split_name)
+    dao = get_dao(dataset_name, split_name, num_val_samples)
     exp_config = ExperimentConfig(root_path=root_path,
                                   num_decoder_layer=num_decoder_layer,
                                   z_dim=z_dim,
@@ -151,7 +151,7 @@ def plot_hidden_units_accuracy_layerwise(root_path: str,
                                          layer_num=0,
                                          fixed_layers=[]
                                          ):
-    dao = get_dao(dataset_name, split_name)
+    dao = get_dao(dataset_name, split_name, num_val_samples)
     for dataset_name in dataset_types:
         plt.figure()
 
@@ -235,7 +235,7 @@ def plot_accuracy_multiple_runs(root_path: str,
                                 num_val_samples=128,
                                 num_decoder_layer=4
                                 ):
-    dao = get_dao(dataset_name, split_name)
+    dao = get_dao(dataset_name, split_name, num_val_samples)
     plt.figure()
     dataset_name = "test"
     plt.xlabel("Run_ID")

@@ -1,6 +1,5 @@
 import tensorflow as tf
 from clearn.dao.idao import IDao
-from clearn.dao.mnist import MnistDao
 from clearn.models.architectures.custom.tensorflow_graphs import cnn_4_layer
 from clearn.models.architectures.vgg import cfgs, classify, classify_f
 from clearn.models.classify.supervised_classifier import SupervisedClassifierModel
@@ -14,8 +13,8 @@ class Cifar10Classifier(SupervisedClassifierModel):
                  exp_config,
                  sess,
                  epoch,
+                 dao: IDao,
                  num_units_in_layer=None,
-                 dao: IDao = MnistDao(),
                  test_data_iterator=None
                  ):
         super().__init__(exp_config,
@@ -38,8 +37,8 @@ class Cifar10F(SupervisedClassifierModel):
                  exp_config,
                  sess,
                  epoch,
+                 dao: IDao,
                  num_units_in_layer=None,
-                 dao: IDao = MnistDao(),
                  test_data_iterator=None
                  ):
         super().__init__(exp_config,
@@ -81,8 +80,8 @@ class Vgg16(SupervisedClassifierModel):
                  exp_config,
                  sess,
                  epoch,
+                 dao: IDao,
                  num_units_in_layer=None,
-                 dao: IDao = MnistDao(),
                  test_data_iterator=None
                  ):
         super().__init__(exp_config,
@@ -111,5 +110,3 @@ class Vgg16(SupervisedClassifierModel):
         self.y_pred = self._encoder(self.inputs, reuse=False)
 
         self.compute_and_optimize_loss()
-
-

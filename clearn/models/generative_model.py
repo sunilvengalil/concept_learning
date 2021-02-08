@@ -1,6 +1,7 @@
 import os
 
 from clearn.config import ExperimentConfig
+from clearn.dao.idao import IDao
 from clearn.models.model import Model
 from tensorflow.compat.v1 import Session
 
@@ -12,8 +13,9 @@ class GenerativeModel(Model):
 
     def __init__(self, exp_config: ExperimentConfig,
                  sess: Session,
-                 epoch:int):
-        super().__init__(exp_config, sess, epoch)
+                 epoch: int,
+                 dao: IDao):
+        super().__init__(exp_config, sess, epoch, dao)
 
     def encode(self, images):
         pass

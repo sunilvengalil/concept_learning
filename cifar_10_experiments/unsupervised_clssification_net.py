@@ -6,21 +6,21 @@ experiment_name = "Experiment_4"
 root_path = "/Users/sunilv/concept_learning_exp/"
 z_dim = 32
 learning_rate = 0.001
-num_epochs = 100
+num_epochs = 5
 num_runs = 1
 create_split = True
 completed_z_dims = 0
 completed_runs = 0
 run_id = 3
 num_cluster_config = ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW
-num_units = [64, 128, 64, 32]
+num_units = [64, 128, 64, 64]
 # num_units = [128, 256, 512, 1024]
 train_val_data_iterator = None
 beta = 0
 supervise_weight = 0
 dataset_name = "cifar_10"
 split_name = "split_1"
-dao = get_dao(dataset_name, split_name)
+dao = get_dao(dataset_name, split_name, 128)
 
 # exp_config = ExperimentConfig(root_path=root_path,
 #                               num_decoder_layer=len(num_units) + 1,

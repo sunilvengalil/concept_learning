@@ -3,14 +3,19 @@ import numpy as np
 from clearn.dao.idao import IDao
 from tensorflow.keras import datasets
 import ssl
+
+
 class CiFar10Dao(IDao):
-    def __init__(self, split_name: str):
+    def __init__(self,
+                 split_name: str,
+                 num_validation_samples: int):
         self.dataset_name = "cifar_10"
         self.split_name = split_name
+        self.num_validation_samples = num_validation_samples
 
     @property
     def number_of_training_samples(self) -> int:
-        return 50000
+        return 50000 - self.num_validation_samples
 
     @property
     def image_shape(self) -> Tuple[int]:

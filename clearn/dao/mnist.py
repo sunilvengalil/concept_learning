@@ -5,10 +5,16 @@ from clearn.dao.idao import IDao
 
 
 class MnistDao(IDao):
+    def __init__(self,
+                 split_name: str,
+                 num_validation_samples: int):
+        self.dataset_name = "mnist"
+        self.split_name = split_name
+        self.num_validation_samples = num_validation_samples
 
     @property
     def number_of_training_samples(self):
-        return 60000
+        return 60000 - self.num_validation_samples
 
     @property
     def number_of_testing_samples(self):
@@ -17,10 +23,6 @@ class MnistDao(IDao):
     @property
     def image_shape(self):
         return [28, 28, 1]
-
-    def __init__(self, split_name="Split_1"):
-        self.dataset_name = "mnist"
-        self.split_name = split_name
 
     @property
     def max_value(self):

@@ -4,19 +4,21 @@ import tensorflow as tf
 from tensorflow.compat.v1 import Session
 
 from clearn.config import ExperimentConfig
+from clearn.dao.idao import IDao
 from clearn.utils.data_loader import TrainValDataIterator
 
 
 class Model(ABC):
     _model_name_ = "Model"
-
     def __init__(self,
                  exp_config: ExperimentConfig,
                  sess: Session,
-                 epoch: int):
+                 epoch: int,
+                 dao:IDao):
         self.exp_config = exp_config
         self.sess = sess
         self.epoch = epoch
+        self.dao = dao
 
     def _initialize(self, train_val_data_iterator=None,
                     restore_from_existing_checkpoint=True,
@@ -34,13 +36,9 @@ class Model(ABC):
             could_load, checkpoint_counter = self._load(self.exp_config.TRAINED_MODELS_PATH,
                                                         check_point_epochs=check_point_epochs)
             if could_load:
-                if train_val_data_iterator is not None:
-                    num_batches_train = train_val_data_iterator.get_num_samples("train") // self.exp_config.BATCH_SIZE
-                    start_epoch = int(checkpoint_counter / num_batches_train)
-                    start_batch_id = checkpoint_counter - start_epoch * num_batches_train
-                else:
-                    start_epoch = -1
-                    start_batch_id = -1
+                num_batches_train = self.dao.number_of_training_samples // self.exp_config.BATCH_SIZE
+                start_epoch = int(checkpoint_counter / num_batches_train)
+                start_batch_id = checkpoint_counter - start_epoch * num_batches_train
                 counter = checkpoint_counter
                 print(" [*] Load SUCCESS")
             else:

@@ -8,7 +8,6 @@ import imageio
 from clearn.config import ExperimentConfig
 from clearn.dao.dao_factory import get_dao
 from clearn.dao.idao import IDao
-from clearn.dao.mnist import MnistDao
 
 
 def load_images(_config, dataset_type="train", manual_annotation_file=None):
@@ -102,12 +101,13 @@ class TrainValDataIterator:
 
     @classmethod
     def from_existing_split(cls,
+                            dao: IDao,
                             split_name,
                             split_location,
                             batch_size=None,
                             manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
-                            manual_annotation_file=None,
-                            dao: IDao = MnistDao()):
+                            manual_annotation_file=None
+                            ):
         """
         Creates and initialize an instance of TrainValDataIterator
         @param: split_name:Name of the train/valid/test split
@@ -164,7 +164,9 @@ class TrainValDataIterator:
             self.manual_annotation[:, 0:10] = self.train_y
             self.manual_annotation[:, 10] = 1 # set manual annotation confidence as 1
 
-    def __init__(self, dataset_path=None,
+    def __init__(self,
+                 dao: IDao,
+                 dataset_path=None,
                  shuffle=False,
                  stratified=None,
                  validation_samples=128,
@@ -173,7 +175,6 @@ class TrainValDataIterator:
                  batch_size=None,
                  manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                  manual_annotation_file=None,
-                 dao:IDao = MnistDao(),
                  seed=547):
         self.train_idx = 0
         self.val_idx = 0
@@ -326,8 +327,8 @@ class TrainValDataIterator:
 
 
 def load_train(data_dir,
-               shuffle=True,
-               dao:IDao=MnistDao()):
+               dao: IDao,
+               shuffle=True):
     return dao.load_train(data_dir, shuffle)
 
 
@@ -348,12 +349,13 @@ def load_test_raw_data(data_dir):
     return test_x, test_y
 
 
-def load_train_val(data_dir, shuffle=False,
+def load_train_val(data_dir,
+                   dao: IDao,
+                   shuffle=False,
                    stratified=None,
                    percentage_to_be_sampled=0.7,
                    split_location=None,
                    split_names=[],
-                   dao: IDao=MnistDao(),
                    seed=547):
     return dao.load_train_val(data_dir,
                               shuffle,
@@ -364,9 +366,9 @@ def load_train_val(data_dir, shuffle=False,
                               seed=seed)
 
 def load_test(data_dir,
+              dao: IDao,
               split_location=None,
-              split_names="test",
-              dao:IDao=MnistDao()
+              split_names="test"
               ):
     return dao.load_test(data_dir,
                          split_location,
@@ -431,8 +433,9 @@ class DataIterator:
     def from_existing_split(cls,
                             split_name,
                             split_location,
-                            batch_size=None,
-                            dao: IDao = MnistDao()):
+                            dao:IDao,
+                            batch_size=None
+                            ):
         """
         Creates and initialize an instance of TrainValDataIterator
         @param: split_name:Name of the train/valid/test split
@@ -452,11 +455,13 @@ class DataIterator:
         return instance
 
 
-    def __init__(self, dataset_path=None,
+    def __init__(self,
+                 dao:IDao,
+                 dataset_path=None,
                  split_location=None,
                  split_names=["test"],
-                 batch_size=None,
-                 dao:IDao = MnistDao()):
+                 batch_size=None
+                 ):
         self.idx = 0
         self.dataset_path = dataset_path
         self.batch_size = batch_size
@@ -506,7 +511,7 @@ if __name__ == "__main__":
 
     dataset_path = "/Users/sunilv/concept_learning_exp/datasets/cifar_10/"
     split_location = dataset_path +"test/"
-    cifar_10_dao = get_dao("cifar_10","test")
+    cifar_10_dao = get_dao("cifar_10","test", 128)
     # DataIterator = DataIterator(dataset_path=dataset_path,
     #                             split_location=split_location,
     #                             split_names=["test"],
@@ -517,8 +522,8 @@ if __name__ == "__main__":
                                      split_location,
                                      128,
                                      dao=cifar_10_dao)
-    while data_iterator.has_next():
-        x, y = data_iterator.get_next_batch("test")
+    while data_iterator.has_next("test"):
+        x, y, _ = data_iterator.get_next_batch("test")
         print(x.shape)
         print(y.shape)
 

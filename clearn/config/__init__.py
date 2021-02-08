@@ -239,7 +239,7 @@ class ExperimentConfig:
         exp_config.num_units = num_units + [exp_config.Z_DIM * 2]
         exp_config.name = experiment_name
 
-        dao = get_dao(dataset_name, split_name)
+        dao = get_dao(dataset_name, split_name, exp_config.num_val_samples)
         total_training_samples = dao.number_of_training_samples()
         exp_config.num_train_samples = ((total_training_samples - exp_config.num_val_samples) // exp_config.BATCH_SIZE) * exp_config.BATCH_SIZE
 

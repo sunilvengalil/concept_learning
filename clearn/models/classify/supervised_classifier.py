@@ -28,9 +28,9 @@ class SupervisedClassifierModel(ClassifierModel):
                  exp_config,
                  sess,
                  epoch,
+                 dao: IDao,
                  num_units_in_layer=None,
                  check_point_epochs=None,
-                 dao: IDao = MnistDao(),
                  test_data_iterator: DataIterator = None,
                  ):
         super().__init__(exp_config, sess, epoch, check_point_epochs=check_point_epochs, dao=dao)

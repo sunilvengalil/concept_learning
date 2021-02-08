@@ -7,7 +7,6 @@ import pandas as pd
 from clearn.config import ExperimentConfig
 from clearn.config.common_path import get_encoded_csv_file
 from clearn.dao.idao import IDao
-from clearn.dao.mnist import MnistDao
 from clearn.models.architectures.custom.tensorflow_graphs import cnn_3_layer, deconv_3_layer
 from clearn.models.generative_model import GenerativeModel
 from clearn.utils import prior_factory as prior
@@ -24,13 +23,12 @@ class VAE(GenerativeModel):
                  exp_config: ExperimentConfig,
                  sess,
                  epoch,
+                 dao: IDao,
                  train_val_data_iterator=None,
                  read_from_existing_checkpoint=True,
                  check_point_epochs=None,
-                 dao: IDao = MnistDao(),
                  ):
-        super().__init__(exp_config, sess, epoch)
-        self.dao = dao
+        super().__init__(exp_config, sess, epoch, dao=dao)
         # test
         self.sample_num = 64  # number of generated images to be saved
         self.num_images_per_row = 4  # should be a factor of sample_num

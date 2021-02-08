@@ -8,3 +8,4 @@ scikit_learn==0.23.1
 yellowbrick==1.1
 opencv-python
 jupyter
+scikit-image==0.18.1

@@ -23,16 +23,15 @@ class ClassifierModel(Model):
                  exp_config: ExperimentConfig,
                  sess,
                  epoch,
+                 dao=IDao,
                  num_units_in_layer=None,
                  train_val_data_iterator=None,
                  read_from_existing_checkpoint=True,
                  check_point_epochs=None,
-                 dao: IDao = MnistDao(),
                  write_predictions=True,
                  test_data_iterator=None
                  ):
-        super().__init__(exp_config, sess, epoch)
-        self.dao = dao
+        super().__init__(exp_config, sess, epoch, dao=dao)
         # test
         self.sample_num = 64  # number of generated images to be saved
         self.num_images_per_row = 4  # should be a factor of sample_num
