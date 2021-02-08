@@ -12,9 +12,9 @@ from clearn.dao.idao import IDao
 
 def load_images(_config, dataset_type="train", manual_annotation_file=None):
     dao = get_dao(dataset_type)
-    train_val_data_iterator = TrainValDataIterator.from_existing_split(_config.split_name,
-                                                                       _config.DATASET_PATH,
-                                                                       _config.BATCH_SIZE,
+    train_val_data_iterator = TrainValDataIterator.from_existing_split(split_name=_config.split_name,
+                                                                       split_location=_config.DATASET_PATH,
+                                                                       batch_size=_config.BATCH_SIZE,
                                                                        manual_annotation_file=manual_annotation_file,
                                                                        dao=dao
                                                                        )
@@ -157,12 +157,12 @@ class TrainValDataIterator:
             else:
                 for i, label in enumerate(_manual_annotation):
                     self.manual_annotation[i, _manual_annotation[i]] = 1.0
-                    self.manual_annotation[i, 10] = 0 # set manual annotation confidence as 0
+                    self.manual_annotation[i, 10] = 0  # set manual annotation confidence as 0
         elif self.manual_labels_config == ExperimentConfig.USE_ACTUAL:
             self.manual_annotation = np.zeros((len(self.train_x), 11), dtype=np.float)
 
             self.manual_annotation[:, 0:10] = self.train_y
-            self.manual_annotation[:, 10] = 1 # set manual annotation confidence as 1
+            self.manual_annotation[:, 10] = 1  # set manual annotation confidence as 1
 
     def __init__(self,
                  dao: IDao,
@@ -181,7 +181,7 @@ class TrainValDataIterator:
         self.dataset_path = dataset_path
         self.batch_size = batch_size
         self.dao = dao
-        if dataset_path is not None :
+        if dataset_path is not None:
             self.entire_data_x, self.entire_data_y = load_train(dataset_path, dao=dao)
             if validation_samples == -1:
                 percentage_to_be_sampled = 0.3
@@ -194,7 +194,7 @@ class TrainValDataIterator:
                                                split_location=split_location,
                                                split_names=split_names,
                                                dao=dao,
-                                               seed= seed)
+                                               seed=seed)
             self.train_x = self.dataset_dict[TrainValDataIterator.TRAIN_X]
             self.train_y = self.dataset_dict[TrainValDataIterator.TRAIN_Y]
             self.val_x = self.dataset_dict[TrainValDataIterator.VALIDATION_X]
@@ -325,7 +325,6 @@ class TrainValDataIterator:
         self.reset_counter("val")
 
 
-
 def load_train(data_dir,
                dao: IDao,
                shuffle=True):
@@ -364,6 +363,7 @@ def load_train_val(data_dir,
                               split_location,
                               split_names,
                               seed=seed)
+
 
 def load_test(data_dir,
               dao: IDao,
@@ -433,7 +433,7 @@ class DataIterator:
     def from_existing_split(cls,
                             split_name,
                             split_location,
-                            dao:IDao,
+                            dao: IDao,
                             batch_size=None
                             ):
         """
@@ -454,9 +454,8 @@ class DataIterator:
         instance.idx = 0
         return instance
 
-
     def __init__(self,
-                 dao:IDao,
+                 dao: IDao,
                  dataset_path=None,
                  split_location=None,
                  split_names=["test"],
@@ -466,8 +465,8 @@ class DataIterator:
         self.dataset_path = dataset_path
         self.batch_size = batch_size
         self.dao = dao
-        if dataset_path is not None :
-            self.dataset_dict = load_test(dataset_path,
+        if dataset_path is not None:
+            self.dataset_dict = load_test(data_dir=dataset_path,
                                           split_location=split_location,
                                           split_names=split_names,
                                           dao=dao
@@ -490,7 +489,7 @@ class DataIterator:
         x = self.x[self.idx * self.batch_size:(self.idx + 1) * self.batch_size]
         y = self.y[self.idx * self.batch_size:(self.idx + 1) * self.batch_size]
         self.idx += 1
-        #TODO fix this later. return manual annnotation as third parameter
+        # TODO fix this later. return manual annnotation as third parameter
         return x, y, y
 
     def get_num_samples(self, dataset_type):
@@ -505,13 +504,12 @@ class DataIterator:
         return self.unique_labels
 
 
-
 if __name__ == "__main__":
     # Test cases for load_images
 
     dataset_path = "/Users/sunilv/concept_learning_exp/datasets/cifar_10/"
-    split_location = dataset_path +"test/"
-    cifar_10_dao = get_dao("cifar_10","test", 128)
+    split_location = dataset_path + "test/"
+    cifar_10_dao = get_dao("cifar_10", "test", 128)
     # DataIterator = DataIterator(dataset_path=dataset_path,
     #                             split_location=split_location,
     #                             split_names=["test"],
@@ -519,9 +517,8 @@ if __name__ == "__main__":
     #                             dao=cifar_10_dao)
 
     data_iterator = DataIterator.from_existing_split("test",
-                                     split_location,
-                                     128,
-                                     dao=cifar_10_dao)
+                                                     split_location=split_location,
+                                                     dao=cifar_10_dao)
     while data_iterator.has_next("test"):
         x, y, _ = data_iterator.get_next_batch("test")
         print(x.shape)
