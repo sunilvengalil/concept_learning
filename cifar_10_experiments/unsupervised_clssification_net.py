@@ -83,6 +83,6 @@ initialize_model_train_and_get_features(experiment_name=experiment_name,
                                         dataset_name="cifar_10",
                                         activation_output_layer="LINEAR",
                                         num_decoder_layer=len(num_units) + 1,
-                                        write_predictions=False,
+                                        write_predictions=True,
                                         seed=547
                                         )

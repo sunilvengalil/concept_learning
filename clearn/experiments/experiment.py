@@ -3,8 +3,10 @@ from clearn.analysis.encode_images import encode_images, encode_images_and_get_f
 import json
 import os
 
-from clearn.models.classify.cifar_10_classifier import Cifar10Classifier, Vgg16, Cifar10F
+from clearn.dao.idao import IDao
+from clearn.models.classify.cifar_10_classifier import Cifar10Classifier, Cifar10F
 from clearn.models.classify.cifar_10_vae import Cifar10Vae
+from clearn.models.classify.semi_supervised import SemiSupervisedClassifier
 from clearn.models.vae import VAE
 from clearn.models.classify.supervised_classifier import SupervisedClassifierModel
 from clearn.dao.dao_factory import get_dao
@@ -20,6 +22,7 @@ MODEL_TYPE_SUPERVISED_CLASSIFIER = "CLASSIFIER_SUPERVISED"
 VAAL_ARCHITECTURE_FOR_CIFAR = "ACTIVE_LEARNING_VAAL_CIFAR"
 CIFAR_VGG = "CIFAR_VGG"
 CIFAR10_F = "CIFAR10_F"
+MODEL_TYPE_VAE_SEMI_SUPERVISED_CIFAR10 = "VAE_SEMI_SUPERVISED_CIFAR10"
 
 
 class Experiment:
@@ -55,7 +58,7 @@ class Experiment:
         if train_val_data_iterator is None:
 
             if _create_split:
-                train_val_data_iterator = TrainValDataIterator(self.config.DATASET_ROOT_PATH,
+                train_val_data_iterator = TrainValDataIterator(dataset_path=self.config.DATASET_ROOT_PATH,
                                                                dao=self.model.dao,
                                                                shuffle=True,
                                                                stratified=True,
@@ -64,9 +67,9 @@ class Experiment:
                                                                split_location=self.config.DATASET_PATH,
                                                                batch_size=self.config.BATCH_SIZE)
             else:
-                train_val_data_iterator = TrainValDataIterator.from_existing_split(self.config.split_name,
-                                                                                   self.config.DATASET_PATH,
-                                                                                   self.config.BATCH_SIZE,
+                train_val_data_iterator = TrainValDataIterator.from_existing_split(split_name=self.config.split_name,
+                                                                                   split_location=self.config.DATASET_PATH,
+                                                                                   batch_size=self.config.BATCH_SIZE,
                                                                                    manual_labels_config=self.config.manual_labels_config,
                                                                                    dao=self.model.dao)
         self.model.train(train_val_data_iterator)
@@ -177,7 +180,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             write_predictions=True,
                                             num_decoder_layer=4,
                                             test_data_iterator=None,
-                                            seed=547):
+                                            seed=547,
+                                            num_epochs_completed=0):
     dao = get_dao(dataset_name, split_name, num_val_samples)
     if num_units is None:
         num_units = [64, 128, 32]
@@ -213,48 +217,16 @@ def initialize_model_train_and_get_features(experiment_name,
     with open(exp_config.BASE_PATH + "config.json", "w") as config_file:
         json.dump(exp_config.as_json(), config_file)
     if train_val_data_iterator is None:
-        split_filename = exp.config.DATASET_PATH + split_name + ".json"
-        manual_annotation_file = os.path.join(exp_config.ANALYSIS_PATH,
-                                              f"manual_annotation_epoch_{num_epochs - 1:.1f}.csv"
-                                              )
-        print(split_filename)
-        if os.path.isfile(split_filename):
-            if manual_annotation_file is not None:
-                train_val_data_iterator = TrainValDataIterator.from_existing_split(exp.config.split_name,
-                                                                                   exp.config.DATASET_PATH,
-                                                                                   exp.config.BATCH_SIZE,
-                                                                                   manual_labels_config=exp.config.manual_labels_config,
-                                                                                   manual_annotation_file=manual_annotation_file,
-                                                                                   dao=dao)
-        elif create_split:
-            train_val_data_iterator = TrainValDataIterator(exp.config.DATASET_ROOT_PATH,
-                                                           dao=dao,
-                                                           shuffle=True,
-                                                           stratified=True,
-                                                           validation_samples=exp.config.num_val_samples,
-                                                           split_names=["train", "validation"],
-                                                           split_location=exp.config.DATASET_PATH,
-                                                           batch_size=exp.config.BATCH_SIZE,
-                                                           manual_labels_config=exp.config.manual_labels_config,
-                                                           manual_annotation_file=manual_annotation_file,
-                                                           seed=exp_config.seed)
-        else:
-            raise Exception(f"File does not exists {split_filename}")
+        train_val_data_iterator = get_train_val_iterator(create_split, dao, exp_config, num_epochs_completed, split_name)
 
     if test_data_iterator is None:
         test_data_location = exp_config.DATASET_ROOT_PATH + "/test/"
         if not os.path.isfile(test_data_location + "test.json"):
-            test_data_iterator = DataIterator(exp_config.DATASET_ROOT_PATH,
-                                              split_location=test_data_location,
-                                              split_names=["test"],
+            test_data_iterator = DataIterator(dataset_path=exp_config.DATASET_ROOT_PATH,
                                               batch_size=exp_config.BATCH_SIZE,
                                               dao=dao)
         else:
-            test_data_iterator = DataIterator.from_existing_split("test",
-                                                                  split_location=test_data_location,
-                                                                  batch_size=exp_config.BATCH_SIZE,
-                                                                  dao=dao
-                                                                  )
+            raise Exception("Test data file does not exists")
     with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as sess:
         model = get_model(dao, exp_config, model_type, num_epochs, sess, test_data_iterator, train_val_data_iterator)
         print("Starting training")
@@ -264,7 +236,45 @@ def initialize_model_train_and_get_features(experiment_name,
         return train_val_data_iterator, exp_config, model
 
 
-def get_model(dao, exp_config, model_type, num_epochs, sess, test_data_iterator, train_val_data_iterator):
+def get_train_val_iterator(create_split, dao, exp_config, num_epochs, split_name):
+    split_filename = exp_config.DATASET_PATH + split_name + ".json"
+    manual_annotation_file = os.path.join(exp_config.ANALYSIS_PATH,
+                                          f"manual_annotation_epoch_{int(num_epochs)}.csv"
+                                          )
+    print(split_filename)
+    if os.path.isfile(split_filename):
+        if manual_annotation_file is not None:
+            train_val_data_iterator = TrainValDataIterator.from_existing_split(dao=dao,
+                                                                               split_name=exp_config.split_name,
+                                                                               split_location=exp_config.DATASET_PATH,
+                                                                               batch_size=exp_config.BATCH_SIZE,
+                                                                               manual_labels_config=exp_config.manual_labels_config,
+                                                                               manual_annotation_file=manual_annotation_file
+                                                                               )
+    elif create_split:
+        train_val_data_iterator = TrainValDataIterator(dataset_path=exp_config.DATASET_ROOT_PATH,
+                                                       dao=dao,
+                                                       shuffle=True,
+                                                       stratified=True,
+                                                       validation_samples=exp_config.num_val_samples,
+                                                       split_names=["train", "validation"],
+                                                       split_location=exp_config.DATASET_PATH,
+                                                       batch_size=exp_config.BATCH_SIZE,
+                                                       manual_labels_config=exp_config.manual_labels_config,
+                                                       manual_annotation_file=manual_annotation_file,
+                                                       seed=exp_config.seed)
+    else:
+        raise Exception(f"File does not exists {split_filename}")
+    return train_val_data_iterator
+
+
+def get_model(dao: IDao,
+              exp_config: ExperimentConfig,
+              model_type,
+              num_epochs,
+              sess,
+              test_data_iterator=None,
+              train_val_data_iterator=None):
     if model_type == MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER:
         model = VAE(exp_config=exp_config,
                     sess=sess,
@@ -303,6 +313,14 @@ def get_model(dao, exp_config, model_type, num_epochs, sess, test_data_iterator,
                            epoch=num_epochs,
                            dao=dao
                            )
+    elif model_type == MODEL_TYPE_VAE_SEMI_SUPERVISED_CIFAR10:
+        model = SemiSupervisedClassifier(exp_config=exp_config,
+                                         sess=sess,
+                                         epoch=num_epochs,
+                                         dao=dao,
+                                         train_val_data_iterator=train_val_data_iterator,
+                                         test_data_iterator=test_data_iterator
+                                         )
     else:
         raise Exception(
             f"model_type should be one of [{MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER}, {MODEL_TYPE_SUPERVISED_CLASSIFIER}]")
@@ -375,16 +393,9 @@ def load_model_and_test(experiment_name,
     print(exp.as_json())
 
     if data_iterator is None:
-        split_filename = exp.config.DATASET_PATH + split_name + ".json"
-        print(split_filename)
-        if os.path.isfile(split_filename):
-            data_iterator = DataIterator.from_existing_split(exp.config.split_name,
-                                                             exp.config.DATASET_PATH,
-                                                             exp.config.BATCH_SIZE,
-                                                             dao=dao)
-
-        else:
-            raise Exception(f"File does not exists {split_filename}")
+        data_iterator = DataIterator(dataset_path=exp.config.DATASET_PATH,
+                                     batch_size=exp.config.BATCH_SIZE,
+                                     dao=dao)
 
     with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as sess:
         if model_type == MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER:
@@ -418,47 +429,26 @@ def load_model_and_test(experiment_name,
 
 
 if __name__ == "__main__":
-    experiment_name = "Experiment_4"
-    root_path = "/Users/sunilv/concept_learning_exp"
-    z_dim = 32
-    learning_rate = 0.001
-    num_epochs = 50
-    num_runs = 1
-    create_split = True
-    completed_z_dims = 0
-    completed_runs = 0
-    run_id = 3
-    num_cluster_config = ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW
-    # num_units = [64, 128, 64, 32]
-    num_units = [64, 128, 64, 64]
-    # num_units = [128, 256, 512, 1024]
-    train_val_data_iterator = None
-    beta = 0
-    supervise_weight = 0
-    dataset_name = "cifar_10"
-    split_name = "split_1"
-    dao = get_dao(dataset_name, split_name, 128)
-
-    model, exp_config, _, _, epochs_completed = load_trained_model(experiment_name=experiment_name,
-                                                                   z_dim=z_dim,
-                                                                   run_id=run_id,
-                                                                   num_cluster_config=num_cluster_config,
-                                                                   manual_labels_config=ExperimentConfig.USE_ACTUAL,
-                                                                   supervise_weight=0,
-                                                                   beta=0,
-                                                                   reconstruction_weight=1,
-                                                                   model_type=MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10,
-                                                                   num_units=num_units,
-                                                                   save_reconstructed_images=True,
-                                                                   split_name="split_1",
-                                                                   num_val_samples=128,
-                                                                   learning_rate=0.001,
-                                                                   dataset_name="cifar_10",
-                                                                   activation_output_layer="LINEAR",
-                                                                   write_predictions=False,
-                                                                   seed=547,
-                                                                   root_path=root_path,
-                                                                   eval_interval=300,
-                                                                   run_evaluation_during_training=False
-                                                                   )
-    print("Number of epochs completed", model.num_training_epochs_completed)
+    model_1, exp_config_1, _, _, epochs_completed = load_trained_model(experiment_name="Experiment_4",
+                                                                       z_dim=32,
+                                                                       run_id=3,
+                                                                       num_cluster_config=ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW,
+                                                                       manual_labels_config=ExperimentConfig.USE_ACTUAL,
+                                                                       supervise_weight=0,
+                                                                       beta=0,
+                                                                       reconstruction_weight=1,
+                                                                       model_type=MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10,
+                                                                       num_units=[64, 128, 64, 64],
+                                                                       save_reconstructed_images=True,
+                                                                       split_name="split_1",
+                                                                       num_val_samples=128,
+                                                                       learning_rate=0.001,
+                                                                       dataset_name="cifar_10",
+                                                                       activation_output_layer="LINEAR",
+                                                                       write_predictions=False,
+                                                                       seed=547,
+                                                                       root_path="/Users/sunilv/concept_learning_exp",
+                                                                       eval_interval=300,
+                                                                       run_evaluation_during_training=False
+                                                                       )
+    print("Number of epochs completed", model_1.num_training_epochs_completed)

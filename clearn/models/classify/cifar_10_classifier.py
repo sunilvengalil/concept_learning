@@ -17,14 +17,14 @@ class Cifar10Classifier(SupervisedClassifierModel):
                  num_units_in_layer=None,
                  test_data_iterator=None
                  ):
-        super().__init__(exp_config,
-                         sess,
-                         epoch,
-                         num_units_in_layer,
+        self.strides = [2, 2, 2, 2]
+        super().__init__(exp_config=exp_config,
+                         sess=sess,
+                         epoch=epoch,
+                         num_units_in_layer=num_units_in_layer,
                          dao=dao,
                          test_data_iterator=test_data_iterator
                          )
-        self.strides = [2, 2, 2, 2]
 
     def _encoder(self, x, reuse=False):
         return cnn_4_layer(self, x, self.exp_config.Z_DIM, reuse)

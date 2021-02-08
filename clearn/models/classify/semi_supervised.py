@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 
 from clearn.config.common_path import get_encoded_csv_file
+from clearn.dao.idao import IDao
+from clearn.models.architectures.custom.tensorflow_graphs import cnn_4_layer, deconv_4_layer
 from clearn.models.vae import VAE
 from clearn.utils import prior_factory as prior
 from clearn.utils.utils import save_image, save_single_image, get_latent_vector_column
@@ -22,85 +24,94 @@ class SemiSupervisedClassifier(VAE):
                  exp_config,
                  sess,
                  epoch,
+                 dao: IDao,
                  train_val_data_iterator=None,
+                 test_data_iterator=None,
                  read_from_existing_checkpoint=True,
-                 check_point_epochs=None,
-                 model_save_interval=900
+                 check_point_epochs=None
                  ):
-        super().__init__(exp_config, sess, epoch)
-        # test
-        self.sample_num = 64  # number of generated images to be saved
-        self.num_images_per_row = 4  # should be a factor of sample_num
-        self.model_save_interval = model_save_interval
-        self.mu = tf.placeholder(tf.float32, [self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM], name='mu')
-        self.sigma = tf.placeholder(tf.float32, [self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM], name='sigma')
-        self.images = None
-        self._build_model()
-        # initialize all variables
-        tf.global_variables_initializer().run()
-        # graph inputs for visualize training results
-        self.sample_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
-        self.max_to_keep = 20
-
-        self.counter, self.start_batch_id, self.start_epoch = self._initialize(train_val_data_iterator,
-                                                                               read_from_existing_checkpoint,
-                                                                               check_point_epochs)
-
-    def _build_model(self):
-        # some parameters
-        image_dims = self.dao.image_shape
-        bs = self.exp_config.BATCH_SIZE
-        self.strides = [2, 2, 2, 2, 2]
-
-        """ Graph Input """
-        # images
-        self.inputs = tf.placeholder(tf.float32, [bs] + image_dims, name='real_images')
-
-        # random vectors with  multi-variate gaussian distribution
-        # 0 mean and covariance matrix as Identity
-        self.standard_normal = tf.placeholder(tf.float32, [bs, self.exp_config.Z_DIM], name='z')
-
         # Whether the sample was manually annotated.
-        self.is_manual_annotated = tf.placeholder(tf.float32, [bs], name="is_manual_annotated")
-        self.labels = tf.placeholder(tf.float32, [bs, self.label_dim], name='manual_label')
+        self.is_manual_annotated = tf.placeholder(tf.float32, [exp_config.BATCH_SIZE], name="is_manual_annotated")
+        self.labels = tf.placeholder(tf.float32, [exp_config.BATCH_SIZE, dao.num_classes], name='manual_label')
+        self.test_data_iterator = test_data_iterator
+        super().__init__(exp_config=exp_config,
+                         sess=sess,
+                         epoch=epoch,
+                         dao=dao,
+                         train_val_data_iterator=train_val_data_iterator,
+                         read_from_existing_checkpoint=read_from_existing_checkpoint,
+                         check_point_epochs=check_point_epochs)
 
-        """ Loss Function """
-        # encoding
-        self.mu, self.sigma = self._encoder(self.inputs, reuse=False)
+    def _encoder(self, x, reuse=False):
+        gaussian_params = cnn_4_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
+        # The mean parameter is unconstrained
+        mean = gaussian_params[:, :self.exp_config.Z_DIM]
+        # The standard deviation must be positive. Parametrize with a softplus and
+        # add a small epsilon for numerical stability
+        stddev = 1e-6 + tf.nn.softplus(gaussian_params[:, self.exp_config.Z_DIM:])
 
-        # sampling by re-parameterization technique
-        self.z = self.mu + self.sigma * tf.random_normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
+        return mean, stddev
 
-        # supervised loss for labelled samples
+    def decoder(self, z, reuse=False):
+        # Models the probability P(X/z)
+        return deconv_4_layer(self, z, reuse)
+
+    def get_decoder_weights_bias(self):
+        # name_w_1 = "decoder/de_fc1/Matrix:0"
+        # name_w_2 = "decoder/de_dc3/w:0"
+        # name_w_3 = "decoder/de_dc4/w:0"
+        #
+        # name_b_1 = "decoder/de_fc1/bias:0"
+        # name_b_2 = "decoder/de_dc3/biases:0"
+        # name_b_3 = "decoder/de_dc4/biases:0"
+        #
+        # layer_param_names = [name_w_1,
+        #                      name_b_1,
+        #                      name_w_2,
+        #                      name_b_2,
+        #                      name_w_3,
+        #                      name_b_3,
+        #                      ]
+        #
+        # default_graph = tf.get_default_graph()
+        # params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
+        # param_values = self.sess.run(params)
+        # return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
+        return None
+
+    def get_encoder_weights_bias(self):
+        # name_w_1 = "encoder/en_conv1/w:0"
+        # name_w_2 = "encoder/en_conv2/w:0"
+        # name_w_3 = "encoder/en_fc3/Matrix:0"
+        # name_w_4 = "encoder/en_fc4/Matrix:0"
+        #
+        # name_b_1 = "encoder/en_conv1/biases:0"
+        # name_b_2 = "encoder/en_conv2/biases:0"
+        # name_b_3 = "encoder/en_fc3/bias:0"
+        # name_b_4 = "encoder/en_fc4/bias:0"
+        #
+        # layer_param_names = [name_w_1,
+        #                      name_b_1,
+        #                      name_w_2,
+        #                      name_b_2,
+        #                      name_w_3,
+        #                      name_b_3,
+        #                      name_w_4,
+        #                      name_b_4
+        #                      ]
+        #
+        # default_graph = tf.get_default_graph()
+        # params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
+        # param_values = self.sess.run(params)
+        # return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
+        return None
+
+    def compute_and_optimize_loss(self):
         self.y_pred = linear(self.z, 10)
         self.supervised_loss = tf.losses.softmax_cross_entropy(onehot_labels=self.labels,
                                                                logits=self.y_pred,
                                                                weights=self.is_manual_annotated
                                                                )
-
-        # decoding
-        out = self.decoder(self.z, reuse=False)
-        self.out = tf.clip_by_value(out, 1e-8, 1 - 1e-8)
-
-        # loss
-        if self.exp_config.activation_output_layer == "SIGMOID":
-            marginal_likelihood = tf.reduce_sum(self.inputs * tf.log(self.out) +
-                                                (1 - self.inputs) * tf.log(1 - self.out),
-                                                [1, 2])
-            self.neg_loglikelihood = -tf.reduce_mean(marginal_likelihood)
-
-        else:
-            # Linear activation
-            marginal_likelihood = tf.compat.v1.losses.mean_squared_error(self.inputs, self.out)
-            self.neg_loglikelihood = tf.reduce_mean(marginal_likelihood)
-
-        kl = 0.5 * tf.reduce_sum(tf.square(self.mu) +
-                                 tf.square(self.sigma) -
-                                 tf.log(1e-8 + tf.square(self.sigma)) - 1, [1])
-
-        self.KL_divergence = tf.reduce_mean(kl)
-
-        # evidence_lower_bound = -self.neg_loglikelihood - self.exp_config.beta * self.KL_divergence
 
         self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
                     self.exp_config.beta * self.KL_divergence + \
@@ -115,7 +126,6 @@ class SemiSupervisedClassifier(VAE):
                 .minimize(self.loss, var_list=t_vars)
 
         """" Testing """
-
         # for test
         self.fake_images = self.decoder(self.standard_normal, reuse=True)
 
@@ -143,36 +153,43 @@ class SemiSupervisedClassifier(VAE):
                 batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
                 # update autoencoder
-                _, summary_str, loss, nll_loss, kl_loss, supervised_loss = self.sess.run(
-                    [self.optim, self.merged_summary_op,
-                     self.loss, self.neg_loglikelihood,
-                     self.KL_divergence, self.supervised_loss],
-                    feed_dict={self.inputs: batch_images,
-                               self.labels: manual_labels[:, :10],
-                               self.is_manual_annotated: manual_labels[:, 10],
-                               self.standard_normal: batch_z})
-                # print("Epoch: [%2d] [%4d/%4d] time: %4.4f, loss: %.8f, nll: %.8f, kl: %.8f, supervised_loss: %.4f"
-                #       % (epoch, idx, num_batches_train, time.time() - start_time, loss, nll_loss, kl_loss,
-                #          supervised_loss))
+                _, summary_str, loss, nll_loss, kl_loss, supervised_loss = self.sess.run([self.optim,
+                                                                                          self.merged_summary_op,
+                                                                                          self.loss,
+                                                                                          self.neg_loglikelihood,
+                                                                                          self.KL_divergence,
+                                                                                          self.supervised_loss],
+                                                                                         feed_dict={self.inputs: batch_images,
+                                                                                                    self.labels: manual_labels[:, :10],
+                                                                                                    self.is_manual_annotated: manual_labels[:, 10],
+                                                                                                    self.standard_normal: batch_z})
+                print("Epoch: [%2d] [%4d/%4d] , loss: %.8f, nll: %.8f, kl: %.8f, supervised_loss: %.4f"
+                      % (epoch, batch, self.num_batches_train, loss, nll_loss, kl_loss,
+                         supervised_loss))
                 self.counter += 1
-                self.num_training_epochs_completed = epoch
-                self.num_steps_completed = batch
+                self.num_training_epochs_completed = epoch + 1
+                self.num_steps_completed = batch + 1
                 if self.exp_config.run_evaluation_during_training:
                     if np.mod(batch, self.exp_config.eval_interval) == self.exp_config.eval_interval - 1:
                         train_val_data_iterator.reset_counter("val")
                         self.evaluate(data_iterator=train_val_data_iterator,
                                       dataset_type="val")
+
+                        if self.test_data_iterator is not None:
+                            self.evaluate(self.test_data_iterator,
+                                          dataset_type="test",
+                                          )
+                            self.test_data_iterator.reset_counter("test")
+
                 self.writer.add_summary(summary_str, self.counter - 1)
 
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model
             start_batch_id = 0
-
             # save model
-            print("Saving check point", self.exp_config.TRAINED_MODELS_PATH)
-            self.save(self.exp_config.TRAINED_MODELS_PATH, self.counter)
             train_val_data_iterator.reset_counter("train")
             if np.mod(epoch, self.exp_config.model_save_interval) == 0:
+                print("Saving check point", self.exp_config.TRAINED_MODELS_PATH)
                 self.save(self.exp_config.TRAINED_MODELS_PATH, self.counter)
 
     def evaluate(self, data_iterator, dataset_type, num_batches_train=0, save_images=True ):
@@ -256,7 +273,6 @@ class SemiSupervisedClassifier(VAE):
                 save_image(reconstructed_images[batch_no], [manifold_h, manifold_w], reconstructed_dir + file)
 
         data_iterator.reset_counter(dataset_type)
-
         encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
                                   columns=["label", "label_predicted"])
         if self.exp_config.return_latent_vector:

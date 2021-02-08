@@ -48,28 +48,8 @@ class IDao(ABC):
     def load_test_1(self, data_dir):
         pass
 
-    def load_test(self, data_dir,
-                  split_location=None,
-                  split_names=[]):
+    def load_test(self, data_dir):
         x, y = self.load_test_1(data_dir)
-        dataset_dict = {}
-        dataset_dict["split_names"] = split_names
-
-        # for split_num, split in enumerate(split_names):
-        #     print(split, x.shape)
-        #     feature_dim = self.image_shape[0] * self.image_shape[1] * self.image_shape[2]
-        #     df = pd.DataFrame(x.reshape(x.shape[0],
-        #                                       feature_dim)
-        #                             )
-        #     df["label"] = y
-        #     df.to_csv(split_location + split + ".csv", index=False)
-        # print(split_location)
-        # split_name = self.get_split_name(split_location)
-        # json_ = split_location + split_name + ".json"
-        # with open(json_, "w") as fp:
-        #     print("Writing json to ", json_)
-        #     json.dump(dataset_dict, fp)
-
         y_one_hot = np.eye(self.num_classes)[y]
         return {"test_x": x / self.max_value,
                 "test_y": y,

@@ -45,12 +45,12 @@ def check_args(_args):
 if __name__ == '__main__':
     # parse arguments
     args = parse_args()
-    num_epochs = 30
+    num_epochs = 20
     create_split = True
     z_dim = 32
     experiment_name = "Experiment_3"
     num_cluster_config = ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW
-    run_id = 100
+    run_id = 101
     train_val_data_iterator = None
     tf.reset_default_graph()
 

@@ -79,9 +79,7 @@ class VAE(GenerativeModel):
         # 0 mean and covariance matrix as Identity
         self.standard_normal = tf.placeholder(tf.float32, [bs, self.exp_config.Z_DIM], name='z')
 
-
         """ Encode the input """
-        # encoding
         self.mu, self.sigma = self._encoder(self.inputs, reuse=False)
 
         # sampling by re-parameterization technique
@@ -99,7 +97,7 @@ class VAE(GenerativeModel):
             self.neg_loglikelihood = -tf.reduce_mean(marginal_likelihood)
 
         else:
-            #Linear activation
+            # Linear activation
             marginal_likelihood = tf.compat.v1.losses.mean_squared_error(self.inputs, self.out)
             self.neg_loglikelihood = tf.reduce_mean(marginal_likelihood)
 
@@ -108,9 +106,11 @@ class VAE(GenerativeModel):
                                  tf.log(1e-8 + tf.square(self.sigma)) - 1, [1])
 
         self.KL_divergence = tf.reduce_mean(kl)
+        self.compute_and_optimize_loss()
+
+    def compute_and_optimize_loss(self):
 
         # evidence_lower_bound = -self.neg_loglikelihood - self.exp_config.beta * self.KL_divergence
-
         self.loss = self.neg_loglikelihood + self.exp_config.beta * self.KL_divergence
 
         """ Training """
@@ -159,8 +159,8 @@ class VAE(GenerativeModel):
                                                                                     self.standard_normal: batch_z})
                 # print(f"Epoch:{epoch} Batch:{batch}  loss={loss} nll={nll_loss} kl_loss={kl_loss}")
                 self.counter += 1
-                self.num_training_epochs_completed = epoch
-                self.num_steps_completed = batch
+                self.num_training_epochs_completed = epoch + 1
+                self.num_steps_completed = batch + 1
                 if self.exp_config.run_evaluation_during_training:
                     if np.mod(batch, self.exp_config.eval_interval) == self.exp_config.eval_interval - 1:
                         train_val_data_iterator.reset_counter("val")
@@ -182,7 +182,7 @@ class VAE(GenerativeModel):
 
     def evaluate(self, data_iterator, dataset_type, num_batches_train=0, save_images=True ):
         if num_batches_train == 0:
-            num_batches_train = self.num_batches_train
+            num_batches_train = self.exp_config.BATCH_SIZE
         print(f"Running evaluation after epoch:{self.num_training_epochs_completed} and step:{self.num_steps_completed} ")
         start_eval_batch = 0
         reconstructed_images = []
@@ -193,6 +193,7 @@ class VAE(GenerativeModel):
         mu = None
         sigma = None
         z = None
+        data_iterator.reset_counter(dataset_type)
         for batch_no in range(start_eval_batch, num_eval_batches):
             batch_eval_images, batch_labels, manual_labels = data_iterator.get_next_batch(dataset_type)
             if batch_eval_images.shape[0] < self.exp_config.BATCH_SIZE:

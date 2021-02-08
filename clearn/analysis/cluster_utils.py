@@ -1,7 +1,9 @@
 from sklearn.cluster import KMeans
 import tensorflow as tf
 import numpy as np
-from clearn.models.vae import VAE
+
+from clearn.config import ExperimentConfig
+from clearn.dao.idao import IDao
 from clearn.analysis.encode_decode import decode
 import math
 from matplotlib import pyplot as plt
@@ -9,7 +11,7 @@ from clearn.analysis import Cluster
 from clearn.analysis import ClusterGroup
 from clearn.analysis import ManualAnnotation
 from clearn.models.classify.classifier import ClassifierModel
-
+from clearn.experiments.experiment import get_model
 
 def trace_dim(f, num_trace_steps, dim, feature_dim, z_min, z_max):
     """
@@ -85,26 +87,28 @@ def plot_features(exp_config, features, digits, dimensions_to_be_plotted,  new_f
     return reconstructed_image_for_means
 
 
-def decode_latent_vectors(cluster_centers, exp_config):
-    tf.reset_default_graph()
+def decode_latent_vectors(model_type: str,
+                          cluster_centers,
+                          exp_config:ExperimentConfig,
+                          dao:IDao):
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
-        model = VAE(exp_config,
-                    sess,
-                    epoch=1
-                    )
+        model = get_model(dao, exp_config,model_type,num_epochs=0,sess=sess)
         z = np.zeros([cluster_centers.shape[0], exp_config.Z_DIM])
-
         for i in range(cluster_centers.shape[0]):
             z[i, :] = cluster_centers[i]
         decoded_images = decode(model, z, exp_config.BATCH_SIZE)
         return decoded_images
 
 
-def cluster_and_decode_latent_vectors(num_clusters, latent_vectors, exp_config):
+def cluster_and_decode_latent_vectors(model_type: str,
+                                      num_clusters: int,
+                                      latent_vectors: np.ndarray,
+                                      exp_config:ExperimentConfig,
+                                      dao: IDao):
     kmeans = KMeans(n_clusters=num_clusters)
     cluster_labels = kmeans.fit_predict(latent_vectors)
     cluster_centers = kmeans.cluster_centers_
-    decoded_images = decode_latent_vectors(cluster_centers, exp_config)
+    decoded_images = decode_latent_vectors(model_type, cluster_centers, exp_config, dao)
 
     return decoded_images, cluster_centers, cluster_labels
 

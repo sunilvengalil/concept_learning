@@ -36,6 +36,7 @@ class SupervisedClassifierModel(ClassifierModel):
         super().__init__(exp_config, sess, epoch, check_point_epochs=check_point_epochs, dao=dao)
         self.test_data_iterator = test_data_iterator
         self.label_dim = dao.num_classes
+        self.strides = [2] * len(num_units_in_layer)
         if num_units_in_layer is None or len(num_units_in_layer) == 0:
             self.n = [128, 64, 32, exp_config.Z_DIM]
         else:
@@ -100,8 +101,6 @@ class SupervisedClassifierModel(ClassifierModel):
     def _build_model(self):
         image_dims = self.dao.image_shape
         bs = self.exp_config.BATCH_SIZE
-        self.strides = [2, 2]
-
         """ Graph Input """
         # images
         self.inputs = tf.compat.v1.placeholder(tf.float32, [bs] + image_dims, name='real_images')

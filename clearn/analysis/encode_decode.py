@@ -1,12 +1,14 @@
 import numpy as np
 
+from clearn.models.generative_model import GenerativeModel
 
-def decode(model, z, batch_size):
+
+def decode(model:GenerativeModel, z, batch_size):
     """
     z =
     """
-    # TODO remove this hard-coding
-    feature_dimension = [len(z), 28, 28, 1]
+    feature_shape = model.dao.image_shape
+    feature_dimension = [len(z), feature_shape[0], feature_shape[1], feature_shape[2]]
     reconstructed_images = np.zeros(feature_dimension)
     num_latent_vectors = z.shape[0]
     num_batches = num_latent_vectors // batch_size
