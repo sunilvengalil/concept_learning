@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from clearn.config import ExperimentConfig
 from clearn.dao.dao_factory import get_dao
 
+
 def plot_z_dim_vs_accuracy(root_path: str,
                            experiment_name: str,
                            z_dim_range: List,
@@ -37,7 +38,6 @@ def plot_z_dim_vs_accuracy(root_path: str,
                                       split_name=split_name,
                                       model_name="VAE",
                                       batch_size=batch_size,
-                                      eval_interval=300,
                                       name=experiment_name,
                                       num_val_samples=num_val_samples,
                                       total_training_samples=dao.number_of_training_samples,
@@ -95,7 +95,8 @@ def plot_epoch_vs_accuracy(root_path: str,
                            split_name="Split_1",
                            batch_size=64,
                            num_val_samples=128,
-                           num_decoder_layer=4
+                           num_decoder_layer=4,
+                           metric="accuracy"
                            ):
     dao = get_dao(dataset_name, split_name, num_val_samples)
     exp_config = ExperimentConfig(root_path=root_path,
@@ -110,7 +111,6 @@ def plot_epoch_vs_accuracy(root_path: str,
                                   split_name=split_name,
                                   model_name="VAE",
                                   batch_size=batch_size,
-                                  eval_interval=300,
                                   name=experiment_name,
                                   num_val_samples=num_val_samples,
                                   total_training_samples=dao.number_of_training_samples,
@@ -121,13 +121,12 @@ def plot_epoch_vs_accuracy(root_path: str,
                                   )
     exp_config.check_and_create_directories(run_id)
 
-    file_prefix = "/accuracy_*.csv"
+    file_prefix = "/metrics_*.csv"
     df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
     print(df.shape)
     for dataset_name in dataset_types:
         print(dataset_name)
-        plt.plot(df["epoch"], df[f"{dataset_name}_accuracy"], label=f"{dataset_name}_z_dim_{z_dim}")
-
+        plt.plot(df["epoch"], df[f"{dataset_name}_{metric}"], label=f"{dataset_name}_z_dim_{z_dim}")
     plt.xlabel("Epochs")
     plt.ylabel("Accuracy")
     plt.legend(loc='lower right', shadow=True, fontsize='x-large')
@@ -181,7 +180,6 @@ def plot_hidden_units_accuracy_layerwise(root_path: str,
                                           split_name=split_name,
                                           model_name="VAE",
                                           batch_size=batch_size,
-                                          eval_interval=300,
                                           name=experiment_name,
                                           num_val_samples=num_val_samples,
                                           total_training_samples=dao.number_of_training_samples,
@@ -255,7 +253,6 @@ def plot_accuracy_multiple_runs(root_path: str,
                                       split_name=split_name,
                                       model_name="VAE",
                                       batch_size=batch_size,
-                                      eval_interval=300,
                                       name=experiment_name,
                                       num_val_samples=num_val_samples,
                                       total_training_samples=dao.number_of_training_samples,
