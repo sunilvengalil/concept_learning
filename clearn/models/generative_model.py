@@ -14,8 +14,9 @@ class GenerativeModel(Model):
     def __init__(self, exp_config: ExperimentConfig,
                  sess: Session,
                  epoch: int,
-                 dao: IDao):
-        super().__init__(exp_config, sess, epoch, dao)
+                 dao: IDao,
+                 test_data_iterator):
+        super().__init__(exp_config, sess, epoch, dao, test_data_iterator)
 
     def encode(self, images):
         pass

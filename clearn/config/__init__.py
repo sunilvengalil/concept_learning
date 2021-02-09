@@ -63,7 +63,6 @@ class ExperimentConfig:
                  split_name="Split_1",
                  model_name="VAE",
                  batch_size=64,
-                 eval_interval=300,
                  name="experiment_configuration",
                  num_val_samples=128,
                  total_training_samples=60000,
@@ -106,7 +105,6 @@ class ExperimentConfig:
         self.split_name = split_name
         self.model_name = model_name
         self.BATCH_SIZE = batch_size
-        self.eval_interval = eval_interval
         self.beta = beta
         self.supervise_weight = supervise_weight
         self.MODEL_NAME_WITH_CONFIG = "{}_{}_{:2d}_{:02d}".format(model_name,
@@ -150,7 +148,6 @@ class ExperimentConfig:
         config_json["CONFIDENCE_DECAY_FACTOR"] = self.confidence_decay_factor
         config_json["MANUAL_LABELS_CONFIG"] = self.manual_labels_config
         config_json["RECONSTRUCTION_WEIGHT"] = self.reconstruction_weight
-        config_json["EVAL_INTERVAL"] = self.eval_interval
         config_json["ACTIVATION_HIDDEN_LAYER"] = self.activation_hidden_layer
         config_json["ACTIVATION_OUTPUT_LAYER"] = self.activation_output_layer
         config_json["SAVE_RECONSTRUCTED_IMAGES"] = self.save_reconstructed_images
@@ -255,7 +252,6 @@ class ExperimentConfig:
         self.split_name = exp_config_dict["SPLIT_NAME"]
         self.model_name = exp_config_dict["MODEL_NAME"]
         self.BATCH_SIZE = exp_config_dict["BATCH_SIZE"]
-        self.eval_interval = exp_config_dict["EVAL_INTERVAL"]
         self.beta1_adam = exp_config_dict["BETA1_ADAM"]
         self.beta = exp_config_dict["BETA"]
         self.supervise_weight = exp_config_dict["SUPERVISE_WEIGHT"]
@@ -297,7 +293,7 @@ if __name__ == "__main__":
                                   split_name="split_1",
                                   model_name="VAE",
                                   batch_size=64,
-                                  eval_interval=300,
+                                  eval_interval_in_epochs=1,
                                   name="Experiment_3",
                                   num_val_samples=5000,
                                   )

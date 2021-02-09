@@ -5,22 +5,28 @@ from tensorflow.compat.v1 import Session
 
 from clearn.config import ExperimentConfig
 from clearn.dao.idao import IDao
-from clearn.utils.data_loader import TrainValDataIterator
+from clearn.utils.data_loader import TrainValDataIterator, DataIterator
 
 
 class Model(ABC):
     _model_name_ = "Model"
+    dataset_type_test = "test"
+    dataset_type_train = "train"
+    dataset_type_val = "val"
+
     def __init__(self,
                  exp_config: ExperimentConfig,
                  sess: Session,
                  epoch: int,
-                 dao:IDao):
+                 dao: IDao,
+                 test_data_iterator: DataIterator = None):
         self.exp_config = exp_config
         self.sess = sess
         self.epoch = epoch
         self.dao = dao
+        self.test_data_iterator = test_data_iterator
 
-    def _initialize(self, train_val_data_iterator=None,
+    def _initialize(self,
                     restore_from_existing_checkpoint=True,
                     check_point_epochs=None):
         # saver to save model
@@ -77,10 +83,10 @@ class Model(ABC):
         pass
 
     def evaluate(self,
-                 val_data_iterator: TrainValDataIterator,
-                 epoch:int,
+                 val_data_iterator: DataIterator,
+                 epoch: int,
                  dataset_type: str,
-                 return_latent_vector:bool):
+                 return_latent_vector: bool):
         pass
 
     def load(self):

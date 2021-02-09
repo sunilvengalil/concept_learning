@@ -17,7 +17,6 @@ from clearn.config import ExperimentConfig
 from clearn.utils.utils import show_all_variables
 
 MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10 = "VAE_UNSUPERVISED_CIFAR10"
-MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER = "VAE_UNSUPERVISED"
 MODEL_TYPE_SUPERVISED_CLASSIFIER = "CLASSIFIER_SUPERVISED"
 VAAL_ARCHITECTURE_FOR_CIFAR = "ACTIVE_LEARNING_VAAL_CIFAR"
 CIFAR_VGG = "CIFAR_VGG"
@@ -103,7 +102,6 @@ def load_trained_model(experiment_name,
                        num_units,
                        dataset_name,
                        split_name,
-                       eval_interval,
                        num_val_samples,
                        activation_output_layer,
                        save_reconstructed_images,
@@ -119,6 +117,7 @@ def load_trained_model(experiment_name,
                        supervise_weight=150,
                        beta=5,
                        reconstruction_weight=1,
+                       eval_interval_in_epochs=1
                        ):
     dao = get_dao(dataset_name, split_name, num_val_samples)
 
@@ -134,7 +133,6 @@ def load_trained_model(experiment_name,
                                   split_name=split_name,
                                   model_name="VAE",
                                   batch_size=64,
-                                  eval_interval=eval_interval,
                                   name=experiment_name,
                                   num_val_samples=num_val_samples,
                                   total_training_samples=dao.number_of_training_samples,
@@ -146,6 +144,7 @@ def load_trained_model(experiment_name,
                                   learning_rate=learning_rate,
                                   run_evaluation_during_training=run_evaluation_during_training,
                                   write_predictions=write_predictions,
+                                  eval_interval_in_epochs=eval_interval_in_epochs,
                                   seed=seed
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
@@ -174,7 +173,7 @@ def initialize_model_train_and_get_features(experiment_name,
                                             root_path="/Users/sunilv/concept_learning_exp",
                                             learning_rate=0.001,
                                             run_evaluation_during_training=True,
-                                            eval_interval=300,
+                                            eval_interval_in_epochs=1,
                                             dataset_name="mnist",
                                             activation_output_layer="SIGMOID",
                                             write_predictions=True,
@@ -198,7 +197,7 @@ def initialize_model_train_and_get_features(experiment_name,
                                   split_name=split_name,
                                   model_name="VAE",
                                   batch_size=64,
-                                  eval_interval=eval_interval,
+                                  eval_interval_in_epochs=eval_interval_in_epochs,
                                   name=experiment_name,
                                   num_val_samples=num_val_samples,
                                   total_training_samples=dao.number_of_training_samples,
@@ -277,14 +276,7 @@ def get_model(dao: IDao,
               sess,
               test_data_iterator=None,
               train_val_data_iterator=None):
-    if model_type == MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER:
-        model = VAE(exp_config=exp_config,
-                    sess=sess,
-                    epoch=num_epochs,
-                    train_val_data_iterator=train_val_data_iterator,
-                    dao=dao,
-                    )
-    elif model_type == MODEL_TYPE_SUPERVISED_CLASSIFIER:
+    if model_type == MODEL_TYPE_SUPERVISED_CLASSIFIER:
         model = SupervisedClassifierModel(exp_config=exp_config,
                                           sess=sess,
                                           epoch=num_epochs,
@@ -325,7 +317,7 @@ def get_model(dao: IDao,
                                          )
     else:
         raise Exception(
-            f"model_type should be one of [{MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER}, {MODEL_TYPE_SUPERVISED_CLASSIFIER}]")
+            f"model_type should be one of [{MODEL_TYPE_VAE_SEMI_SUPERVISED_CIFAR10}, {MODEL_TYPE_SUPERVISED_CLASSIFIER}]")
     return model
 
 
@@ -400,30 +392,8 @@ def load_model_and_test(experiment_name,
                                      dao=dao)
 
     with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as sess:
-        if model_type == MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER:
-            model = VAE(exp_config=exp_config,
-                        sess=sess,
-                        epoch=-1,
-                        train_val_data_iterator=data_iterator,
-                        dao=dao
-                        )
-        elif model_type == MODEL_TYPE_SUPERVISED_CLASSIFIER:
-            model = SupervisedClassifierModel(exp_config=exp_config,
-                                              sess=sess,
-                                              epoch=-1,
-                                              num_units_in_layer=exp_config.num_units,
-                                              dao=dao,
-                                              )
-        elif model_type == VAAL_ARCHITECTURE_FOR_CIFAR:
-            model = Cifar10Classifier(exp_config=exp_config,
-                                      sess=sess,
-                                      epoch=-1,
-                                      num_units_in_layer=exp_config.num_units,
-                                      dao=dao
-                                      )
-        else:
-            raise Exception(
-                f"model_type should be one of [{MODEL_TYPE_SEMI_SUPERVISED_CLASSIFIER}, {MODEL_TYPE_SUPERVISED_CLASSIFIER},{VAAL_ARCHITECTURE_FOR_CIFAR} ]")
+        model = get_model(dao, exp_config, model_type, num_epochs=-1, sess=sess, test_data_iterator=data_iterator)
+
         print("Starting Inference")
         predicted_df = test(exp, model, data_iterator)
         data_iterator.reset_counter("test")
@@ -450,7 +420,7 @@ if __name__ == "__main__":
                                                                        write_predictions=False,
                                                                        seed=547,
                                                                        root_path="/Users/sunilv/concept_learning_exp",
-                                                                       eval_interval=300,
+                                                                       eval_interval_in_epochs=1,
                                                                        run_evaluation_during_training=False
                                                                        )
     print("Number of epochs completed", model_1.num_training_epochs_completed)

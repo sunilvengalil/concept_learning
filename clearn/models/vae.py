@@ -3,6 +3,7 @@ from __future__ import division
 import os
 import numpy as np
 import pandas as pd
+from statistics import mean
 
 from clearn.config import ExperimentConfig
 from clearn.config.common_path import get_encoded_csv_file
@@ -25,10 +26,22 @@ class VAE(GenerativeModel):
                  epoch,
                  dao: IDao,
                  train_val_data_iterator=None,
+                 test_data_iterator=None,
                  read_from_existing_checkpoint=True,
                  check_point_epochs=None,
                  ):
-        super().__init__(exp_config, sess, epoch, dao=dao)
+        super().__init__(exp_config, sess, epoch, dao=dao, test_data_iterator=test_data_iterator)
+        self.metrics_to_compute = ["reconstruction_loss"]
+        self.metrics = dict()
+        self.metrics[VAE.dataset_type_train] = dict()
+        self.metrics[VAE.dataset_type_test] = dict()
+        self.metrics[VAE.dataset_type_val] = dict()
+
+        for metric in self.metrics_to_compute:
+            self.metrics[VAE.dataset_type_train][metric] = []
+            self.metrics[VAE.dataset_type_val][metric] = []
+            self.metrics[VAE.dataset_type_test][metric] = []
+
         # test
         self.sample_num = 64  # number of generated images to be saved
         self.num_images_per_row = 4  # should be a factor of sample_num
@@ -40,8 +53,7 @@ class VAE(GenerativeModel):
         # initialize all variables
         tf.global_variables_initializer().run()
         self.sample_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
-        self.counter, self.start_batch_id, self.start_epoch = self._initialize(train_val_data_iterator,
-                                                                               read_from_existing_checkpoint,
+        self.counter, self.start_batch_id, self.start_epoch = self._initialize(read_from_existing_checkpoint,
                                                                                check_point_epochs)
         self.num_training_epochs_completed = self.start_epoch
         self.num_steps_completed = self.start_batch_id
@@ -147,6 +159,8 @@ class VAE(GenerativeModel):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
                 batch_images,  _,  manual_labels = train_val_data_iterator.get_next_batch("train")
+                if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
+                    break
                 batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
                 # update autoencoder
@@ -159,14 +173,26 @@ class VAE(GenerativeModel):
                                                                                     self.standard_normal: batch_z})
                 # print(f"Epoch:{epoch} Batch:{batch}  loss={loss} nll={nll_loss} kl_loss={kl_loss}")
                 self.counter += 1
-                self.num_training_epochs_completed = epoch + 1
                 self.num_steps_completed = batch + 1
-                if self.exp_config.run_evaluation_during_training:
-                    if np.mod(batch, self.exp_config.eval_interval) == self.exp_config.eval_interval - 1:
-                        train_val_data_iterator.reset_counter("val")
-                        self.evaluate(data_iterator=train_val_data_iterator,
-                                      dataset_type="val")
                 self.writer.add_summary(summary_str, self.counter - 1)
+            self.num_training_epochs_completed = epoch + 1
+            print(f"Completed {epoch} epochs")
+            if self.exp_config.run_evaluation_during_training:
+                if np.mod(epoch, self.exp_config.eval_interval_in_epochs) == 0:
+                    train_val_data_iterator.reset_counter("train")
+                    train_val_data_iterator.reset_counter("val")
+                    self.evaluate(train_val_data_iterator, "train")
+                    self.evaluate(train_val_data_iterator, "val")
+                    for metric in self.metrics_to_compute:
+                        print(f"{metric}: train: {self.metrics[VAE.dataset_type_train][metric][-1]}")
+                        print(f"{metric}: val: {self.metrics[VAE.dataset_type_val][metric][-1]}")
+                        if self.test_data_iterator is not None:
+                            self.evaluate(self.test_data_iterator, dataset_type="test")
+                            self.test_data_iterator.reset_counter("test")
+                            print(f"{metric}: test: {self.metrics[VAE.dataset_type_test][metric][-1]}")
+
+            train_val_data_iterator.reset_counter("train")
+            train_val_data_iterator.reset_counter("val")
 
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model
@@ -174,13 +200,21 @@ class VAE(GenerativeModel):
             # save model
             print(f"Epoch:{epoch}   loss={loss} nll={nll_loss} kl_loss={kl_loss}")
 
-            print("Saving check point", self.exp_config.TRAINED_MODELS_PATH)
-            self.save(self.exp_config.TRAINED_MODELS_PATH, self.counter)
             train_val_data_iterator.reset_counter("train")
             if np.mod(epoch, self.exp_config.model_save_interval) == 0:
+                print("Saving check point", self.exp_config.TRAINED_MODELS_PATH)
                 self.save(self.exp_config.TRAINED_MODELS_PATH, self.counter)
+            # save metrics
+            for metric in self.metrics_to_compute:
+                df = pd.DataFrame(self.metrics["train"][metric], columns=["epoch", f"train_{metric}"])
+                df[f"val_{metric}"] = np.asarray(self.metrics["val"][metric])[:, 1]
+                df[f"test_{metric}"] = np.asarray(self.metrics["test"][metric])[:, 1]
+                df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"{metric}y_{start_epoch}.csv"),
+                          index=False)
+                max_value = df[f"test_{metric}"].max()
+                print(f"Max test {metric}", max_value)
 
-    def evaluate(self, data_iterator, dataset_type, num_batches_train=0, save_images=True ):
+    def evaluate(self, data_iterator, dataset_type="train", num_batches_train=0, save_images=True ):
         if num_batches_train == 0:
             num_batches_train = self.exp_config.BATCH_SIZE
         print(f"Running evaluation after epoch:{self.num_training_epochs_completed} and step:{self.num_steps_completed} ")
@@ -194,6 +228,7 @@ class VAE(GenerativeModel):
         sigma = None
         z = None
         data_iterator.reset_counter(dataset_type)
+        reconstruction_losses = []
         for batch_no in range(start_eval_batch, num_eval_batches):
             batch_eval_images, batch_labels, manual_labels = data_iterator.get_next_batch(dataset_type)
             if batch_eval_images.shape[0] < self.exp_config.BATCH_SIZE:
@@ -201,8 +236,9 @@ class VAE(GenerativeModel):
                 break
             batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
-            reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch = self.sess.run([self.out,
-                                                                                                     self.merged_summary_op,
+            reconstructed_image, summary, reconstruction_loss, mu_for_batch, sigma_for_batch, z_for_batch = self.sess.run([self.out,
+                                                                                                                           self.merged_summary_op,
+                                                                                                                           self.neg_loglikelihood,
                                                                                                      self.mu,
                                                                                                      self.sigma,
                                                                                                      self.z
@@ -212,6 +248,7 @@ class VAE(GenerativeModel):
                                                                                                          self.standard_normal: batch_z
                                                                                                      }
                                                                                                      )
+            reconstruction_losses.append(reconstruction_loss)
             if self.exp_config.return_latent_vector:
                 if mu is None:
                     mu = mu_for_batch
@@ -223,7 +260,7 @@ class VAE(GenerativeModel):
                     z = np.vstack([z, z_for_batch])
 
             training_batch = self.num_training_epochs_completed * num_batches_train + self.num_steps_completed
-            if save_images:
+            if dataset_type != "train" and save_images:
                 save_single_image(reconstructed_image,
                                   self.exp_config.reconstructed_images_path,
                                   self.num_training_epochs_completed,
@@ -231,10 +268,19 @@ class VAE(GenerativeModel):
                                   training_batch,
                                   batch_no,
                                   self.exp_config.BATCH_SIZE)
-
             self.writer_v.add_summary(summary, self.counter)
             reconstructed_images.append(reconstructed_image[:manifold_h * manifold_w, :, :, :])
-        if save_images:
+
+        # if "accuracy" in self.metrics_to_compute:
+        #     # accuracy = accuracy_score(labels, labels_predicted)
+        #     # self.metrics[dataset_type]["accuracy"].append([epoch, accuracy])
+
+        if "reconstruction_loss" in self.metrics_to_compute:
+            reconstruction_loss = mean(reconstruction_losses)
+            self.metrics[dataset_type]["reconstruction_loss"].append([self.num_training_epochs_completed, reconstruction_loss])
+
+
+        if dataset_type != "train" and save_images:
             reconstructed_dir = get_eval_result_dir(self.exp_config.PREDICTION_RESULTS_PATH,
                                                     self.num_training_epochs_completed,
                                                     self.num_steps_completed)
@@ -249,13 +295,6 @@ class VAE(GenerativeModel):
         if self.exp_config.return_latent_vector:
             mean_col_names, sigma_col_names, z_col_names, l3_col_names = get_latent_vector_column(self.exp_config.Z_DIM)
             encoded_df = pd.DataFrame(mu, columns=mean_col_names)
-            #print(encoded_df.shape, mu.shape)
-            #
-            # # encoded_df[mean_col_names] = mu
-            # for i, mean_col_name in enumerate(mean_col_names):
-            #     print(encoded_df.shape, mu.shape, mu[:, i].shape)
-            #     encoded_df[mean_col_name] = mu[:, i]
-
             for i, sigma_col_name in enumerate(sigma_col_names):
                 encoded_df[sigma_col_name] = sigma[:, i]
 
@@ -265,7 +304,9 @@ class VAE(GenerativeModel):
         if self.exp_config.write_predictions:
             output_csv_file = get_encoded_csv_file(self.exp_config,
                                                    self.num_training_epochs_completed,
-                                                   dataset_type)
+                                                   dataset_type
+                                                   )
+            print("Saving evaluation results to ", self.exp_config.ANALYSIS_PATH)
             encoded_df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, output_csv_file), index=False)
         print("Evaluation completed")
 

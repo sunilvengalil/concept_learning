@@ -13,6 +13,7 @@ class Cifar10Vae(VAE):
                  epoch,
                  dao: IDao,
                  train_val_data_iterator=None,
+                 test_data_iterator=None,
                  read_from_existing_checkpoint=True,
                  check_point_epochs=None
                  ):
@@ -20,6 +21,7 @@ class Cifar10Vae(VAE):
                          sess,
                          epoch,
                          train_val_data_iterator=train_val_data_iterator,
+                         test_data_iterator=test_data_iterator,
                          read_from_existing_checkpoint=read_from_existing_checkpoint,
                          check_point_epochs=check_point_epochs,
                          dao=dao)
