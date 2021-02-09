@@ -181,7 +181,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             num_decoder_layer=4,
                                             test_data_iterator=None,
                                             seed=547,
-                                            num_epochs_completed=0):
+                                            num_epochs_completed=0,
+                                            model_save_interval=1):
     dao = get_dao(dataset_name, split_name, num_val_samples)
     if num_units is None:
         num_units = [64, 128, 32]
@@ -209,6 +210,7 @@ def initialize_model_train_and_get_features(experiment_name,
                                   learning_rate=learning_rate,
                                   run_evaluation_during_training=run_evaluation_during_training,
                                   write_predictions=write_predictions,
+                                  model_save_interval=model_save_interval,
                                   seed=seed
                                   )
     exp_config.check_and_create_directories(run_id, create=True)

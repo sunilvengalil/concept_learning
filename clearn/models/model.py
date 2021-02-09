@@ -76,7 +76,11 @@ class Model(ABC):
     def train(self, train_val_data_iterator: TrainValDataIterator):
         pass
 
-    def evaluate(self, train_val_data_iterator: TrainValDataIterator, dataset_type: str):
+    def evaluate(self,
+                 val_data_iterator: TrainValDataIterator,
+                 epoch:int,
+                 dataset_type: str,
+                 return_latent_vector:bool):
         pass
 
     def load(self):

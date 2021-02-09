@@ -50,7 +50,7 @@ if __name__ == '__main__':
     z_dim = 32
     experiment_name = "Experiment_3"
     num_cluster_config = ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW
-    run_id = 101
+    run_id = 201
     train_val_data_iterator = None
     tf.reset_default_graph()
 
@@ -81,6 +81,7 @@ if __name__ == '__main__':
             dataset_name="cifar_10",
             activation_output_layer="LINEAR",
             write_predictions=False,
+            model_save_interval= 5,
             num_decoder_layer=5,
             model_type=VAAL_ARCHITECTURE_FOR_CIFAR
             )
