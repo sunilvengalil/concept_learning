@@ -298,14 +298,14 @@ class SemiSupervisedClassifier(VAE):
             batch_no += 1
 
             training_batch = self.num_training_epochs_completed * num_batches_train + self.num_steps_completed
-            if dataset_type != "train" and save_images:
-                save_single_image(reconstructed_image,
-                                  self.exp_config.reconstructed_images_path,
-                                  self.num_training_epochs_completed,
-                                  self.num_steps_completed,
-                                  training_batch,
-                                  batch_no,
-                                  self.exp_config.BATCH_SIZE)
+            # if dataset_type != "train" and save_images:
+            #     save_single_image(reconstructed_image,
+            #                       self.exp_config.reconstructed_images_path,
+            #                       self.num_training_epochs_completed,
+            #                       self.num_steps_completed,
+            #                       training_batch,
+            #                       batch_no,
+            #                       self.exp_config.BATCH_SIZE)
             self.writer_v.add_summary(summary, self.counter)
             reconstructed_images.append(reconstructed_image[:manifold_h * manifold_w, :, :, :])
         print(f"epoch:{self.num_training_epochs_completed} step:{self.num_steps_completed}")
@@ -316,12 +316,11 @@ class SemiSupervisedClassifier(VAE):
             reconstruction_loss = mean(reconstruction_losses)
             self.metrics[dataset_type]["reconstruction_loss"].append([self.num_training_epochs_completed, reconstruction_loss])
 
-
         if dataset_type != "train" and save_images:
             reconstructed_dir = get_eval_result_dir(self.exp_config.PREDICTION_RESULTS_PATH,
                                                     self.num_training_epochs_completed,
                                                     self.num_steps_completed)
-            for batch_no in range(num_eval_batches):
+            for batch_no in range(min(num_eval_batches, 2)):
                 file = "im_" + str(batch_no) + ".png"
                 save_image(reconstructed_images[batch_no], [manifold_h, manifold_w], reconstructed_dir + file)
 

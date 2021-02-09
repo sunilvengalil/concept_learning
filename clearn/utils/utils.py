@@ -9,7 +9,7 @@ from skimage import img_as_ubyte
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
+#import tensorflow.contrib.slim as slim
 import os
 import imageio
 from collections import defaultdict
@@ -74,7 +74,8 @@ def find_absolute_largest_weights(weights, num_out_units):
 
 def show_all_variables():
     model_vars = tf.compat.v1.trainable_variables()
-    slim.model_analyzer.analyze_vars(model_vars, print_info=True)
+    print("TODO  Fix the model analyzer issue to see model structure")
+#    slim.model_analyzer.analyze_vars(model_vars, print_info=True)
 
 
 def get_image(image_path, input_height, input_width, resize_height=64, resize_width=64, crop=True, grayscale=False):
