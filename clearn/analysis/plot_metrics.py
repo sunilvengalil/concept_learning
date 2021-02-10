@@ -83,7 +83,7 @@ def read_accuracy_from_file(file_prefix):
     return df
 
 
-def plot_epoch_vs_accuracy(root_path: str,
+def plot_epoch_vs_metric(root_path: str,
                            experiment_name: str,
                            num_units: List[int],
                            num_cluster_config: str,
@@ -96,8 +96,10 @@ def plot_epoch_vs_accuracy(root_path: str,
                            batch_size=64,
                            num_val_samples=128,
                            num_decoder_layer=4,
-                           metric="accuracy"
+                           metrics: List[str]=["accuracy"],
+                           legend_loc = "best"
                            ):
+    colors = ['r','g','b','y']
     dao = get_dao(dataset_name, split_name, num_val_samples)
     exp_config = ExperimentConfig(root_path=root_path,
                                   num_decoder_layer=num_decoder_layer,
@@ -119,18 +121,29 @@ def plot_epoch_vs_accuracy(root_path: str,
                                   activation_hidden_layer="RELU",
                                   activation_output_layer=activation_output_layer
                                   )
-    exp_config.check_and_create_directories(run_id)
-
+    exp_config.check_and_create_directories(run_id, False)
     file_prefix = "/metrics_*.csv"
     df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
-    print(df.shape)
-    for dataset_name in dataset_types:
-        print(dataset_name)
-        plt.plot(df["epoch"], df[f"{dataset_name}_{metric}"], label=f"{dataset_name}_z_dim_{z_dim}")
-    plt.xlabel("Epochs")
-    plt.ylabel("Accuracy")
-    plt.legend(loc='lower right', shadow=True, fontsize='x-large')
-    plt.title(f"Number of units {num_units}")
+    ax = [None] * len(metrics)
+    plots = [None] * (len(metrics) * len(dataset_types))
+    plot_number = 0
+    for i, metric in enumerate(metrics):
+      if i == 0:
+            fig, main_axis = plt.subplots()
+            ax[i] = main_axis
+      else:
+            ax[i] = main_axis.twinx()
+
+      for dataset_type in dataset_types:
+          plots[plot_number], = ax[i].plot(df["epoch"],
+                   df[f"{dataset_type}_{metric}"],
+                   colors[plot_number],
+                   label=f"{dataset_type}_{metric}")
+          plot_number += 1
+      plt.ylabel(metric.title())
+      plt.xlabel("Epochs")
+    main_axis.legend(handles=plots, labels=[l.get_label() for l in plots], loc=legend_loc, shadow=True, fontsize='x-large')
+    plt.title(f"Number of units {num_units} z_dim = {z_dim}")
     plt.grid()
 
 
