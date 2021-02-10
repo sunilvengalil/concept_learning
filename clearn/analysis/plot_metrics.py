@@ -3,8 +3,11 @@ import glob
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import cv2
+
 from clearn.config import ExperimentConfig
 from clearn.dao.dao_factory import get_dao
+from clearn.utils.dir_utils import get_eval_result_dir
 
 
 def plot_z_dim_vs_accuracy(root_path: str,
@@ -46,7 +49,7 @@ def plot_z_dim_vs_accuracy(root_path: str,
                                       activation_hidden_layer="RELU",
                                       activation_output_layer=activation_output_layer
                                       )
-        exp_config.check_and_create_directories(run_id)
+        exp_config.check_and_create_directories(run_id, False)
         file_prefix = "/train_accuracy_*.csv"
         train_epochs, _train_accuracies = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
         max_accuracy = np.max(_train_accuracies)
@@ -84,22 +87,23 @@ def read_accuracy_from_file(file_prefix):
 
 
 def plot_epoch_vs_metric(root_path: str,
-                           experiment_name: str,
-                           num_units: List[int],
-                           num_cluster_config: str,
-                           z_dim: int,
-                           run_id: int,
-                           dataset_types: List[str] = ["train", "test"],
-                           activation_output_layer="SIGMOID",
-                           dataset_name="mnist",
-                           split_name="Split_1",
-                           batch_size=64,
-                           num_val_samples=128,
-                           num_decoder_layer=4,
-                           metrics: List[str]=["accuracy"],
-                           legend_loc = "best"
-                           ):
-    colors = ['r','g','b','y']
+                         experiment_name: str,
+                         num_units: List[int],
+                         num_cluster_config: str,
+                         z_dim: int,
+                         run_id: int,
+                         dataset_types: List[str]=["train", "test"],
+                         activation_output_layer="SIGMOID",
+                         dataset_name="mnist",
+                         split_name="Split_1",
+                         batch_size=64,
+                         num_val_samples=128,
+                         num_decoder_layer=4,
+                         metrics: List[str]=["accuracy"],
+                         legend_loc="best",
+                         show_sample_images=True
+                         ):
+    colors = ['r', 'g', 'b', 'y']
     dao = get_dao(dataset_name, split_name, num_val_samples)
     exp_config = ExperimentConfig(root_path=root_path,
                                   num_decoder_layer=num_decoder_layer,
@@ -127,23 +131,40 @@ def plot_epoch_vs_metric(root_path: str,
     ax = [None] * len(metrics)
     plots = [None] * (len(metrics) * len(dataset_types))
     plot_number = 0
+    fig = plt.figure(figsize=[20,10])
     for i, metric in enumerate(metrics):
-      if i == 0:
-            fig, main_axis = plt.subplots()
+        if i == 0:
+            main_axis = plt.subplot(1, 2, 1)
             ax[i] = main_axis
-      else:
+        else:
             ax[i] = main_axis.twinx()
 
-      for dataset_type in dataset_types:
-          plots[plot_number], = ax[i].plot(df["epoch"],
-                   df[f"{dataset_type}_{metric}"],
-                   colors[plot_number],
-                   label=f"{dataset_type}_{metric}")
-          plot_number += 1
-      plt.ylabel(metric.title())
-      plt.xlabel("Epochs")
-    main_axis.legend(handles=plots, labels=[l.get_label() for l in plots], loc=legend_loc, shadow=True, fontsize='x-large')
-    plt.title(f"Number of units {num_units} z_dim = {z_dim}")
+        for dataset_type in dataset_types:
+            plots[plot_number], = ax[i].plot(df["epoch"],
+                                             df[f"{dataset_type}_{metric}"],
+                                             colors[plot_number],
+                                             label=f"{dataset_type}_{metric}")
+            plot_number += 1
+        plt.ylabel(metric.title())
+        plt.xlabel("Epochs")
+    if show_sample_images:
+      im_ax = plt.subplot(1,2,2)
+      _num_epochs_trained = df["epoch"].max()
+      _num_batches_train = dao.number_of_training_samples // exp_config.BATCH_SIZE
+
+      reconstructed_dir = get_eval_result_dir(exp_config.PREDICTION_RESULTS_PATH,
+                                              _num_epochs_trained,
+                                              _num_batches_train)
+      print(reconstructed_dir)
+      sample_image = cv2.imread(reconstructed_dir + "/im_0.png")
+      im_ax.imshow( sample_image )
+
+    main_axis.legend(handles=plots,
+                     labels=[l.get_label() for l in plots],
+                     loc=legend_loc,
+                     shadow=True,
+                     fontsize='x-large')
+    plt.suptitle(f"Number of units {num_units} z_dim = {z_dim}")
     plt.grid()
 
 
@@ -201,7 +222,7 @@ def plot_hidden_units_accuracy_layerwise(root_path: str,
                                           activation_hidden_layer="RELU",
                                           activation_output_layer=activation_output_layer
                                           )
-            exp_config.check_and_create_directories(run_id)
+            exp_config.check_and_create_directories(run_id, False)
 
             file_prefix = "/accuracy_*.csv"
             df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
@@ -274,7 +295,7 @@ def plot_accuracy_multiple_runs(root_path: str,
                                       activation_hidden_layer="RELU",
                                       activation_output_layer=activation_output_layer
                                       )
-        exp_config.check_and_create_directories(run_id)
+        exp_config.check_and_create_directories(run_id, False)
 
         file_prefix = "/accuracy_*.csv"
         df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
