@@ -100,7 +100,7 @@ def save_single_image(images, path, epoch, step, training_batch, eval_batch, eva
 
 
 def save_image(image, size, image_file_name):
-    return imsave(inverse_transform(image), size, image_file_name)
+    return imsave(inverse_transform(np.asarray(image)), size, image_file_name)
 
 
 def save_images(images, size, image_path):
@@ -119,7 +119,6 @@ def merge_images(images):
 
 
 def merge(images, size):
-    print(images.shape)
     h, w = images.shape[1], images.shape[2]
     if (images.shape[3] in (3,4)):
         c = images.shape[3]
@@ -163,6 +162,9 @@ def transform(image, input_height, input_width, resize_height=64, resize_width=6
 
 def inverse_transform(images):
     return (images+1.)/2.
+
+def inverse_transform(images):
+    return (images + 1)/2.
 
 
 def save_scattered_image(z, id, z_range_x, z_range_y, name='scattered_image.jpg'):

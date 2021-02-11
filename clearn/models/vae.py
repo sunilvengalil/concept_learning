@@ -103,15 +103,15 @@ class VAE(GenerativeModel):
 
         # loss
         if self.exp_config.activation_output_layer == "SIGMOID":
-            marginal_likelihood = tf.reduce_sum(self.inputs * tf.log(self.out) +
+            self.marginal_likelihood = tf.reduce_sum(self.inputs * tf.log(self.out) +
                                                 (1 - self.inputs) * tf.log(1 - self.out),
                                                 [1, 2])
-            self.neg_loglikelihood = -tf.reduce_mean(marginal_likelihood)
+            self.neg_loglikelihood = -tf.reduce_mean(self.marginal_likelihood)
 
         else:
             # Linear activation
-            marginal_likelihood = tf.compat.v1.losses.mean_squared_error(self.inputs, self.out)
-            self.neg_loglikelihood = tf.reduce_mean(marginal_likelihood)
+            self.marginal_likelihood = tf.compat.v1.losses.mean_squared_error(self.inputs, self.out)
+            self.neg_loglikelihood = tf.reduce_mean(self.marginal_likelihood)
 
         kl = 0.5 * tf.reduce_sum(tf.square(self.mu) +
                                  tf.square(self.sigma) -

@@ -106,7 +106,6 @@ def load_trained_model(experiment_name,
                        activation_output_layer,
                        save_reconstructed_images,
                        learning_rate,
-                       run_evaluation_during_training,
                        write_predictions,
                        seed,
                        z_dim,
@@ -142,7 +141,6 @@ def load_trained_model(experiment_name,
                                   activation_output_layer=activation_output_layer,
                                   save_reconstructed_images=save_reconstructed_images,
                                   learning_rate=learning_rate,
-                                  run_evaluation_during_training=run_evaluation_during_training,
                                   write_predictions=write_predictions,
                                   eval_interval_in_epochs=eval_interval_in_epochs,
                                   seed=seed
@@ -218,7 +216,11 @@ def initialize_model_train_and_get_features(experiment_name,
     with open(exp_config.BASE_PATH + "config.json", "w") as config_file:
         json.dump(exp_config.as_json(), config_file)
     if train_val_data_iterator is None:
-        train_val_data_iterator = get_train_val_iterator(create_split, dao, exp_config, num_epochs_completed, split_name)
+        train_val_data_iterator = get_train_val_iterator(create_split,
+                                                         dao,
+                                                         exp_config,
+                                                         num_epochs_completed,
+                                                         split_name)
 
     if test_data_iterator is None:
         test_data_location = exp_config.DATASET_ROOT_PATH + "/test/"
@@ -361,14 +363,13 @@ def load_model_and_test(experiment_name,
                         num_val_samples=128,
                         root_path="/Users/sunilv/concept_learning_exp",
                         dataset_name="mnist",
-                        write_predictions=True,
-                        num_decoder_layer=4
+                        write_predictions=True
                         ):
     if num_units is None:
         num_units = [64, 128, 32]
     dao = get_dao(dataset_name, split_name, num_val_samples)
     exp_config = ExperimentConfig(root_path=root_path,
-                                  num_decoder_layer=num_decoder_layer,
+                                  num_decoder_layer=len(num_units) + 1,
                                   z_dim=z_dim,
                                   num_units=num_units,
                                   num_cluster_config=num_cluster_config,
@@ -376,7 +377,7 @@ def load_model_and_test(experiment_name,
                                   dataset_name=dataset_name,
                                   split_name=split_name,
                                   model_name="VAE",
-                                  batch_size=128,
+                                  batch_size=64,
                                   name=experiment_name,
                                   num_val_samples=num_val_samples,
                                   save_reconstructed_images=save_reconstructed_images,
@@ -385,7 +386,6 @@ def load_model_and_test(experiment_name,
     exp_config.check_and_create_directories(run_id, create=False)
     exp = Experiment(1, experiment_name, exp_config, run_id)
     print(exp.as_json())
-
     if data_iterator is None:
         data_iterator = DataIterator(dataset_path=exp.config.DATASET_PATH,
                                      batch_size=exp.config.BATCH_SIZE,
@@ -420,7 +420,6 @@ if __name__ == "__main__":
                                                                        write_predictions=False,
                                                                        seed=547,
                                                                        root_path="/Users/sunilv/concept_learning_exp",
-                                                                       eval_interval_in_epochs=1,
-                                                                       run_evaluation_during_training=False
+                                                                       eval_interval_in_epochs=1
                                                                        )
     print("Number of epochs completed", model_1.num_training_epochs_completed)

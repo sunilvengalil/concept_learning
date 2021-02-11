@@ -69,8 +69,7 @@ if __name__ == '__main__':
                                                    data_iterator=data_iterator,
                                                    num_val_samples=5000,
                                                    dataset_name="cifar_10",
-                                                   write_predictions=True,
-                                                   num_decoder_layer=5
+                                                   write_predictions=True
                                                    )
     predicted_df.to_csv(os.path.join(exp_config.ANALYSIS_PATH, "test_predictions.csv"), index=False)
     tf.reset_default_graph()
