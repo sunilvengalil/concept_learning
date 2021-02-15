@@ -180,7 +180,8 @@ class TrainValDataIterator:
             else:
                 percentage_to_be_sampled = validation_samples / len(self.entire_data_y)
 
-            self.dataset_dict = load_train_val(dataset_path, shuffle=shuffle,
+            self.dataset_dict = load_train_val(dataset_path,
+                                               shuffle=shuffle,
                                                stratified=stratified,
                                                percentage_to_be_sampled=percentage_to_be_sampled,
                                                split_location=split_location,

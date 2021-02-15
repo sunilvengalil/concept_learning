@@ -10,6 +10,12 @@ root_path = "/Users/sunilv/concept_learning_exp"
 experiment_name = "Experiment_5"
 
 
+"""
+Test case flow 
+1. Load trained mode 
+2. Evaluate  - Passing
+
+"""
 class TestLoadTrainedModel(unittest.TestCase):
     # def test_load_trained_model(self):
     #     z_dim = 32

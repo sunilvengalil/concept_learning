@@ -36,7 +36,7 @@ class Cifar10Vae(VAE):
 
         return mean, stddev
 
-    def decoder(self, z, reuse=False):
+    def _decoder(self, z, reuse=False):
         # Models the probability P(X/z)
         return deconv_4_layer(self, z, reuse)
 

@@ -8,14 +8,19 @@ import ssl
 class CiFar10Dao(IDao):
     def __init__(self,
                  split_name: str,
-                 num_validation_samples: int):
+                 num_validation_samples: int,
+                 num_training_samples=-1):
         self.dataset_name = "cifar_10"
         self.split_name = split_name
         self.num_validation_samples = num_validation_samples
+        if num_training_samples == -1:
+            self._number_of_training_samples = 50000
+        else:
+            self._number_of_training_samples = num_training_samples
 
     @property
-    def number_of_training_samples(self) -> int:
-        return 50000 - self.num_validation_samples
+    def number_of_training_samples(self):
+        return self._number_of_training_samples - self.num_validation_samples
 
     @property
     def image_shape(self) -> Tuple[int]:
@@ -52,22 +57,10 @@ class CiFar10Dao(IDao):
 
     def load_train_val_1(self, data_dir):
         ssl._create_default_https_context = ssl._create_unverified_context
-
         (tr_x, tr_y), (test_images, test_labels) = datasets.cifar10.load_data()
-        # data = None
-        # label = None
-        # for batch_no in range(1, 6):
-        #     batch_name = "data_batch_" + str(batch_no)
-        #     data_dict = CiFar10Dao.unpickle(data_dir + "/cifar-10-batches-py" + "/" + batch_name)
-        #     if data is None:
-        #         data = data_dict[b"data"]
-        #         label = data_dict[b"labels"]
-        #     else:
-        #         data = np.concatenate((data, data_dict[b"data"]), axis=0)
-        #         label = np.concatenate((label, data_dict[b"labels"]), axis=0)
-        #
-        # tr_x, tr_y = self.reshape_x_and_y(data, label)
-        return tr_x, np.squeeze(tr_y)
+        tr_x_samples = tr_x[:self.number_of_training_samples, :, :, :]
+        tr_y_samples = np.squeeze(tr_y)[0:self.number_of_training_samples]
+        return tr_x_samples, tr_y_samples
 
     def reshape_x_and_y(self, data, label):
         print(data.shape)

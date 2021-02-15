@@ -15,13 +15,21 @@ from clearn.models.model import Model
 from clearn.utils.data_loader import TrainValDataIterator, DataIterator
 from clearn.config import ExperimentConfig
 from clearn.utils.utils import show_all_variables
-
+MODEL_TYPE_VAE_UNSUPERVISED = "VAE"
 MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10 = "VAE_UNSUPERVISED_CIFAR10"
 MODEL_TYPE_SUPERVISED_CLASSIFIER = "CLASSIFIER_SUPERVISED"
 VAAL_ARCHITECTURE_FOR_CIFAR = "ACTIVE_LEARNING_VAAL_CIFAR"
 CIFAR_VGG = "CIFAR_VGG"
 CIFAR10_F = "CIFAR10_F"
 MODEL_TYPE_VAE_SEMI_SUPERVISED_CIFAR10 = "VAE_SEMI_SUPERVISED_CIFAR10"
+
+model_types = [MODEL_TYPE_VAE_UNSUPERVISED,
+               MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10,
+               MODEL_TYPE_SUPERVISED_CLASSIFIER,
+               VAAL_ARCHITECTURE_FOR_CIFAR,
+               CIFAR_VGG,
+               CIFAR10_F,
+               MODEL_TYPE_VAE_SEMI_SUPERVISED_CIFAR10]
 
 
 class Experiment:
@@ -80,11 +88,12 @@ class Experiment:
 
     def encode_latent_vector(self, _train_val_data_iterator, dataset_type,
                              save_images=True):
-        return encode_images(self.model,
+        encoded_df = encode_images(self.model,
                              _train_val_data_iterator,
                              dataset_type=dataset_type,
                              save_images=save_images
                              )
+        return encoded_df, self. model.exp_config
 
     def encode_latent_vector_and_get_features(self, _train_val_data_iterator, epoch, dataset_type,
                                               save_results=True):
@@ -179,8 +188,11 @@ def initialize_model_train_and_get_features(experiment_name,
                                             test_data_iterator=None,
                                             seed=547,
                                             num_epochs_completed=0,
-                                            model_save_interval=1):
-    dao = get_dao(dataset_name, split_name, num_val_samples)
+                                            model_save_interval=1,
+                                            dao: IDao=None):
+    if dao is None:
+        dao = get_dao(dataset_name, split_name, num_val_samples)
+
     if num_units is None:
         num_units = [64, 128, 32]
     exp_config = ExperimentConfig(root_path=root_path,
@@ -239,12 +251,15 @@ def initialize_model_train_and_get_features(experiment_name,
         return train_val_data_iterator, exp_config, model
 
 
-def get_train_val_iterator(create_split, dao, exp_config, num_epochs, split_name):
+def get_train_val_iterator(create_split:bool,
+                           dao:IDao,
+                           exp_config: ExperimentConfig,
+                           num_epochs_completed: int,
+                           split_name: str):
     split_filename = exp_config.DATASET_PATH + split_name + ".json"
     manual_annotation_file = os.path.join(exp_config.ANALYSIS_PATH,
-                                          f"manual_annotation_epoch_{int(num_epochs)}.csv"
+                                          f"manual_annotation_epoch_{int(num_epochs_completed)}.csv"
                                           )
-    print(split_filename)
     if os.path.isfile(split_filename):
         if manual_annotation_file is not None:
             train_val_data_iterator = TrainValDataIterator.from_existing_split(dao=dao,
@@ -317,9 +332,17 @@ def get_model(dao: IDao,
                                          train_val_data_iterator=train_val_data_iterator,
                                          test_data_iterator=test_data_iterator
                                          )
+    elif model_type == VAE._model_name_:
+        model = VAE(exp_config=exp_config,
+                    sess=sess,
+                    epoch=num_epochs,
+                    dao=dao,
+                    train_val_data_iterator=train_val_data_iterator,
+                    test_data_iterator=test_data_iterator)
     else:
         raise Exception(
-            f"model_type should be one of [{MODEL_TYPE_VAE_SEMI_SUPERVISED_CIFAR10}, {MODEL_TYPE_SUPERVISED_CLASSIFIER}]")
+            f"Unrecognized model type {model_type}"
+            f"Model type Should be one of model_type should be one of {model_types}")
     return model
 
 
@@ -338,7 +361,8 @@ def train_and_get_features(exp: Experiment,
 
     train_val_data_iterator.reset_counter("train")
     train_val_data_iterator.reset_counter("val")
-    exp.encode_latent_vector(train_val_data_iterator, "val")
+    return exp.encode_latent_vector(train_val_data_iterator, "val")
+
 
 
 def test(exp: Experiment,

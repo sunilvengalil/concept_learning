@@ -69,13 +69,13 @@ class VAE(GenerativeModel):
         return mean, stddev
 
     # Bernoulli decoder
-    def decoder(self, z, reuse=False):
+    def _decoder(self, z, reuse=False):
         out = deconv_3_layer(self, z, reuse)
         return out
 
     def inference(self):
         z = self.mu + self.sigma * tf.random_normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
-        self.images = self.decoder(z, reuse=True)
+        self.images = self._decoder(z, reuse=True)
 
     def _build_model(self):
         # some parameters
@@ -98,7 +98,7 @@ class VAE(GenerativeModel):
         self.z = self.mu + self.sigma * tf.random_normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
 
         # decoding
-        out = self.decoder(self.z, reuse=False)
+        out = self._decoder(self.z, reuse=False)
         self.out = tf.clip_by_value(out, 1e-8, 1 - 1e-8)
 
         # loss
@@ -121,7 +121,6 @@ class VAE(GenerativeModel):
         self.compute_and_optimize_loss()
 
     def compute_and_optimize_loss(self):
-
         # evidence_lower_bound = -self.neg_loglikelihood - self.exp_config.beta * self.KL_divergence
         self.loss = self.neg_loglikelihood + self.exp_config.beta * self.KL_divergence
 
@@ -135,7 +134,7 @@ class VAE(GenerativeModel):
         """" Testing """
 
         # for test
-        self.fake_images = self.decoder(self.standard_normal, reuse=True)
+        self.fake_images = self._decoder(self.standard_normal, reuse=True)
 
         """ Summary """
         tf.summary.scalar("Negative Log Likelihood", self.neg_loglikelihood)

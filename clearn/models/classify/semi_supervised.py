@@ -68,7 +68,7 @@ class SemiSupervisedClassifier(VAE):
         stddev = 1e-6 + tf.nn.softplus(gaussian_params[:, self.exp_config.Z_DIM:])
         return mu, stddev
 
-    def decoder(self, z, reuse=False):
+    def _decoder(self, z, reuse=False):
         # Models the probability P(X/z)
         return deconv_4_layer(self, z, reuse)
 
@@ -143,7 +143,7 @@ class SemiSupervisedClassifier(VAE):
 
         """" Testing """
         # for test
-        self.fake_images = self.decoder(self.standard_normal, reuse=True)
+        self.fake_images = self._decoder(self.standard_normal, reuse=True)
 
         """ Summary """
         tf.summary.scalar("Negative Log Likelihood", self.neg_loglikelihood)
@@ -151,7 +151,6 @@ class SemiSupervisedClassifier(VAE):
         tf.summary.scalar("Supervised Loss", self.supervised_loss)
 
         tf.summary.scalar("Total Loss", self.loss)
-
         # final summary operations
         self.merged_summary_op = tf.summary.merge_all()
 
@@ -165,25 +164,26 @@ class SemiSupervisedClassifier(VAE):
             for batch in range(start_batch_id, self.num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
-                batch_images,  _,  manual_labels = train_val_data_iterator.get_next_batch("train")
+                batch_images, _, manual_labels = train_val_data_iterator.get_next_batch("train")
                 if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                     break
                 batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
-                # update autoencoder
-                _, summary_str, loss, nll_loss, kl_loss, supervised_loss = self.sess.run([self.optim,
+                # update autoencoder and classifier parameters
+                _, summary_str, loss, nll_loss, nll_batch,  kl_loss, supervised_loss = self.sess.run([self.optim,
                                                                                           self.merged_summary_op,
                                                                                           self.loss,
                                                                                           self.neg_loglikelihood,
+                                                                                          self.marginal_likelihood,
                                                                                           self.KL_divergence,
                                                                                           self.supervised_loss],
-                                                                                         feed_dict={self.inputs: batch_images,
-                                                                                                    self.labels: manual_labels[:, :self.dao.num_classes],
-                                                                                                    self.is_manual_annotated: manual_labels[:, self.dao.num_classes],
-                                                                                                    self.standard_normal: batch_z})
-                print("Epoch: [%2d] [%4d/%4d] , loss: %.8f, nll: %.8f, kl: %.8f, supervised_loss: %.4f"
-                      % (epoch, batch, self.num_batches_train, loss, nll_loss, kl_loss,
-                         supervised_loss))
+                                                                                         feed_dict={
+                                                                                             self.inputs: batch_images,
+                                                                                             self.labels: manual_labels[:,:self.dao.num_classes],
+                                                                                             self.is_manual_annotated: manual_labels[:,self.dao.num_classes],
+                                                                                             self.standard_normal: batch_z}
+                                                                                         )
+                print(f"Epoch: {epoch}/{batch}, Nll_loss shape: {nll_loss.shape}, Nll_batch: {nll_batch.shape}")
                 self.counter += 1
                 self.num_steps_completed = batch + 1
                 self.writer.add_summary(summary_str, self.counter - 1)
@@ -198,8 +198,8 @@ class SemiSupervisedClassifier(VAE):
                     self.evaluate(data_iterator=train_val_data_iterator,
                                   dataset_type="train")
                     if self.test_data_iterator is not None:
-                        self.evaluate(self.test_data_iterator,
-                                      dataset_type="test")
+                        self.test_data_iterator.reset_counter("test")
+                        self.evaluate(self.test_data_iterator, dataset_type="test")
                         self.test_data_iterator.reset_counter("test")
 
                     for metric in self.metrics_to_compute:
@@ -214,12 +214,11 @@ class SemiSupervisedClassifier(VAE):
             # non-zero value is only for the first epoch after loading pre-trained model
             start_batch_id = 0
             # save model
-            print(f"Epoch:{epoch}   loss={loss} nll={nll_loss} kl_loss={kl_loss}")
-
             train_val_data_iterator.reset_counter("train")
             if np.mod(epoch, self.exp_config.model_save_interval) == 0:
                 print("Saving check point", self.exp_config.TRAINED_MODELS_PATH)
                 self.save(self.exp_config.TRAINED_MODELS_PATH, self.counter)
+
             # save metrics
             df = None
             for i, metric in enumerate(self.metrics_to_compute):
@@ -240,7 +239,7 @@ class SemiSupervisedClassifier(VAE):
                  dataset_type="train",
                  num_batches_train=0,
                  save_images=True,
-                 metrics = [],
+                 metrics=[],
                  save_policies=("TEST_TOP_128", "TEST_BOTTOM_128",
                                 "TRAIN_TOP_128", "TRAIN_BOTTOM_128",
                                 "VAL_TOP_128", "VAL_BOTTOM_128")
@@ -260,7 +259,7 @@ class SemiSupervisedClassifier(VAE):
         batch_no = 1
         data_iterator.reset_counter(dataset_type)
         reconstruction_losses = []
-        retention_policies:List[RetentionPolicy] = list()
+        retention_policies: List[RetentionPolicy] = list()
         while data_iterator.has_next(dataset_type):
             batch_images, batch_labels, manual_labels = data_iterator.get_next_batch(dataset_type)
             # skip last batch
@@ -269,25 +268,34 @@ class SemiSupervisedClassifier(VAE):
                 break
             batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
-            reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, y_pred, nll, nll_batch = self.sess.run([self.out,
-                                                                                                              self.merged_summary_op,
-                                                                                                              self.mu,
-                                                                                                              self.sigma,
-                                                                                                              self.z,
-                                                                                                              self.y_pred,
-                                                                                                              self.neg_loglikelihood,
-                                                                                                              self.marginal_likelihood
-                                                                                                              ],
-                                                                                                             feed_dict={
-                                                                                                                 self.inputs: batch_images,
-                                                                                                                 self.labels: manual_labels[
-                                                                                                                              :,
-                                                                                                                              :10],
-                                                                                                                 self.is_manual_annotated: manual_labels[
-                                                                                                                                           :,
-                                                                                                                                           10],
-                                                                                                                 self.standard_normal: batch_z})
+            reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, y_pred, nll, nll_batch = self.sess.run(
+                [self.out,
+                 self.merged_summary_op,
+                 self.mu,
+                 self.sigma,
+                 self.z,
+                 self.y_pred,
+                 self.neg_loglikelihood,
+                 self.marginal_likelihood
+                 ],
+                feed_dict={
+                    self.inputs: batch_images,
+                    self.labels: manual_labels[
+                                 :,
+                                 :10],
+                    self.is_manual_annotated: manual_labels[
+                                              :,
+                                              10],
+                    self.standard_normal: batch_z})
 
+            print(f"Batch shape for nll {nll_batch.shape}")
+            reconstruction_losses.append(nll)
+            if len(nll_batch.shape) == 0:
+                data_iterator.reset_counter(dataset_type)
+                print(f"Skipping batch {batch_no}. Investigate and fix this issue later")
+                print(
+                    f"Length of batch_images: {batch_images.shape} Nll_batch: {nll_batch} Nll shape: {nll.shape} Nll:{nll} ")
+                break
             if len(nll_batch.shape) == 2:
                 num_pixels = self.dao.image_shape[0] * self.dao.image_shape[1]
                 mse = np.sum(nll_batch * num_pixels, axis=1) / num_pixels
@@ -307,7 +315,7 @@ class SemiSupervisedClassifier(VAE):
                         rp = RetentionPolicy(policy_type=policy_type, N=int(policy.split("_")[2]))
                         rp.update_heap(mse, reconstructed_image)
                         retention_policies.append(rp)
-                            
+
             if labels_predicted is None:
                 labels_predicted = labels_predicted_for_batch
                 labels = labels_for_batch
@@ -325,7 +333,7 @@ class SemiSupervisedClassifier(VAE):
                     sigma = np.vstack([sigma, sigma_for_batch])
                     z = np.vstack([z, z_for_batch])
             batch_no += 1
-                        
+
             training_batch = self.num_training_epochs_completed * num_batches_train + self.num_steps_completed
             # if dataset_type != "train" and save_images:
             #     save_single_image(reconstructed_image,
@@ -343,7 +351,8 @@ class SemiSupervisedClassifier(VAE):
         print(f"epoch:{self.num_training_epochs_completed} step:{self.num_steps_completed}")
         if "reconstruction_loss" in self.metrics_to_compute:
             reconstruction_loss = mean(reconstruction_losses)
-            self.metrics[dataset_type]["reconstruction_loss"].append([self.num_training_epochs_completed, reconstruction_loss])
+            self.metrics[dataset_type]["reconstruction_loss"].append(
+                [self.num_training_epochs_completed, reconstruction_loss])
 
         if save_images:
             reconstructed_dir = get_eval_result_dir(self.exp_config.PREDICTION_RESULTS_PATH,
@@ -366,6 +375,7 @@ class SemiSupervisedClassifier(VAE):
                         save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file)
 
         data_iterator.reset_counter(dataset_type)
+
         encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
                                   columns=["label", "label_predicted"])
 
@@ -388,6 +398,7 @@ class SemiSupervisedClassifier(VAE):
                                                    )
             print("Saving evaluation results to ", self.exp_config.ANALYSIS_PATH)
             encoded_df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, output_csv_file), index=False)
+
         return encoded_df
 
     def encode(self, images):
