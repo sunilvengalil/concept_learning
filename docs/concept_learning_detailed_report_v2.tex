@@ -369,7 +369,7 @@
 % paper title
 % can use linebreaks \\ within to get better formatting as desired
 % Do not put math or special symbols in the title.
-\title{ Image Classification by Learning Concepts Using Unlabelled Data  - A combination of supervised and unsupervised approach using Variational Autoencoder and Topdown Hierarchical Clustering}
+\title{ Image Classification by Learning Concepts using Unlabelled Data  - A Combination of Supervised and Unsupervised Approach using Variational Autoencoder and Topdown Hierarchical Clustering}
 %
 %
 % author names and IEEE memberships
@@ -440,13 +440,13 @@
 % As a general rule, do not put math, special symbols or citations
 % in the abstract or keywords.
 \begin{abstract}
-The success of deep learning for solving complex tasks like image classification, segmentation, speech and natural language processing, has caused wide-spread interest in the machine learning community to focus on developing models and representations that are more explainable, and generalize better. In this work, we propose an approach for using representations learned by unsupervised generative learning for solving tasks like image classification at a reduced manual annotation cost. Our method is an alternate paradigm for supervised learning. In existing supervised learning method  all samples are labelled prior to start of training, where as we propose a mechanism where manual hints are given at regular intervals during training. We demonstrate the proposed idea by training a  variational autoencoder on MNIST data set. After every epoch of training, the low dimensional latent vectors are clustered and cluster centers are annotated. The loss function in successive training is modified to incorporate the manual annotation. In addition to achieving classification of digits, the approach also results in improved reconstruction accuracy and more regular features of autoencoder. Our network architecture and cost function looks very similar to multi task learning with hard parameter sharing. However, unlike other multi task learning models, our main goal is to solve tasks which are solved using supervised learning methods with minimal annotation. In this respect our goal is similar to few shot learning but our approach differs from existing few shot learning techniques
+The success of deep learning for solving complex tasks like image classification, segmentation, speech and natural language processing, has caused wide-spread interest in the machine learning community to focus on developing models and representations that are more explainable, and generalize better. In this work, we propose an approach for using representations learned by unsupervised generative learning for solving tasks like image classification at a reduced manual annotation cost. Our method is an alternate paradigm for supervised learning. In existing supervised learning methods,  all samples are labelled prior to start of training where as we propose a mechanism where manual hints are given at regular intervals during training. We demonstrate the proposed idea by training a  variational autoencoder on MNIST data set. After every epoch of training, the low dimensional latent vectors are clustered and cluster centers are annotated. The loss function in successive training is modified to incorporate the manual annotation. In addition to achieving classification of digits, the approach also results in improved reconstruction accuracy and more regular features of autoencoder. Our network architecture and cost function look similar to multi task learning with hard parameter sharing. However, unlike other multi task learning models, our main goal is to solve tasks which are solved using supervised learning methods with minimal annotation. In this respect, our goal is similar to few shot learning but our approach differs from existing few shot learning techniques.
 
 \end{abstract}
 
 % Note that keywords are not normally used for peerreview papers.
 \begin{IEEEkeywords}
-Generative modelling, multi-task learning
+Generative modelling, multi-task learning, few shot learning
 \end{IEEEkeywords}
 
 
@@ -477,36 +477,25 @@ Generative modelling, multi-task learning
 % 
 % Here we have the typical use of a "T" for an initial drop letter
 % and "HIS" in caps to complete the first word.
-\IEEEPARstart{C}{lassifying} images is one of the first use case proven to give good result using deep neural networks. Recently, there has been a lot of work on generative models like variational autoencoder(VAE)\cite{vae} and generative adversarial network(GAN) \cite{gan} on using deep neural network for learning distribution of high dimensional data. In this work, we propose a method whereby a generative model like VAE can easily be converted into a classification model which is currently solved by a supervised classification method - \snote{Easily suggests that our proposed method is not necessarily complicated enough to publish. I do not know what the problem is being solved and there is no motivation to understand why the proposed method is required}. The existing deep learning approaches for classification  needs a lot of annotated training data and enormous training time on GPU\cite{alexnet}\cite{vggnet}\cite{resnet}.  Our approach needs very less amount of manual annotation (10-20 samples in case of MNIST dataset) \snote{What is the difference between labeled data and manual annotation? Does all classifiers need manual annotation? Usually annotation is used in segmentation} and less computing resources \snote{Do we have experiments planned to showcase this?}. We demonstrate our claim by building a classification model for MNIST dataset \snote{Intorduction section need not be dataset specific. It is general accomplishments as the proposed method will work on omniglot and other datasets}.  We also analyze the latent representation learned by a generative model and attempt to map the learned features to human identifiable concepts.  Our proposed approach also results in better reconstruction accuracy of generative model.
+\IEEEPARstart{C}{lassifying} images is one of the first use cases proven to give good result using deep neural networks. Recently, there has been a lot of work on generative models like variational autoencoder(VAE)\cite{vae} and generative adversarial network(GAN) \cite{gan} on using deep neural network for learning distribution of high dimensional data. In this work, we propose a method whereby a generative model like VAE can easily be converted into a classification model which is currently solved by a supervised classification method. Note that the existing deep learning approaches for classification  need a lot of annotated training data and enormous training time on GPU\cite{alexnet}\cite{vggnet}\cite{resnet}.  Our approach needs very less amount of manual annotation (10-20 samples in case of MNIST dataset)  and less computing resources. We demonstrate our claim by building a classification model for MNIST dataset.  We also analyze the latent representation learned by a generative model and attempt to map the learned features to human identifiable concepts.  Our proposed approach also results in better reconstruction accuracy of generative model.
 
-Our model is similar to multi task learning since the loss term have both reconstruction and classification loss. However, unlike most other multi-task models, see \cite{mtl_2017_ruder} \cite{mtl_2020_michael} for a complete review of existing multi-task learning techniques, we are combining  different type of machine learning tasks [TODO Tom Mitchel definition of task] ( classification, generative modeling, representation learning, segmentation )  for which very few works exists in \cite{laddernetwork}. We also show that such a model can significantly reduce the manual annotation task and training time.
+Our model is similar to multi task learning since the loss term have both reconstruction and classification losses. However, unlike most other multi-task models, see \cite{mtl_2017_ruder} \cite{mtl_2020_michael} for a complete review of existing multi-task learning techniques, we are combining  different type of machine learning tasks [TODO Tom Mitchel definition of task] ( classification, generative modeling, representation learning, segmentation )  for which very few works exists in \cite{laddernetwork}. We also show that such a model can significantly reduce the manual annotation task and training time.
 
-The remaining section of the document is organized as follows. Section \ref{related_works} provides an overview of existing techniques of multi-task learning and few shot learning. Description of dataset used and variables and notations are provided in section \ref{problem_formulation}. Section \ref{proposed_method} contains details of network architecture and loss function and training process. A detailed analysis of results of experiments are provided in section \ref{results}. Finally we conclude our finding in section \ref{conclusion} \snote{Usually this paragraph is not required as every conference has a structure}
+The rest of the paper is organized as follows. Section \ref{related_works} provides an overview of existing techniques of multi-task learning and few shot learning. Description of dataset used and variables and notations are provided in section \ref{problem_formulation}. Section \ref{proposed_method} contains details of network architecture and loss function and training process. A detailed analysis of results of experiments are provided in Section \ref{results}. Finally, we conclude our finding in Section \ref{conclusion}
 
-\snote{\\
-Introduction section paragraphs\\
-1. Background of the domain\\
-2. Problem statement and Motivation\\
-3. Related works or baselines\\
-4. Abstract of our proposed solution (Single highlight point)\\
-5. Contributions of the paper\\
-The section need not be specific to dataset or discuss the loss function. The loss function should be motivated by the problem. Here it looks like the problem is motivated by the loss function. This is probably because the problem statement is not clear.
-}
-
- 
-\hfill November  10, 2018
+%\hfill November  10, 2018
 
 \section{Related Work} \label{related_works}
-Multi-task learning where multiple related tasks, from a single domain, like combining facial landmark detection with head pose detection and facial attribute detection \cite{mtl_zhang_2014} have helped in increasing robustness in detection with reduced model complexity.The basic tenet of multi-task learning is that the model prefers a hypothesis that explain more than one task and usually this results in solutions that generalize better \cite{mtl_2017_ruder}. While training a network for more than one task, other tasks can provide additional evidence for relevance or irrelevance of feature. Liu et. al. introduces task specific attention modules attached to a shared convolutional pool  along with a multi-task loss function to train a single network for multiple tasks like semantic segmentation, depth estimation and detection of surface normal \cite{mtl_liu_2019}.
+Multi-task learning where multiple related tasks, from a single domain, like combining facial landmark detection with head pose detection and facial attribute detection \cite{mtl_zhang_2014} have helped in increasing robustness in detection with reduced model complexity.The basic tenet of multi-task learning is that the model prefers a hypothesis that explains more than one tasks and usually this results in solutions that generalize better \cite{mtl_2017_ruder}. While training a network for more than one tasks, other tasks can provide additional evidence for relevance or irrelevance of feature. Liu et al. introduces task specific attention modules attached to a shared convolutional pool  along with a multi-task loss function to train a single network for multiple tasks like semantic segmentation, depth estimation and detection of surface normal \cite{mtl_liu_2019}.
 
-Our approach is similar to hard parameter sharing as in \cite{mtl_zhang_2014} \cite{mtl_2016_dai}, but differs in respect that we are trying to solve a task like image classification, which is traditionally addressed as a supervised task requiring large amount of manually annotated data, using information obtained from  unsupervised representation learning. Our approach results in reduced manual annotation and less number of training epochs along with other benefits of multi-task learning such as learning a generic representation that help in multiple tasks
+Our approach is similar to hard parameter sharing as in \cite{mtl_zhang_2014} \cite{mtl_2016_dai}, but differs in respect that we are trying to solve a task like image classification, which is traditionally addressed as a supervised task requiring large amount of manually annotated data, using information obtained from  unsupervised representation learning. Our approach results in reduced manual annotation and less number of training epochs along with other benefits of multi-task learning such as learning a generic representation that help in multiple tasks.
 
 TODO add literature survey on few shot learning, concept learning, continual learning
 
 \section{Problem Formulation} \label{problem_formulation}
-Consider a grey-scale image, $I_n$  $1\leq n \leq N$,  of height  $H$ and width $W$. The grey value at a location $(i, j)$ of the image is denoted  as $x_{ij}^{n} \in [0,1]$  where $1 \leq i \leq H$  and  $1\leq j \leq W$. In our experiments using MNIST, $N= 59872, H=28,  W= 28$. During the training phase, we didn't use the labels of the training set. The labels of validation set were used to compute the classification and reconstruction accuracy. 
+Consider a grey-scale image, $I_n$  $1\leq n \leq N$,  of height  $H$ and width $W$. The grey value at a location $(i, j)$ of the image is denoted  as $x_{ij}^{n} \in [0,1]$  where $1 \leq i \leq H$  and  $1\leq j \leq W$. In our experiments, we use MNIST in which $N= 59872, H=28,  W= 28$. During the training phase, we did not use the labels of the training set. The labels of validation set were used to compute the classification and reconstruction accuracy.
  
- A generative model learns the distribution of data $p(x_{ij})$ where $y$ is the class label. A new image of a given digit can be generated by sampling from this distribution. In the case of an image, this is usually a complex distribution in high dimensional space of dimension $W \times H$. Such a distribution in the original high dimensional space is not of much use as it is not easy to visualize and contains too much of  minute details. Specifically, the properties of interest, like line thickness in case of handwritten digit, are not explicitly evident from such a distribution.   All generative models, essentially solves this problem by transforming the original image into a much low dimensional latent space which we denote by  $Z$. For each image $x^n \in X$, there exists a latent vector  $z^n \in Z$  where $z^n$ is of dimension $z_{dim}$. The dimension of latent space $z_{dim}$ is much less compared to the original image dimension. However, one of the major issue with these trained models is that the concepts represented by latent dimensions need not make any sense and hence they lack one of the much needed property of model explainability.
+ A generative model learns the distribution of data $p(x_{ij})$ where $y$ is the class label. A new image of a given digit can be generated by sampling from this distribution. In the case of an image, this is usually a complex distribution in high dimensional space of dimension $W \times H$. Such a distribution in the original high dimensional space is not of much use as it is not easy to visualize and contains too much of  minute details. Specifically, the properties of interest, like line thickness in case of handwritten digit, are not explicitly evident from such a distribution.   All generative models, essentially solve this problem by transforming the original image into a much low dimensional latent space, which we denote by  $Z$. For each image $x^n \in X$, there exists a latent vector  $z^n \in Z$  where $z^n$ is of dimension $z_{dim}$. The dimension of latent space $z_{dim}$ is much less compared to the original image dimension. However, one of the major issues with these trained models is that the concepts represented by latent dimensions need not make any sense and hence they lack one of the much needed properties: the model explainability.
  
   In this work, we show a method to incorporate human feed backs at regular intervals during training so that the model learns much faster and also the learned latent representations are much more explainable. Such a representation should directly translate to a human explanation for the data. For example, the digit 1 in  handwritten dataset  can be mentioned as  `a vertical line stroke'  and digit 7 can be mentioned as `a horizontal line stroke towards left placed  above a vertical line stroke'. We demonstrate how  such a description, along with meaningful properties like line thickness, can be obtained from the latent representation after the model is trained.
  
@@ -514,7 +503,7 @@ Consider a grey-scale image, $I_n$  $1\leq n \leq N$,  of height  $H$ and width 
 \subsection{Dataset}
 We used MNIST dataset\cite{mnist} to demonstrate the proposed approach. The primary reason for selecting MNIST image is to reduce the manual annotation cost required for identifying the reconstructed images. Images in MNIST training set were split into training and validation set with stratified sampling on label column. The validation set, which consist of 128 images, were used to compute the reconstruction accuracy of autoencoder. Rest of the 59872 images were used to train the model. The images were normalized  before feeding to the input of the network so that the 256 grey values are converted into real numbers in the unit interval [0,1].
 \subsection{Neural network architecture and loss function}
-Figure \ref{vae_architecture} shows the architecture of the proposed model. We used a variational autoencoder\cite{vae}, with 4 layers of encoder and 4 layers in the decoder, augmented by adding a $K-$node softmax classification layer in order to classify the latent vector $z$ into one of $K$ different classes.  The encoder output has linear activation function so that the image is encoded into a latent vector, $z$  of dimension $z_{dim}$, each dimension taking continuous values. The decoder output activation is sigmoid so that most of the reconstructed pixel values  are concentrated around 0 or 1 by design. Initially, for first few epochs the network is trained only using the autoencoder loss function and hence labels are not required. The loss function used for training during initial epochs is 
+Figure \ref{vae_architecture} shows the architecture of the proposed model. We used a variational autoencoder\cite{vae}, with 4 layers of encoder and 4 layers in the decoder, augmented by adding a $K-$node softmax classification layer in order to classify the latent vector $z$ into one of $K$ different classes.  The encoder output has linear activation function so that the image is encoded into a latent vector, $z$  of dimension $z_{dim}$, each dimension taking continuous values. The decoder output activation is sigmoid so that most of the reconstructed pixel values  are concentrated around 0 or 1 by design. Initially, for first few epochs, the network is trained only using the autoencoder loss function and hence labels are not required. The loss function used for training during initial epochs is
 %\begin{equation}
 \begin{multline}
 L_{VAE} = -\sum_{i, j}(x_{ij}^n \ln \hat{x}_{ij}^n + (1 - x_{ij}^n) \ln(1 -  \hat{x}_{ij}^n ) )  \\
@@ -541,7 +530,7 @@ We trained the network for 5 epochs. After every 300 steps (with a batch size of
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=2.5in]{vae_model_architecture_classification.jpg}
+\includegraphics[width=3.5in]{vae_model_architecture_classification.jpg}
 % where an .eps filename suffix will be assumed under latex, 
 % and a .pdf suffix will be assumed for pdflatex; or what has been declared
 % via  
@@ -557,7 +546,7 @@ Figure \ref{reconstruction_accuracy} shows  the reconstruction accuracy of the v
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=2.5in]{reconstruction_accuracy.jpg}
+\includegraphics[width=4in]{reconstruction_accuracy.jpg}
 \caption{Reconstruction accuracy of autoencoder on validation images with different values for the latent vector dimension  $z_{dim}$ and $\gamma = 0$}
 \label{reconstruction_accuracy}
 \end{figure}
@@ -566,7 +555,7 @@ Figure \ref{reconstruction_accuracy_sup_vs_unsup} shows that the reconstruction 
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=2.5in]{reconstruction_accuracy_compare_supervised_vs_unsuprevised.jpg}
+\includegraphics[width=4in]{reconstruction_accuracy_compare_supervised_vs_unsuprevised.jpg}
 \caption{Comparison of reconstruction accuracy with and without classification loss }
 \label{reconstruction_accuracy_sup_vs_unsup}
 \end{figure}
