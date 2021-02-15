@@ -1,0 +1,401 @@
+\documentclass{uai2021} % for initial submission
+% \documentclass[accepted]{uai2021} % after acceptance, for a revised
+                                    % version; also before submission to
+                                    % see how the non-anonymous paper
+                                    % would look like
+%% There is a class option to choose the math font
+% \documentclass[mathfont=cm]{uai2021} % Computer Modern math instead of
+                                       % ptmx, like default for UAI ≤2020
+% \documentclass[mathfont=newtx]{uai2021} % newtx fonts (improves upon
+                                          % ptmx; less tested, no support)
+% NOTE: Only keep *one* line above as appropriate, as it will be replaced
+%       automatically for papers to be published. Do not make any other
+%       change above this note for an accepted version.
+
+%% Choose your variant of English; be consistent
+\usepackage[american]{babel}
+% \usepackage[british]{babel}
+
+%% Some suggested packages, as needed:
+\usepackage{natbib} % has a nice set of citation styles and commands
+    \bibliographystyle{plainnat}
+    \renewcommand{\bibsection}{\subsubsection*{References}}
+\usepackage{mathtools} % amsmath with fixes and additions
+\DeclarePairedDelimiterX{\infdivx}[2]{(}{)}{%
+  #1\;\delimsize\|\;#2%
+}
+% \usepackage{siunitx} % for proper typesetting of numbers and units
+\usepackage{booktabs} % commands to create good-looking tables
+\usepackage{tikz} % nice language for creating drawings and diagrams
+
+%% Provided macros
+% \smaller: Because the class footnote size is essentially LaTeX's \small,
+%           redefining \footnotesize, we provide the original \footnotesize
+%           using this macro.
+%           (Use only sparingly, e.g., in drawings, as it is quite small.)
+
+%% Self-defined macros
+\newcommand{\swap}[3][-]{#3#1#2} % just an example
+
+\title{Image Classification using Unlabelled Data - A Semisupervised Approach using Variational Autoencoder and Topdown Hierarchical Clustering}
+
+% The standard author block has changed for UAI 2021 to provide
+% more space for long author lists and allow for complex affiliations
+%
+% All author information is authomatically removed by the class for the
+% anonymous submission version of your paper, so you can already add your
+% information below.
+%
+\author[1]{\href{mailto:Sunil Kumar Vengalil <sunilkumar.vengalil@iiitb.org> ?Subject=Your UAI 2021 paper}{Sunil Kumar Vengalil}{}}
+\author[2]{Prathyush S.P}
+\author[1,2]{Neelam Sinha}
+\author[3]{Further~Coauthor}
+\author[1]{Further~Coauthor}
+\author[3]{Further~Coauthor}
+\author[3,1]{Further~Coauthor}
+% Add affiliations after the authors
+\affil[1]{%
+    Computer Science Dept.\\
+    Cranberry University\\
+    Pittsburgh, Pennsylvania, USA
+}
+\affil[2]{%
+    Affiliation\\
+    Address\\
+    …
+}
+\affil[3]{…}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The success of deep learning for solving complex tasks like image classification, segmentation, speech and natural language processing, has caused wide-spread interest in the machine learning community to focus on developing models and representations that are more explainable, and generalize better.
+In this work, we propose an approach for using representations learned by unsupervised generative learning for solving tasks like image classification at a reduced manual annotation cost.
+Our method is an alternate paradigm for supervised learning.
+In existing supervised learning methods,  all samples are labelled prior to start of training where as we propose a mechanism where manual hints are given at regular intervals during training.
+We demonstrate the proposed idea by training a  variational autoencoder on MNIST data set.
+After every epoch of training, the low dimensional latent vectors are clustered and cluster centers are annotated.
+The loss function in successive training is modified to incorporate the manual annotation.
+In addition to achieving classification of digits, the approach also results in improved reconstruction accuracy and more regular features of autoencoder.
+Our network architecture and cost function look similar to multi task learning with hard parameter sharing.
+However, unlike other multi task learning models, our main goal is to solve tasks which are solved using supervised learning methods with minimal annotation.
+In this respect, our goal is similar to few shot learning but our approach differs from existing few shot learning techniques.
+\end{abstract}
+
+\section{Introduction}\label{sec:intro}
+Classifying images is one of the first use cases proven to give good result using deep neural networks.
+Recently, there has been a lot of work on generative models like variational autoencoder(VAE)\cite{vae} and generative adversarial network(GAN) \cite{gan} on using deep neural network for learning distribution of high dimensional data.
+In this work, we propose a method whereby a generative model like VAE can easily be converted into a classification model which is currently solved by a supervised classification method.
+Note that the existing deep learning approaches for classification  need a lot of annotated training data and enormous training time on GPU\cite{krizhevsky2012imagenet}\cite{simonyan2014very}\cite{he2016deep}.
+Our approach needs very less amount of manual annotation (10-20 samples in case of MNIST dataset)  and less computing resources.
+We demonstrate our claim by building a classification model for MNIST dataset.
+We also analyze the latent representation learned by a generative model and attempt to map the learned features to human identifiable concepts.
+Our proposed approach also results in better reconstruction accuracy of generative model.
+
+Our model is similar to multi task learning since the loss term have both reconstruction and classification losses.
+However, unlike most other multi-task models, see \cite{mtl_2017_ruder} \cite{mtl_2020_michael} for a complete review of existing multi-task learning techniques, we are combining  different type of machine learning tasks [TODO Tom Mitchel definition of task] ( classification, generative modeling, representation learning, segmentation )  for which very few works exists in \cite{laddernetwork}.
+We also show that such a model can significantly reduce the manual annotation task and training time.
+
+Our major contributions in this work are : 1) 2) 3)
+
+
+The rest of the paper is organized as follows.
+Section \ref{related_works} provides an overview of existing techniques of multi-task learning and few shot learning.
+Description of dataset used and variables and notations are provided in section \ref{problem_formulation}.
+Section \ref{proposed_method} contains details of network architecture and loss function and training process.
+A detailed analysis of results of experiments are provided in Section \ref{results}.
+Finally, we conclude our finding in Section \ref{conclusion}
+
+\section{Related Work} \label{related_works}
+Multi-task learning where multiple related tasks, from a single domain, like combining facial landmark detection with head pose detection and facial attribute detection \cite{mtl_zhang_2014} have helped in increasing robustness in detection with reduced model complexity.
+The basic tenet of multi-task learning is that the model prefers a hypothesis that explains more than one tasks and usually this results in solutions that generalize better \cite{mtl_2017_ruder}.
+While training a network for more than one tasks, other tasks can provide additional evidence for relevance or irrelevance of feature.
+Liu et al. introduces task specific attention modules attached to a shared convolutional pool  along with a multi-task loss function to train a single network for multiple tasks like semantic segmentation, depth estimation and detection of surface normal \cite{mtl_liu_2019}.
+
+Our approach is similar to hard parameter sharing as in \cite{mtl_zhang_2014} \cite{mtl_2016_dai}, but differs in respect that we are trying to solve a task like image classification, which is traditionally addressed as a supervised task requiring large amount of manually annotated data, using information obtained from  unsupervised representation learning.
+Our approach results in reduced manual annotation and less number of training epochs along with other benefits of multi-task learning such as learning a generic representation that help in multiple tasks.
+
+TODO add literature survey on few shot learning, concept learning, continual learning
+
+\section{Problem Formulation} \label{problem_formulation}
+Consider a grey-scale image, $I_n$  $1\leq n \leq N$,  of height  $H$ and width $W$. The grey value at a location $(i, j)$ of the image is denoted  as $x_{ij}^{n} \in [0,1]$  where $1 \leq i \leq H$  and  $1\leq j \leq W$.
+In our experiments, we use MNIST in which $N= 59872, H=28,  W= 28$. During the training phase, we did not use the labels of the training set.
+The labels of validation set were used to compute the classification and reconstruction accuracy.
+
+ A generative model learns the distribution of data $p(x_{ij})$ where $y$ is the class label.
+A new image of a given digit can be generated by sampling from this distribution.
+In the case of an image, this is usually a complex distribution in high dimensional space of dimension $W \times H$.
+Such a distribution in the original high dimensional space is not of much use as it is not easy to visualize and contains too much of  minute details.
+Specifically, the properties of interest, like line thickness in case of handwritten digit, are not explicitly evident from such a distribution.
+All generative models, essentially solve this problem by transforming the original image into a much low dimensional latent space, which we denote by  $Z$.
+For each image $x^n \in X$, there exists a latent vector  $z^n \in Z$  where $z^n$ is of dimension $z_{dim}$.
+The dimension of latent space $z_{dim}$ is much less compared to the original image dimension.
+However, one of the major issues with these trained models is that the concepts represented by latent dimensions need not make any sense and hence they lack one of the much needed properties: the model explainability.
+
+  In this work, we show a method to incorporate human feed backs at regular intervals during training so that the model learns much faster and also the learned latent representations are much more explainable.
+Such a representation should directly translate to a human explanation for the data.
+For example, the digit 1 in  handwritten dataset  can be mentioned as  `a vertical line stroke'  and digit 7 can be mentioned as `a horizontal line stroke towards left placed  above a vertical line stroke'.
+We demonstrate how  such a description, along with meaningful properties like line thickness, can be obtained from the latent representation after the model is trained.
+\section{Proposed Method} \label{proposed_method}
+\subsection{Dataset}
+We used MNIST dataset\cite{mnist} to demonstrate the proposed approach.
+The primary reason for selecting MNIST image is to reduce the manual annotation cost required for identifying the reconstructed images.
+Images in MNIST training set were split into training and validation set with stratified sampling on label column.
+The validation set, which consist of 128 images, were used to compute the reconstruction accuracy of autoencoder.
+Rest of the 59872 images were used to train the model.
+The images were normalized  before feeding to the input of the network so that the 256 grey values are converted into real numbers in the unit interval [0,1].
+
+\subsection{Neural network architecture and loss function}
+Figure \ref{vae_architecture} shows the architecture of the proposed model. We used a variational autoencoder\cite{vae}, with 4 layers of encoder and 4 layers in the decoder, augmented by adding a $K-$node softmax classification layer in order to classify the latent vector $z$ into one of $K$ different classes.  The encoder output has linear activation function so that the image is encoded into a latent vector, $z$  of dimension $z_{dim}$, each dimension taking continuous values. The decoder output activation is sigmoid so that most of the reconstructed pixel values  are concentrated around 0 or 1 by design.
+Initially, for first few epochs, the network is trained only using the autoencoder loss function and hence labels are not required.
+The loss function used for training during initial epochs is (TODO format the KLD part and add it in notation in the next para)
+%\begin{equation}
+\begin{multline}
+L_{VAE} = -\sum_{i, j}(x_{ij}^n \ln \hat{x}_{ij}^n + (1 - x_{ij}^n) \ln(1 -  \hat{x}_{ij}^n ) )
+%+ \beta \infdiv{p(z)}{N(0,I)}
+    +\beta KLD(p(z), N(0,I))
+\end{multline}
+where   $x_{ij}$ is the pixel value at position $(i, j)$ of the input image, $\hat{x}_{ij}$ is the pixel value of reconstructed image, $p(z)$ is the probability density function of latent vectors and $N(0,I)$ is the standard multivariate normal distribution of dimension $z_{dim}$. We used $\beta = 5$ as it gave a best compromise between reconstruction quality and KL divergence.
+After few epochs of unsupervised training, the latent vectors corresponding to the training images are clustered using k-means algorithm. The optimum value of $k$ were determined using elbow curve. The cluster centers were decoded using the decoder part of VAE and the resulting images corresponding to cluster centers were manually given a label and a confidence. if the cluster center does not correspond to any valid digit image, or if it is similar to more than one digit image, the cluster is again split into two clusters and a further attempt is made to label the cluster centers of 2nd level cluster.
+Each sample in the cluster is assigned with the  same label as the cluster center. Each sample is also given a confidence based on its distance from cluster center and  confidence assigned to the cluster center by human. The confidence of  training sample $x^n$ is computed as
+\begin{equation}
+w_n = p_ce^{-a d_n}
+\end{equation}
+where $d_n$ is the euclidean distance of the sample from its cluster center, $p_c$  is the confidence assigned to the cluster center and $a$ is a hyper parameter.
+Training is continued for few more epochs using a modified loss function that incorporates the manual input. The modified loss function is
+\begin{equation}
+L = L_{VAE}  - \gamma \sum_{k=0}^{K}w_{n}y_{n}\ln(\hat{y}_{n})
+\end{equation}
+
+$y_n$ is the label given to the training images and $\hat{y}$ is the predicted label of the image . The new term added to the loss is the weighted multi-class cross entropy loss for classification task.
+
+We trained the network for 5 epochs.
+After every 300 steps (with a batch size of 64, this corresponds to 19200 images) of training the reconstructed images were annotated by a manual user. The annotation was done by looking at each of the 128  reconstructed validation images and trying to identify the digit manually.
+The reconstruction accuracy were then computed by comparing the human identified class label with the actual class label for the image. We ran the experiment 5 times and took the average accuracy.
+
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=3.5in]{vae_model_architecture_classification.jpg}
+% where an .eps filename suffix will be assumed under latex,
+% and a .pdf suffix will be assumed for pdflatex; or what has been declared
+% via
+\DeclareGraphicsExtensions.
+\caption{Proposed model architecture}
+\label{vae_architecture}
+\end{figure}
+
+\section{Results and Discussions} \label{results}
+Figure \ref{reconstruction_accuracy} shows  the reconstruction accuracy of the variational autoencoder on the validation images after 5 epochs of training with $\gamma = 0$  and different values of latent vector dimension $z_{dim}$. It is observed that increasing $z_{dim}$ beyond 10 does not result in an increase in accuracy in the same proportion. This is because, the number of nodes in the 3rd layer were fixed at 32 which limits the representational capacity of that and all the subsequent layers.
+
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=4in]{reconstruction_accuracy.jpg}
+\caption{Reconstruction accuracy of autoencoder on validation images with different values for the latent vector dimension  $z_{dim}$ and $\gamma = 0$}
+\label{reconstruction_accuracy}
+\end{figure}
+
+Figure \ref{reconstruction_accuracy_sup_vs_unsup} shows that the reconstruction accuracy of VAE is improved significantly  (by 6 to 10 \%) when classification loss is added. The blue curve in figure shows the reconstruction accuracy when the latent vectors were clustered and a label were assigned to the reconstructed images corresponding to  cluster centers at the end of every epoch. Figure TODO add fig shows comparison of sample reconstructed images from validation set for normal autoencoder (unsupervised) versus the autoencoder with classification loss added.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=4in]{reconstruction_accuracy_compare_supervised_vs_unsuprevised.jpg}
+\caption{Comparison of reconstruction accuracy with and without classification loss }
+\label{reconstruction_accuracy_sup_vs_unsup}
+\end{figure}
+
+
+\subsection{Sectioning}
+Three numbered sectioning commands are provided: \verb|\section|, \verb|\subsection|, and \verb|\subsubsection|.
+Please respect their order, so do not put a \verb|\subsubsection| directly beneath a \verb|\section|.
+One unnumbered sectioning command is provided, \verb|\paragraph|.
+It can be used directly below any numbered section level.
+Do not use any other sectioning commands.
+
+\subsubsection{Typing the Section Titles}
+The \verb|\section| and \verb|\subsection| titles are uppercased by the class.
+Please type them in title case.
+(This is used in the PDF bookmarks.)
+Please also write the \verb|\subsubsection| titles in title case.
+
+\paragraph{What is title case?}
+\href{https://en.wikipedia.org/wiki/Title_case}{Wikipedia} explains:
+\begin{quote}
+    Title case or headline case is a style of capitalization used for rendering the titles of published works or works of art in English.
+    When using title case, all words are capitalized except for ‘minor’ words (typically articles, short prepositions, and some conjunctions) unless they are the first or last word of the title.
+\end{quote}
+
+\subsection{References, Citations, Footnotes}\label{sec:etc}
+\subsubsection{Cross-Referencing}
+Always use \verb|\label| and \verb|\ref|—or a command with a similar effect—when cross-referencing.
+For example, this subsection is Section~\ref{sec:etc}.
+
+\subsubsection{Citations}
+Citations should include the author's last name and year.
+They should be part of the sentence.
+An example parenthetical citation: “Good introductions to the topic are available \citep{latexcompanion}.”
+An example textual citation: “\citet{einstein} discusses electrodynamics of moving bodies.”
+Do not use a parenthetical citation where a textual one is appropriate.
+An example of what \emph{not} to do: “\citep{einstein} discusses electrodynamics of moving bodies.”
+
+We strongly advise to use reference list software such as Bib\TeX{} and a citation package such as \textsf{natbib}.
+The reference style you use should be compatible with the author-year citations.
+Both the citation style and reference style used should be consistent.
+
+For the original submission, take care not to reveal the authors' identity through the manner in which one's own previous work is cited.
+For example, writing
+“I discussed electrodynamics of moving bodies before \citep{einstein}.” would be inappropriate, as it reveals the author's identity.
+Instead, write “\citet{einstein} discussed electrodynamics of moving bodies.”
+
+\subsubsection{Footnotes}
+You can include footnotes in your text.\footnote{
+    Use footnotes sparingly, as they can be distracting, having readers skip back and forth between the main text and the foot of the page.
+}
+The footnote mark should follow the fragment to which it refers, so a footnote\footnote{
+    A footnote is material put at the foot of a page.
+}
+for a word has a footnote mark attached to that word and a footnote for a phrase or sentence has a footnote mark attached to the closing punctuation.
+
+\section{Math}\label{sec:math}
+The class file does not load any math support package like \textsf{amsmath}\footnote{%
+  See the \textsf{amsmath} documentation at \url{https://ctan.org/pkg/amsmath} for further details.
+}.
+We advise using the \textsf{mathtools}\footnote{%
+  See the \textsf{mathtools} documentation at \url{https://ctan.org/pkg/mathtools} for further details.
+}
+package, which extends \textsf{amsmath} with fixes and even more useful commands.
+Feel free to load other support packages for symbols, theorems, etc.
+
+Use the \textsf{amsmath} environments for displayed equations.
+So, specifically, use the \texttt{equation} environment instead of \verb|$$...$$| and the \texttt{align} environment instead of \texttt{eqnarray}.\footnote{For reasons why you should not use the obsolete \texttt{eqnarray} environment, see Lars Madsen, \textit{Avoid eqnarray!} TUGboat 33(1):21--25, 2012.}
+An \texttt{equation}:
+\begin{equation}\label{eq:example}
+  0 = 1 - 1.
+\end{equation}
+Two \texttt{align}'ed equations:
+\begin{align*} % no numbers with starred version
+  1 + 2 &= 3,\\
+  1 - 2 &= -1.
+\end{align*}
+Equations can also be put inline, of course.
+For example, Equation~\eqref{eq:example}: \(0=1+1\). % $0=1+1$ also works
+(Notice that both inline and displayed math are part of the sentence, so punctuation should be added to displayed math.)
+
+The \textsf{amsmath} and \textsf{mathtools} packages provide a lot of nice functionality, such as many common math operators, e.g., \(\sin\) and \(\max\), and also commands for defining new ones.
+
+\section{Floats}\label{sec:floats}
+Floats, such as figures, tables and algorithms, are moving objects and are supposed to float to the nearest convenient location.
+Please do not force them to go in the middle of a paragraph.
+They must respect the column width.
+
+Two-column floats are possible.
+They appear at the top of the next page, so strategic placement may be necessary.
+For an example, see Figure~\ref{fig:tikz}.
+They may not enter the margins.
+\begin{figure*}
+    \centering
+    \begin{tikzpicture}[xscale=1.5]
+        \coordinate (origin);
+        \draw[->] (origin) -- +(1cm,0) node[below] {$x$};
+        \draw[->] (origin) -- +(0,1cm) node[left] {$y$};
+        \fill[gray] (45:1cm) circle[radius=.2cm];
+    \end{tikzpicture}
+    \caption{A Nice Filled Ellipse with a Pair of Coordinate Axes.}\label{fig:tikz}
+\end{figure*}
+
+All material in floats should be legible and of good quality.
+So avoid very small or large text and pixelated or fuzzy lines.
+
+\subsection{Figures}\label{sec:figures}
+Figures should go in the \texttt{figure} environment and be centered therein.
+The caption should go below the figure.
+Use \verb|\includegraphics| for external graphics files but omit the file extension.
+Supported formats are \textsf{pdf} (preferred for vector drawings and diagrams), \textsf{png} (preferred for screenshots), and \textsf{jpeg} (preferred for photographs).
+Do not use \verb|\epsfig| or \verb|\psfig|.
+If you want to scale the image, it is better to use a fraction of the line width rather than an explicit length.
+For example, see Figure~\ref{fig:toronto}.
+\begin{figure}
+  \centering
+  \includegraphics[width=0.7\linewidth,page=3]{toronto}
+  \caption{A View of a Nice City.}\label{fig:toronto}
+\end{figure}
+
+Do not use \verb|\graphicspath|.
+If the images are contained in a subdirectory, specify this when you include the image, for example \verb|\includegraphics{figures/mypic}|.
+
+\subsection{Tables}\label{sec:tables}
+Tables should go in the \texttt{table} environment and be centered therein.
+The caption should go above the table and be in title caps.
+For an example, see Table~\ref{tab:data}.
+\begin{table}
+    \centering
+    \caption{An Interesting Table.}\label{tab:data}
+    \begin{tabular}{rl}
+      \toprule % from booktabs package
+      \bfseries Dataset & \bfseries Result\\
+      \midrule % from booktabs package
+      Data1 & 0.12345\\
+      Data2 & 0.67890\\
+      Data3 & 0.54321\\
+      Data4 & 0.09876\\
+      \bottomrule % from booktabs package
+    \end{tabular}
+\end{table}
+
+\subsection{Algorithms}\label{sec:algorithms}
+You can load your favorite algorithm package, such as \textsf{algorithm2e}\footnote{See the \textsf{algorithm2e} documentation at \url{https://ctan.org/pkg/algorithm2e}.}.
+Use the environment defined in the package to create a centered float with an algorithm inside.
+
+\section{Back Matter}
+There are a some final, special sections that come at the back of the paper, in the following order:
+\begin{itemize}
+  \item Author Contributions
+  \item Acknowledgements
+  \item References
+\end{itemize}
+They all use an unnumbered \verb|\subsubsection|.
+
+For the first two special environments are provided.
+(These sections are automatically removed for the anonymous submission version of your paper.)
+The third is the ‘References’ section.
+(See below.)
+
+(This ‘Back Matter’ section itself should not be included in your paper.)
+
+\begin{contributions} % will be removed in pdf for initial submission,
+                      % so you can already fill it to test with the
+                      % ‘accepted’ class option
+    Briefly list author contributions.
+    This is a nice way of making clear who did what and to give proper credit.
+
+    H.~Q.~Bovik conceived the idea and wrote the paper.
+    Coauthor One created the code.
+    Coauthor Two created the figures.
+\end{contributions}
+
+\begin{acknowledgements} % will be removed in pdf for initial submission,
+                         % so you can already fill it to test with the
+                         % ‘accepted’ class option
+    Briefly acknowledge people and organizations here.
+
+    \emph{All} acknowledgements go in this section.
+\end{acknowledgements}
+
+\bibliography{semi_supervised_learning}
+
+\appendix
+% NOTE: necessary when ptmx or no mathfont class option is given
+\providecommand{\upGamma}{\Gamma}
+\providecommand{\uppi}{\pi}
+\section{Math font exposition}
+How math looks in equations is important:
+\begin{equation*}
+  F_{\alpha,\beta}^\eta(z) = \upGamma(\tfrac{3}{2}) \prod_{\ell=1}^\infty\eta \frac{z^\ell}{\ell} + \frac{1}{2\uppi}\int_{-\infty}^z\alpha \sum_{k=1}^\infty x^{\beta k}\mathrm{d}x.
+\end{equation*}
+However, one should not ignore how well math mixes with text:
+The frobble function \(f\) transforms zabbies \(z\) into yannies \(y\).
+It is a polynomial \(f(z)=\alpha z + \beta z^2\), where \(-n<\alpha<\beta/n\leq\gamma\), with \(\gamma\) a positive real number.
+
+\end{document}
