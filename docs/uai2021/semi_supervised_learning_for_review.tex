@@ -26,7 +26,8 @@
 }
 % \usepackage{siunitx} % for proper typesetting of numbers and units
 \usepackage{booktabs} % commands to create good-looking tables
-\usepackage{tikz} % nice language for creating drawings and diagrams
+\usepackage{tikz}
+\usepackage{graphicx} % nice language for creating drawings and diagrams
 
 %% Provided macros
 % \smaller: Because the class footnote size is essentially LaTeX's \small,
@@ -148,7 +149,7 @@ The labels of validation set were used to compute the classification and reconst
 
 \section{Proposed Method} \label{proposed_method}
 \subsection{Dataset}
-We used MNIST dataset\cite{mnist} to demonstrate the proposed approach.
+We used MNIST dataset\cite{lecun-mnisthandwrittendigit-2010} to demonstrate the proposed approach.
 The primary reason for selecting MNIST image is to reduce the manual annotation cost required for identifying the reconstructed images.
 Images in MNIST training set were split into training and validation set with stratified sampling on label column.
 The validation set, which consist of 128 images, were used to compute the reconstruction accuracy of autoencoder.
@@ -209,11 +210,11 @@ We ran the experiment 5 times and took the average accuracy.
 Figure \ref{reconstruction_accuracy} shows  the reconstruction accuracy of the variational autoencoder on the validation images after 5 epochs of training with $\gamma = 0$  and different values of latent vector dimension $z_{dim}$.
 It is observed that increasing $z_{dim}$ beyond 10 does not result in an increase in accuracy in the same proportion. This is because, the number of nodes in the 3rd layer were fixed at 32 which limits the representational capacity of that and all the subsequent layers.
 
-
-\begin{figure}[!t]
+\texttt{figure}
+\begin{figure}[]
 \centering
-\includegraphics[width=4in]{reconstruction_accuracy.jpg}
-\caption{Reconstruction accuracy of autoencoder on validation images with different values for the latent vector dimension  $z_{dim}$ and $\gamma = 0$}
+\includegraphics[width=\linewidth]{reconstruction_accuracy}
+\caption{Reconstruction accuracy of autoencoder on validation images as a function the latent vector dimension  $z_{dim}$ and $\gamma = 0$}
 \label{reconstruction_accuracy}
 \end{figure}
 
@@ -228,145 +229,71 @@ Figure TODO add fig shows comparison of sample reconstructed images from validat
 \label{reconstruction_accuracy_sup_vs_unsup}
 \end{figure}
 
+%\subsection{References, Citations, Footnotes}\label{sec:etc}
+%\subsubsection{Cross-Referencing}
+%Always use \verb|\label| and \verb|\ref|—or a command with a similar effect—when cross-referencing.
+%For example, this subsection is Section~\ref{sec:etc}.
+%
+%\section{Floats}\label{sec:floats}
+%Floats, such as figures, tables and algorithms, are moving objects and are supposed to float to the nearest convenient location.
+%Please do not force them to go in the middle of a paragraph.
+%They must respect the column width.
+%
+%Two-column floats are possible.
+%They appear at the top of the next page, so strategic placement may be necessary.
+%For an example, see Figure~\ref{fig:tikz}.
+%They may not enter the margins.
+%\begin{figure*}
+%    \centering
+%    \begin{tikzpicture}[xscale=1.5]
+%        \coordinate (origin);
+%        \draw[->] (origin) -- +(1cm,0) node[below] {$x$};
+%        \draw[->] (origin) -- +(0,1cm) node[left] {$y$};
+%        \fill[gray] (45:1cm) circle[radius=.2cm];
+%    \end{tikzpicture}
+%    \caption{A Nice Filled Ellipse with a Pair of Coordinate Axes.}\label{fig:tikz}
+%\end{figure*}
 
-\subsection{Sectioning}
-Three numbered sectioning commands are provided: \verb|\section|, \verb|\subsection|, and \verb|\subsubsection|.
-Please respect their order, so do not put a \verb|\subsubsection| directly beneath a \verb|\section|.
-One unnumbered sectioning command is provided, \verb|\paragraph|.
-It can be used directly below any numbered section level.
-Do not use any other sectioning commands.
+%All material in floats should be legible and of good quality.
+%So avoid very small or large text and pixelated or fuzzy lines.
 
-\subsubsection{Typing the Section Titles}
-The \verb|\section| and \verb|\subsection| titles are uppercased by the class.
-Please type them in title case.
-(This is used in the PDF bookmarks.)
-Please also write the \verb|\subsubsection| titles in title case.
-
-\paragraph{What is title case?}
-\href{https://en.wikipedia.org/wiki/Title_case}{Wikipedia} explains:
-\begin{quote}
-    Title case or headline case is a style of capitalization used for rendering the titles of published works or works of art in English.
-    When using title case, all words are capitalized except for ‘minor’ words (typically articles, short prepositions, and some conjunctions) unless they are the first or last word of the title.
-\end{quote}
-
-\subsection{References, Citations, Footnotes}\label{sec:etc}
-\subsubsection{Cross-Referencing}
-Always use \verb|\label| and \verb|\ref|—or a command with a similar effect—when cross-referencing.
-For example, this subsection is Section~\ref{sec:etc}.
-
-\subsubsection{Citations}
-Citations should include the author's last name and year.
-They should be part of the sentence.
-An example parenthetical citation: “Good introductions to the topic are available \citep{latexcompanion}.”
-An example textual citation: “\citet{einstein} discusses electrodynamics of moving bodies.”
-Do not use a parenthetical citation where a textual one is appropriate.
-An example of what \emph{not} to do: “\citep{einstein} discusses electrodynamics of moving bodies.”
-
-We strongly advise to use reference list software such as Bib\TeX{} and a citation package such as \textsf{natbib}.
-The reference style you use should be compatible with the author-year citations.
-Both the citation style and reference style used should be consistent.
-
-For the original submission, take care not to reveal the authors' identity through the manner in which one's own previous work is cited.
-For example, writing
-“I discussed electrodynamics of moving bodies before \citep{einstein}.” would be inappropriate, as it reveals the author's identity.
-Instead, write “\citet{einstein} discussed electrodynamics of moving bodies.”
-
-\subsubsection{Footnotes}
-You can include footnotes in your text.\footnote{
-    Use footnotes sparingly, as they can be distracting, having readers skip back and forth between the main text and the foot of the page.
-}
-The footnote mark should follow the fragment to which it refers, so a footnote\footnote{
-    A footnote is material put at the foot of a page.
-}
-for a word has a footnote mark attached to that word and a footnote for a phrase or sentence has a footnote mark attached to the closing punctuation.
-
-\section{Math}\label{sec:math}
-The class file does not load any math support package like \textsf{amsmath}\footnote{%
-  See the \textsf{amsmath} documentation at \url{https://ctan.org/pkg/amsmath} for further details.
-}.
-We advise using the \textsf{mathtools}\footnote{%
-  See the \textsf{mathtools} documentation at \url{https://ctan.org/pkg/mathtools} for further details.
-}
-package, which extends \textsf{amsmath} with fixes and even more useful commands.
-Feel free to load other support packages for symbols, theorems, etc.
-
-Use the \textsf{amsmath} environments for displayed equations.
-So, specifically, use the \texttt{equation} environment instead of \verb|$$...$$| and the \texttt{align} environment instead of \texttt{eqnarray}.\footnote{For reasons why you should not use the obsolete \texttt{eqnarray} environment, see Lars Madsen, \textit{Avoid eqnarray!} TUGboat 33(1):21--25, 2012.}
-An \texttt{equation}:
-\begin{equation}\label{eq:example}
-  0 = 1 - 1.
-\end{equation}
-Two \texttt{align}'ed equations:
-\begin{align*} % no numbers with starred version
-  1 + 2 &= 3,\\
-  1 - 2 &= -1.
-\end{align*}
-Equations can also be put inline, of course.
-For example, Equation~\eqref{eq:example}: \(0=1+1\). % $0=1+1$ also works
-(Notice that both inline and displayed math are part of the sentence, so punctuation should be added to displayed math.)
-
-The \textsf{amsmath} and \textsf{mathtools} packages provide a lot of nice functionality, such as many common math operators, e.g., \(\sin\) and \(\max\), and also commands for defining new ones.
-
-\section{Floats}\label{sec:floats}
-Floats, such as figures, tables and algorithms, are moving objects and are supposed to float to the nearest convenient location.
-Please do not force them to go in the middle of a paragraph.
-They must respect the column width.
-
-Two-column floats are possible.
-They appear at the top of the next page, so strategic placement may be necessary.
-For an example, see Figure~\ref{fig:tikz}.
-They may not enter the margins.
-\begin{figure*}
-    \centering
-    \begin{tikzpicture}[xscale=1.5]
-        \coordinate (origin);
-        \draw[->] (origin) -- +(1cm,0) node[below] {$x$};
-        \draw[->] (origin) -- +(0,1cm) node[left] {$y$};
-        \fill[gray] (45:1cm) circle[radius=.2cm];
-    \end{tikzpicture}
-    \caption{A Nice Filled Ellipse with a Pair of Coordinate Axes.}\label{fig:tikz}
-\end{figure*}
-
-All material in floats should be legible and of good quality.
-So avoid very small or large text and pixelated or fuzzy lines.
-
-\subsection{Figures}\label{sec:figures}
-Figures should go in the \texttt{figure} environment and be centered therein.
-The caption should go below the figure.
-Use \verb|\includegraphics| for external graphics files but omit the file extension.
-Supported formats are \textsf{pdf} (preferred for vector drawings and diagrams), \textsf{png} (preferred for screenshots), and \textsf{jpeg} (preferred for photographs).
-Do not use \verb|\epsfig| or \verb|\psfig|.
-If you want to scale the image, it is better to use a fraction of the line width rather than an explicit length.
-For example, see Figure~\ref{fig:toronto}.
-\begin{figure}
-  \centering
-  \includegraphics[width=0.7\linewidth,page=3]{toronto}
-  \caption{A View of a Nice City.}\label{fig:toronto}
-\end{figure}
-
-Do not use \verb|\graphicspath|.
-If the images are contained in a subdirectory, specify this when you include the image, for example \verb|\includegraphics{figures/mypic}|.
-
-
-\subsection{Algorithms}\label{sec:algorithms}
-You can load your favorite algorithm package, such as \textsf{algorithm2e}\footnote{See the \textsf{algorithm2e} documentation at \url{https://ctan.org/pkg/algorithm2e}.}.
-Use the environment defined in the package to create a centered float with an algorithm inside.
-
-\section{Back Matter}
-There are a some final, special sections that come at the back of the paper, in the following order:
-\begin{itemize}
-  \item Author Contributions
-  \item Acknowledgements
-  \item References
-\end{itemize}
-They all use an unnumbered \verb|\subsubsection|.
-
-For the first two special environments are provided.
-(These sections are automatically removed for the anonymous submission version of your paper.)
-The third is the ‘References’ section.
-(See below.)
-
-(This ‘Back Matter’ section itself should not be included in your paper.)
+%\subsection{Figures}\label{sec:figures}
+%Figures should go in the \texttt{figure} environment and be centered therein.
+%The caption should go below the figure.
+%Use \verb|\includegraphics| for external graphics files but omit the file extension.
+%Supported formats are \textsf{pdf} (preferred for vector drawings and diagrams), \textsf{png} (preferred for screenshots), and \textsf{jpeg} (preferred for photographs).
+%Do not use \verb|\epsfig| or \verb|\psfig|.
+%If you want to scale the image, it is better to use a fraction of the line width rather than an explicit length.
+%For example, see Figure~\ref{fig:toronto}.
+%\begin{figure}
+%  \centering
+%  \includegraphics[width=0.7\linewidth,page=3]{toronto}
+%  \caption{A View of a Nice City.}\label{fig:toronto}
+%\end{figure}
+%
+%Do not use \verb|\graphicspath|.
+%If the images are contained in a subdirectory, specify this when you include the image, for example \verb|\includegraphics{figures/mypic}|.
+%
+%
+%\subsection{Algorithms}\label{sec:algorithms}
+%You can load your favorite algorithm package, such as \textsf{algorithm2e}\footnote{See the \textsf{algorithm2e} documentation at \url{https://ctan.org/pkg/algorithm2e}.}.
+%Use the environment defined in the package to create a centered float with an algorithm inside.
+%
+%\section{Back Matter}
+%There are a some final, special sections that come at the back of the paper, in the following order:
+%\begin{itemize}
+%  \item Author Contributions
+%  \item Acknowledgements
+%  \item References
+%\end{itemize}
+%They all use an unnumbered \verb|\subsubsection|.
+%
+%For the first two special environments are provided.
+%(These sections are automatically removed for the anonymous submission version of your paper.)
+%The third is the ‘References’ section.
+%(See below.)
+%
+%(This ‘Back Matter’ section itself should not be included in your paper.)
 
 \begin{contributions} % will be removed in pdf for initial submission,
                       % so you can already fill it to test with the
@@ -391,15 +318,15 @@ The third is the ‘References’ section.
 
 \appendix
 % NOTE: necessary when ptmx or no mathfont class option is given
-\providecommand{\upGamma}{\Gamma}
-\providecommand{\uppi}{\pi}
-\section{Math font exposition}
-How math looks in equations is important:
-\begin{equation*}
-  F_{\alpha,\beta}^\eta(z) = \upGamma(\tfrac{3}{2}) \prod_{\ell=1}^\infty\eta \frac{z^\ell}{\ell} + \frac{1}{2\uppi}\int_{-\infty}^z\alpha \sum_{k=1}^\infty x^{\beta k}\mathrm{d}x.
-\end{equation*}
-However, one should not ignore how well math mixes with text:
-The frobble function \(f\) transforms zabbies \(z\) into yannies \(y\).
-It is a polynomial \(f(z)=\alpha z + \beta z^2\), where \(-n<\alpha<\beta/n\leq\gamma\), with \(\gamma\) a positive real number.
+%\providecommand{\upGamma}{\Gamma}
+%\providecommand{\uppi}{\pi}
+%\section{Math font exposition}
+%How math looks in equations is important:
+%\begin{equation*}
+%  F_{\alpha,\beta}^\eta(z) = \upGamma(\tfrac{3}{2}) \prod_{\ell=1}^\infty\eta \frac{z^\ell}{\ell} + \frac{1}{2\uppi}\int_{-\infty}^z\alpha \sum_{k=1}^\infty x^{\beta k}\mathrm{d}x.
+%\end{equation*}
+%However, one should not ignore how well math mixes with text:
+%The frobble function \(f\) transforms zabbies \(z\) into yannies \(y\).
+%It is a polynomial \(f(z)=\alpha z + \beta z^2\), where \(-n<\alpha<\beta/n\leq\gamma\), with \(\gamma\) a positive real number.
 
 \end{document}
