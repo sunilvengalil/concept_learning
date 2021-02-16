@@ -74,18 +74,20 @@
 The success of deep learning for solving complex tasks like image classification, segmentation, speech and natural language processing, has caused wide-spread interest in the machine learning community to focus on developing models and representations that are more explainable, and generalize better.
 In this work, we propose an approach for using representations learned by unsupervised generative learning for solving tasks like image classification at a reduced manual annotation cost.
 Our method is an alternate paradigm for supervised learning.
-In existing supervised learning methods,  all samples are labelled prior to start of training where as we propose a mechanism where manual hints are given at regular intervals during training.
+In existing supervised learning methods,  all samples are labelled prior to start of training whereas we propose an active learning mechanism where manual hints are given at regular intervals during training.
 We demonstrate the proposed idea by training a  variational autoencoder on MNIST data set.
 After every epoch of training, the low dimensional latent vectors are clustered and cluster centers are annotated.
 The loss function in successive training is modified to incorporate the manual annotation.
 In addition to achieving classification of digits, the approach also results in improved reconstruction accuracy and more regular features of autoencoder.
 Our network architecture and cost function look similar to multi task learning with hard parameter sharing.
-However, unlike other multi task learning models, our main goal is to solve tasks which are solved using supervised learning methods with minimal annotation.
-In this respect, our goal is similar to few shot learning but our approach differs from existing few shot learning techniques.
+However, unlike other multi task learning models, our main goal is to reduce the manual annotation required for supervised tasks like image classification and segmentation.
+The approach is demonstrated by classifying the images in MNIST data without using the label provided in the dataset.
+We obtain a classification accuracy of 75\% on MNIST test images with 5 epochs of training.
+At the most 16 sample images are annotated by a human after each epoch of training
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
-Classifying images is one of the first use cases proven to give good result using deep neural networks.
+Classifying images is one of the first use cases proven to give good results using deep neural networks.
 Recently, there has been a lot of work on generative models like variational autoencoder(VAE)\cite{kingma2013auto} and generative adversarial network(GAN) \cite{goodfellow2014generative} on using deep neural network for learning distribution of high dimensional data.
 In this work, we propose a method whereby a generative model like VAE can easily be converted into a classification model which is currently solved by a supervised classification method.
 Note that the existing deep learning approaches for classification  need a lot of annotated training data and enormous training time on GPU\cite{krizhevsky2012imagenet}\cite{simonyan2014very}\cite{he2016deep}.
@@ -207,10 +209,45 @@ We ran the experiment 5 times and took the average accuracy.
 \end{figure}
 
 \section{Results and Discussions} \label{results}
-Figure \ref{reconstruction_accuracy} shows  the reconstruction accuracy of the variational autoencoder on the validation images after 5 epochs of training with $\gamma = 0$  and different values of latent vector dimension $z_{dim}$.
-It is observed that increasing $z_{dim}$ beyond 10 does not result in an increase in accuracy in the same proportion. This is because, the number of nodes in the 3rd layer were fixed at 32 which limits the representational capacity of that and all the subsequent layers.
+Figure\ref{reconstruction_accuracy} shows  the reconstruction accuracy of the variational autoencoder on the validation images after 5 epochs of training with $\gamma = 0$  plotted as a function of latent vector dimension $z_{dim}$.
+It is observed that increasing $z_{dim}$ beyond 10 does not result in an increase in accuracy in the same proportion.
+This is because, the number of nodes in the 3rd layer were fixed at 32 which limits the representational capacity of that and all the subsequent layers.
 
-\texttt{figure}
+
+We choose $z_{dim}=10$ to run the  semi-supervised model with both reconstruction and classification loss.
+Figure \ref{classification_accuracy} shows the classification accuracy on MNIST test images after 6 epochs.
+After each epoch of training the 10 dimensional latent vectors corresponding to training images were clustered into 16 clusters.
+Figure\ref{cluster_center_1} shows the decoded cluster center images after first epoch and Fig\ref{cluster_center_6} shows the cluster centers after six epochs of training.
+
+
+The model gave a classification accuracy of 75\% on test images within 6 epochs with only 16 images ( corresponding to each  cluster center) annotated after each epoch.
+The labels given to the cluster center were propagated to all other samples in the cluster and this increases the effective number of labelled samples by a huge factor
+
+A comparison of reconstruction accuracy with and without classification loss added is shown in Figure\ref{reconstruction_accuracy_sup_vs_unsup}.
+The blue curve in figure shows the reconstruction accuracy when the latent vectors were clustered and a label were assigned to the reconstructed images corresponding to  cluster centers at the end of every epoch.
+The figure shows that the reconstruction accuracy of VAE is improved significantly  (by 6 to 10 \%) when classification loss is added, which indicates that the learned representation generalizes better as in the case of many multi-tasking model.
+
+\begin{figure}[]
+\centering
+\includegraphics[width=\linewidth]{cluster_centers_epoch_1.0}
+\caption{Images of decoded cluster center after first epoch}
+\label{cluster_center_1}
+\end{figure}
+
+\begin{figure}[]
+\centering
+\includegraphics[width=\linewidth]{cluster_centers_epoch_6.0}
+\caption{Images of decoded cluster center after 6th epoch}
+\label{cluster_center_6}
+\end{figure}
+
+\begin{figure}[]
+\centering
+\includegraphics[width=\linewidth]{classification_accuracy}
+\caption{Classification accuracy on test images using semi-supervised trained with $z_{dim}=10$ and $\gamma = 150$}
+\label{classification_accuracy}
+\end{figure}
+
 \begin{figure}[]
 \centering
 \includegraphics[width=\linewidth]{reconstruction_accuracy}
@@ -218,16 +255,14 @@ It is observed that increasing $z_{dim}$ beyond 10 does not result in an increas
 \label{reconstruction_accuracy}
 \end{figure}
 
-Figure \ref{reconstruction_accuracy_sup_vs_unsup} shows that the reconstruction accuracy of VAE is improved significantly  (by 6 to 10 \%) when classification loss is added.
-The blue curve in figure shows the reconstruction accuracy when the latent vectors were clustered and a label were assigned to the reconstructed images corresponding to  cluster centers at the end of every epoch.
-Figure TODO add fig shows comparison of sample reconstructed images from validation set for normal autoencoder (unsupervised) versus the autoencoder with classification loss added.
-
 \begin{figure}[!t]
 \centering
-\includegraphics[width=4in]{reconstruction_accuracy_compare_supervised_vs_unsuprevised.jpg}
+\includegraphics[width=\linewidth]{reconstruction_accuracy_different_runs}
 \caption{Comparison of reconstruction accuracy with and without classification loss }
 \label{reconstruction_accuracy_sup_vs_unsup}
 \end{figure}
+
+\section{Conclusion}
 
 %\subsection{References, Citations, Footnotes}\label{sec:etc}
 %\subsubsection{Cross-Referencing}
