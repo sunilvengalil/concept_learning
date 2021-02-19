@@ -155,7 +155,7 @@ We used a variational autoencoder\cite{kingma2013auto}, with 4 layers of encoder
 The encoder output has linear activation function so that the image is encoded into a latent vector, $z$  of dimension $z_{dim}$, each dimension taking continuous values.
 The decoder output activation is sigmoid so that most of the reconstructed pixel values  are concentrated around 0 or 1 by design.
 Initially, for the first few epochs, the network is trained only using the autoencoder loss function and hence labels are not required.
-The loss function used for training during initial epochs is (TODO format the KLD part and add it in notation in the next para)
+The loss function used for training during initial epochs is
 \begin{equation} \label{vae_loss_eqn}
 \begin{split}
 L_{VAE} = -\sum_{i, j}(x_{ij}^n \ln \hat{x}_{ij}^n
