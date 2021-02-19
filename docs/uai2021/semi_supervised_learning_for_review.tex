@@ -164,13 +164,14 @@ The encoder output has linear activation function so that the image is encoded i
 The decoder output activation is sigmoid so that most of the reconstructed pixel values  are concentrated around 0 or 1 by design.
 Initially, for the first few epochs, the network is trained only using the autoencoder loss function and hence labels are not required.
 The loss function used for training during initial epochs is (TODO format the KLD part and add it in notation in the next para)
-%\begin{equation}
-\begin{multline}
+\begin{equation} \label{vae_loss_eqn}
+\begin{split}
 L_{VAE} = -\sum_{i, j}(x_{ij}^n \ln \hat{x}_{ij}^n
-+ (1 - x_{ij}^n) \ln(1 -  \hat{x}_{ij}^n ) )
++ (1 - x_{ij}^n) \ln(1 -  \hat{x}_{ij}^n ) )\\
 %+ \beta \infdiv{p(z)}{N(0,I)}
     +\beta KLD(p(z), N(0,I))
-\end{multline}
+\end{split}
+\end{equation}
 where   $x_{ij}$ is the pixel value at position $(i, j)$ of the input image, $\hat{x}_{ij}$ is the pixel value of reconstructed image, $p(z)$ is the probability density function of latent vectors and $N(0,I)$ is the standard multivariate normal distribution of dimension $z_{dim}$.
 We used $\beta = 5$ as it gave the best compromise between reconstruction quality and KL divergence.
 After a few epochs of unsupervised training, the latent vectors corresponding to the training images are clustered $k$ clusters using k-means algorithm.
@@ -187,7 +188,7 @@ where $d_n$ is the euclidean distance of the sample from its cluster center, $p_
 
 Training is continued for a few more epochs using a modified loss function that incorporates the manual input.
 The modified loss function is
-\begin{equation}
+\begin{equation} \label{semi_supervised_loss}
 L = L_{VAE}  - \gamma \sum_{k=0}^{K}w_{n}y_{n}\ln(\hat{y}_{n})
 \end{equation}
 
@@ -209,8 +210,8 @@ The new term added to the loss is the weighted multi-class cross entropy loss fo
 
 We trained the network for a total of 5 epochs in two different ways.
 \begin{enumerate}
-    \item Completely unsupervised using only the variational autoencoder loss function mentioned in equation (1) for all 5 epochs
-    \item Using semi-supervised loss function mentioned in equation (3) after first epoch
+    \item Completely unsupervised using only the variational autoencoder loss function mentioned in equation \ref{vae_loss_eqn} for all 5 epochs
+    \item Using semi-supervised loss function mentioned in equation \ref{semi_supervised_loss} after first epoch
 \end{enumerate}
 
 
