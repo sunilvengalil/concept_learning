@@ -109,20 +109,19 @@ The approach described can easily be extended to even more complex tasks like se
 The major contributions of this paper are
 \begin{enumerate}
     \item We propose a novel active learning framework where a  deep learning model incrementally learns to perform a task like image classification, while at the same time learning a low dimensional representation for the input data.
-          Compared to existing deep active learning frameworks our approach requires very less number of training samples and also learns a latent representation and  probability distributions $p(z)$ and $p(x/z)$ from which new data samples can be drawn easily
+    \item We show that compared to existing deep active learning frameworks our approach requires very less number of training samples and also learns a latent representation and  probability distribution in the latent space from which new data samples can be drawn easily
     \item The proposed approach reduces the manual annotation task and can be trained quickly on a CPU, as opposed to complex models that usually needs several hours of training on GPU
 \end{enumerate}
 
 The rest of the paper is organized as follows.
-Section \ref{related_works} provides an overview of existing techniques of multi-task learning and few shot learning.
-Description of dataset used and variables and notations are provided in section \ref{problem_formulation}.
-Section \ref{proposed_method} contains details of network architecture and loss function and training process.
+Section \ref{related_works} provides an overview of existing techniques of multi-task learning and active learning.
+Section \ref{proposed_method} contains details of network architecture, loss function and training process.
 A detailed analysis of results of experiments are provided in Section \ref{results}.
-Finally, we conclude our finding in Section \ref{conclusion}
+Finally, we conclude our findings in Section \ref{conclusion}
 
 \section{Related Work} \label{related_works}
 Most of the approaches for implementing active learning using deep learning models is by query sampling.
-In Query sampling during each iteration of training, an algorithm or a machine learning model selects a few samples and gets it annotated by a domain expert\cite{sinha2019variational}\cite{sener2017active}.
+In query sampling, during each iteration of training, an algorithm or a machine learning model selects a few samples and get it annotated by a domain expert\cite{sinha2019variational}\cite{sener2017active}.
 The sampling technique should be such that the number of samples to be annotated is as minimum as possible without compromising much on model accuracy.
 
 Multi-task learning where multiple related tasks, from a single domain, like combining facial landmark detection with head pose detection and facial attribute detection \cite{zhang2014facial} have helped in increasing robustness in detection with reduced model complexity.
@@ -178,13 +177,13 @@ w_n = p_ce^{-a d_n}
 \end{equation}
 where $d_n$ is the euclidean distance of the sample from its cluster center, $p_c$  is the confidence assigned to the cluster center and $a$ is a hyper parameter.
 
-Training is continued for a few more epochs using a modified loss function that incorporates the manual input.
+Training is continued for  few more epochs using a modified loss function that incorporates the manual input.
 The modified loss function is
 \begin{equation} \label{semi_supervised_loss}
 L = L_{VAE}  - \gamma \sum_{k=0}^{K}w_{n}y_{n}\ln(\hat{y}_{n})
 \end{equation}
 
-$y_n$ is the label given to the training images and $\hat{y}$ is the predicted label of the image.
+where $y_n$ is the label given to the training images and $\hat{y}$ is the predicted label of the image.
 The new term added to the loss is the weighted multi-class cross entropy loss for classification task.
 
 \begin{figure}[!t]
@@ -202,8 +201,8 @@ The new term added to the loss is the weighted multi-class cross entropy loss fo
 
 We trained the network for a total of 5 epochs in two different ways.
 \begin{enumerate}
-    \item Completely unsupervised using only the variational autoencoder loss function mentioned in equation \ref{vae_loss_eqn} for all 5 epochs
-    \item Using semi-supervised loss function mentioned in equation \ref{semi_supervised_loss} after first epoch
+    \item Completely unsupervised using only the variational autoencoder loss function mentioned in equation \ref{vae_loss_eqn} for all 5 epochs.
+    \item Using semi-supervised loss function mentioned in equation. \ref{semi_supervised_loss} after first epoch
 \end{enumerate}
 
 
@@ -213,15 +212,15 @@ This is because the number of nodes in the 3rd layer were fixed at 32 which limi
 
 We choose $z_{dim}=10$ to run the  semi-supervised model, experiment 2 mentioned above,  with both reconstruction and classification loss.
 Figure \ref{classification_accuracy} shows the classification accuracy on MNIST test images after 5 epochs.
-Figure\ref{cluster_center_1} shows the decoded cluster center images after the first epoch and Fig\ref{cluster_center_6} shows the cluster centers after 5 epochs of training.
+Figure\ref{cluster_center_1} shows the decoded cluster center images after the first epoch and Figure\ref{cluster_center_6} shows the cluster centers after 5 epochs of training.
 
 
-The model gave a classification accuracy of 75\% on test images within 5 epochs with only 10 images ( corresponding to each  cluster center) annotated after each epoch.
+The model gave a classification accuracy of 75\% on test images within 5 epochs with only 10-16 images ( corresponding to each  cluster center) annotated after each epoch.
 The labels given to the cluster center were propagated to all other samples in the cluster and this increases the effective number of labelled samples by a huge factor.
 
 A comparison of reconstruction accuracy with and without classification loss added is shown in Figure\ref{reconstruction_accuracy_sup_vs_unsup}.
 The blue curve in figure shows the reconstruction accuracy when the latent vectors were clustered and a label were assigned to the reconstructed images corresponding to  cluster centers at the end of every epoch.
-The figure shows that the reconstruction accuracy of VAE is improved significantly  (by 6 to 10 \%) when classification loss is added, which indicates that the learned representation generalizes better as in the case of many multi-tasking model
+The figure shows that the reconstruction accuracy of VAE is improved significantly  (by 6 to 10 \%) when classification loss is added, which indicates that the learned representation generalizes better as in the case of many multi-tasking models.
 
 
 \begin{figure}[]
