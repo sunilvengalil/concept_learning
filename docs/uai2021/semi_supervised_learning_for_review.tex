@@ -83,7 +83,7 @@ Our network architecture and cost function look similar to multi task learning w
 However, unlike other multi task learning models, our main goal is to reduce the manual annotation required for supervised tasks like image classification and segmentation.
 The approach is demonstrated by classifying the images in MNIST data without using the label provided in the dataset.
 We obtain a classification accuracy of 75\% on MNIST test images with 5 epochs of training.
-At the most 16 sample images are annotated by a human after each epoch of training
+At the most 10 sample images are annotated by a human after each epoch of training
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
@@ -91,9 +91,10 @@ Classifying images is one of the first use cases proven to give good results usi
 Recently, there has been a lot of work on generative models like variational autoencoder(VAE)\cite{kingma2013auto} and generative adversarial network(GAN) \cite{goodfellow2014generative} on using deep neural network for learning distribution of high dimensional data.
 In this work, we propose a method whereby a generative model like VAE can easily be converted into a classification model which is currently solved by a supervised classification method.
 Note that the existing deep learning approaches for classification  need a lot of annotated training data and enormous training time on GPU\cite{krizhevsky2012imagenet}\cite{simonyan2014very}\cite{he2016deep}.
-The approach proposed in this paper needs very less amount of manual annotation (10-20 samples in case of MNIST dataset)  and less computing resources.
-We demonstrate our claim by building a classification model for MNIST dataset using only the training images not the label.
-The proposed approach augments a  variational autoencoder with a classification layer the loss component of which is tuned by manually annotating a small number of samples at regular training intervals.
+The approach proposed in this paper needs very less amount of manual annotation ( samples in case of MNIST dataset)  and less computing resources.
+We demonstrate our claim by building a classification model for MNIST dataset using all traning images, but using the labels partially.
+We use only limited number of labelled samples from the training set during each epoch of training.
+The proposed approach augments a  variational autoencoder with a classification layer the loss component of which is tuned by manually annotated samples at regular training intervals.
 
 
 A generative model learns the distribution of data $p(x_{ij})$ where $y$ is the class label.
@@ -109,8 +110,6 @@ However, one of the major issues with these trained models is that the concepts 
 
 In this work, we show a method to incorporate human feedback at regular intervals during training so that the model learns much faster and also the learned latent representations are much more explainable.
 Such a representation should directly translate to a human explanation for the data.
-For example, the digit 1 in the handwritten dataset  can be mentioned as  `a vertical line stroke'  and digit 7 can be mentioned as `a horizontal line stroke towards left placed  above a vertical line stroke'.
-We demonstrate how  such a description, along with meaningful properties like line thickness, can be obtained from the latent representation after the model is trained. [TODO add some results for this]
 
 
 Our model is similar to multi task learning since the loss term have both reconstruction and classification losses.
@@ -120,7 +119,7 @@ We also show that such a model can significantly reduce the manual annotation ta
 
 The major contributions of this paper are
 \begin{enumerate}
-    \item We propose an active learning approach where the model incrementally learns to perform a task like image classification.
+    \item We propose a novel active learning framework where a  deep learning model incrementally learns to perform a task like image classification, while at the same time learning a low dimensional representation for the input data.
           Compared to existing deep active learning frameworks our approach requires very less number of training samples and also learns a latent representation and  probability distributions $p(z)$ and $p(x/z)$ from which new data samples can be drawn easily
     \item The proposed approach reduces the manual annotation task and can be trained faster on CPU
 \end{enumerate}
@@ -133,6 +132,10 @@ A detailed analysis of results of experiments are provided in Section \ref{resul
 Finally, we conclude our finding in Section \ref{conclusion}
 
 \section{Related Work} \label{related_works}
+Most of the approaches for implementing active learning using deep learning models is by query sampling.
+In Query sampling during each iteration of training, an algorithm or a machine learning model selects a few samples and get it annotated by a domain expert\cite{sinha2019variational}\cite{sener2017active}.
+The sampling technique should be such that the number of sample to annotated is as minimum as possible without compromising much on model accuracy.
+
 Multi-task learning where multiple related tasks, from a single domain, like combining facial landmark detection with head pose detection and facial attribute detection \cite{zhang2014facial} have helped in increasing robustness in detection with reduced model complexity.
 The basic tenet of multi-task learning is that the model prefers a hypothesis that explains more than one task and usually this results in solutions that generalize better \cite{ruder2017overview}.
 While training a network for more than one task, other tasks can provide additional evidence for relevance or irrelevance of features.
@@ -141,7 +144,6 @@ Liu et al. introduces task specific attention modules attached to a shared convo
 Our approach is similar to hard parameter sharing as in \cite{zhang2014facial} \cite{dai2016instance}, but differs in respect that we are trying to solve a task like image classification, which is traditionally addressed as a supervised task requiring large amount of manually annotated data, using information obtained from  unsupervised representation learning.
 Our approach results in reduced manual annotation and less number of training epochs along with other benefits of multi-task learning such as learning a generic representation that helps in multiple tasks.
 
-TODO add literature survey on active learning, concept learning, continual learning
 
 \section{Proposed Method} \label{proposed_method}
 
@@ -173,15 +175,20 @@ L_{VAE} = -\sum_{i, j}(x_{ij}^n \ln \hat{x}_{ij}^n + (1 - x_{ij}^n) \ln(1 -  \ha
 \end{multline}
 where   $x_{ij}$ is the pixel value at position $(i, j)$ of the input image, $\hat{x}_{ij}$ is the pixel value of reconstructed image, $p(z)$ is the probability density function of latent vectors and $N(0,I)$ is the standard multivariate normal distribution of dimension $z_{dim}$.
 We used $\beta = 5$ as it gave the best compromise between reconstruction quality and KL divergence.
-After a few epochs of unsupervised training, the latent vectors corresponding to the training images are clustered using k-means algorithm.
-The optimum value of $k$ was determined using the elbow curve. The cluster centers were decoded using the decoder part of VAE and the resulting images corresponding to cluster centers were manually given a label and a confidence.
-if the cluster center does not correspond to any valid digit image, or if it is similar to more than one digit image, the cluster is again split into two clusters and a further attempt is made to label the cluster centers of 2nd level cluster.
-Each sample in the cluster is assigned with the  same label as the cluster center. Each sample is also given a confidence based on its distance from cluster center and  confidence assigned to the cluster center by human.
-The confidence of  training sample $x^n$ is computed as
+After a few epochs of unsupervised training, the latent vectors corresponding to the training images are clustered $k$ clusters using k-means algorithm.
+In our experiments, we used $k=10$ which is same as the number of classes in MNIST dataset.
+The cluster centers were decoded using the decoder part of VAE and the resulting images corresponding to cluster centers were manually given a label and a confidence.
+if the cluster center for a cluster does not correspond to any valid digit image, that cluster is again split into $k$ clusters and a further attempt is made to label the cluster centers of 2nd level cluster.
+Each sample in the cluster is assigned with the  same label as the cluster center. Each sample is also given a confidence based on its distance from cluster center and  a manually assigned confidence in the range of [0,1].
+The overall confidence of  training sample $x^n$ is computed as
 \begin{equation}
 w_n = p_ce^{-a d_n}
 \end{equation}
 where $d_n$ is the euclidean distance of the sample from its cluster center, $p_c$  is the confidence assigned to the cluster center and $a$ is a hyper parameter.
+
+All the samples from the un-identifiable clusters at the lowest level ( we limited our experiment to 2 levels) are manually annotated and given an overall confidence of 1.
+A confidence of 1 is justified here since the training samples are annotated and not the cluster centers.
+
 Training is continued for few more epochs using a modified loss function that incorporates the manual input. The modified loss function is
 \begin{equation}
 L = L_{VAE}  - \gamma \sum_{k=0}^{K}w_{n}y_{n}\ln(\hat{y}_{n})
@@ -189,13 +196,6 @@ L = L_{VAE}  - \gamma \sum_{k=0}^{K}w_{n}y_{n}\ln(\hat{y}_{n})
 
 $y_n$ is the label given to the training images and $\hat{y}$ is the predicted label of the image.
 The new term added to the loss is the weighted multi-class cross entropy loss for classification task.
-
-We trained the network for 5 epochs.
-After every 300 steps (with a batch size of 64, this corresponds to 19200 images) of training the reconstructed images were annotated by a manual user.
-The annotation was done by looking at each of the 128  reconstructed validation images and trying to identify the digit manually.
-The reconstruction accuracy were then computed by comparing the human identified class label with the actual class label for the image.
-We ran the experiment 5 times and took the average accuracy.
-
 
 \begin{figure}[!t]
 \centering
@@ -209,23 +209,31 @@ We ran the experiment 5 times and took the average accuracy.
 \end{figure}
 
 \section{Results and Discussions} \label{results}
+
+We trained the network for a total of 5 epochs in three different ways.
+\begin{enumerate}
+    \item Completely unsupervised using only the variational autoencoder loss function mentioned in equation (1) for all 5 epochs
+    \item Using semi-supervised loss function mentioned in equation (3) after first epoch
+    \item Use only the classification loss  for all 5 epochs by sampling $10000$ labelled samples randomly from the training set
+\end{enumerate}
+
+
 Figure\ref{reconstruction_accuracy} shows  the reconstruction accuracy of the variational autoencoder on the validation images after 5 epochs of training with $\gamma = 0$  plotted as a function of latent vector dimension $z_{dim}$.
 It is observed that increasing $z_{dim}$ beyond 10 does not result in an increase in accuracy in the same proportion.
 This is because, the number of nodes in the 3rd layer were fixed at 32 which limits the representational capacity of that and all the subsequent layers.
 
-
-We choose $z_{dim}=10$ to run the  semi-supervised model with both reconstruction and classification loss.
-Figure \ref{classification_accuracy} shows the classification accuracy on MNIST test images after 6 epochs.
-After each epoch of training the 10 dimensional latent vectors corresponding to training images were clustered into 16 clusters.
-Figure\ref{cluster_center_1} shows the decoded cluster center images after first epoch and Fig\ref{cluster_center_6} shows the cluster centers after six epochs of training.
+We choose $z_{dim}=10$ to run the  semi-supervised model, exeriment 2 mentioned above,  with both reconstruction and classification loss.
+Figure \ref{classification_accuracy} shows the classification accuracy on MNIST test images after 5 epochs.
+Figure\ref{cluster_center_1} shows the decoded cluster center images after first epoch and Fig\ref{cluster_center_6} shows the cluster centers after 5 epochs of training.
 
 
-The model gave a classification accuracy of 75\% on test images within 6 epochs with only 16 images ( corresponding to each  cluster center) annotated after each epoch.
-The labels given to the cluster center were propagated to all other samples in the cluster and this increases the effective number of labelled samples by a huge factor
+The model gave a classification accuracy of 75\% on test images within 5 epochs with only 10 images ( corresponding to each  cluster center) annotated after each epoch.
+The labels given to the cluster center were propagated to all other samples in the cluster and this increases the effective number of labelled samples by a huge factor.
 
 A comparison of reconstruction accuracy with and without classification loss added is shown in Figure\ref{reconstruction_accuracy_sup_vs_unsup}.
 The blue curve in figure shows the reconstruction accuracy when the latent vectors were clustered and a label were assigned to the reconstructed images corresponding to  cluster centers at the end of every epoch.
-The figure shows that the reconstruction accuracy of VAE is improved significantly  (by 6 to 10 \%) when classification loss is added, which indicates that the learned representation generalizes better as in the case of many multi-tasking model.
+The figure shows that the reconstruction accuracy of VAE is improved significantly  (by 6 to 10 \%) when classification loss is added, which indicates that the learned representation generalizes better as in the case of many multi-tasking model
+
 
 \begin{figure}[]
 \centering
@@ -237,7 +245,7 @@ The figure shows that the reconstruction accuracy of VAE is improved significant
 \begin{figure}[]
 \centering
 \includegraphics[width=\linewidth]{cluster_centers_epoch_6.0}
-\caption{Images of decoded cluster center after 6th epoch}
+\caption{Images of decoded cluster center after 5th epoch}
 \label{cluster_center_6}
 \end{figure}
 
@@ -263,7 +271,11 @@ The figure shows that the reconstruction accuracy of VAE is improved significant
 \end{figure}
 
 \section{Conclusion}
-
+We propose a novel deep learning based active learning framework for solving complex tasks like image classification and segmentation.
+The proposed approach is demonstrated by classifying MNIST images by annotating only 10 images, corresponding to each cluster center,  after each epoch.
+We were able to obtain a classification accuracy of 75\% after 5 epochs of training.
+It is possible to increase this accuracy further by increasing the number of clustering levels
+It is also observed that the reconstruction accuracy of the generative model improves as a result of performing an auxilary task of classification
 %\subsection{References, Citations, Footnotes}\label{sec:etc}
 %\subsubsection{Cross-Referencing}
 %Always use \verb|\label| and \verb|\ref|—or a command with a similar effect—when cross-referencing.
