@@ -49,23 +49,15 @@
 %
 \author[1]{\href{mailto:Sunil Kumar Vengalil <sunilkumar.vengalil@iiitb.org> ?Subject=Your UAI 2021 paper}{Sunil Kumar Vengalil}{}}
 \author[2]{Prathyush S.P}
-\author[1,2]{Neelam Sinha}
-\author[3]{Further~Coauthor}
-\author[1]{Further~Coauthor}
-\author[3]{Further~Coauthor}
-\author[3,1]{Further~Coauthor}
+\author[1]{Neelam Sinha}
 % Add affiliations after the authors
 \affil[1]{%
-    Computer Science Dept.\\
-    Cranberry University\\
-    Pittsburgh, Pennsylvania, USA
+    International Institute of Information Technology Bangalore\\
 }
 \affil[2]{%
-    Affiliation\\
-    Address\\
-    …
+    Worcester Polytechnic Institute \\
+   100 Institute Rd, Worcester, MA 01609, United States
 }
-\affil[3]{…}
 
 \begin{document}
 \maketitle
@@ -172,7 +164,7 @@ L_{VAE} = -\sum_{i, j}(x_{ij}^n \ln \hat{x}_{ij}^n
     +\beta KLD(p(z), N(0,I))
 \end{split}
 \end{equation}
-where   $x_{ij}$ is the pixel value at position $(i, j)$ of the input image, $\hat{x}_{ij}$ is the pixel value of reconstructed image, $p(z)$ is the probability density function of latent vectors and $N(0,I)$ is the standard multivariate normal distribution of dimension $z_{dim}$.
+where   $x_{ij}$ is the pixel value at position $(i, j)$ of the input image, $\hat{x}_{ij}$ is the pixel value of reconstructed image, $p(z)$ is the probability density function of latent vectors, $N(0,I)$ is the standard multivariate normal distribution of dimension $z_{dim}$ and KLD() deontes KL divergence.
 We used $\beta = 5$ as it gave the best compromise between reconstruction quality and KL divergence.
 After a few epochs of unsupervised training, the latent vectors corresponding to the training images are clustered $k$ clusters using k-means algorithm.
 Optimum value of the number of clusters $k$ were determined by elbow method.
