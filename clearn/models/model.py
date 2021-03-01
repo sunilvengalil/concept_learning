@@ -69,7 +69,13 @@ class Model(ABC):
         if ckpt and ckpt.model_checkpoint_path:
             ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
             if check_point_epochs is not None:
-                ckpt_name = check_point_epochs
+                num_training_samples = self.dao.number_of_training_samples // self.exp_config.BATCH_SIZE
+                print("num_training_samples", num_training_samples)
+                if check_point_epochs == 1:
+                    steps = check_point_epochs * num_training_samples + 1
+                else:
+                    steps = check_point_epochs * num_training_samples
+                ckpt_name = f"{self._model_name_}.model-{steps}"
             print("ckpt_name", ckpt_name)
             self.saver.restore(self.sess, os.path.join(checkpoint_dir, ckpt_name))
             counter = int(next(re.finditer("(\d+)(?!.*\d)", ckpt_name)).group(0))

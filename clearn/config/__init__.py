@@ -79,6 +79,7 @@ class ExperimentConfig:
                  write_predictions=True,
                  eval_interval_in_epochs=1,
                  return_latent_vector=True,
+                 budget=1,
                  seed=547
                  ):
         """
@@ -130,6 +131,7 @@ class ExperimentConfig:
         self.eval_interval_in_epochs = eval_interval_in_epochs
         self.return_latent_vector = return_latent_vector
         self.seed = seed
+        self.budget = budget
 
     def as_json(self):
         config_json = dict()
@@ -161,6 +163,7 @@ class ExperimentConfig:
         config_json["EVAL_INTERVAL_IN_EPOCHS"] = self.eval_interval_in_epochs
         config_json["RETURN_LATENT_VECTOR"] = self.return_latent_vector
         config_json["SEED"] = self.seed
+        config_json["BUDGET"] = self.budget
         return config_json
 
     def get_exp_name_with_parameters(self, run_id):
@@ -276,6 +279,7 @@ class ExperimentConfig:
         self.eval_interval_in_epochs = exp_config_dict["EVAL_INTERVAL_IN_EPOCHS"]
         self.return_latent_vector = exp_config_dict["RETURN_LATENT_VECTOR"]
         self.seed = exp_config_dict["SEED"]
+        self.budget = exp_config_dict["BUDGET"]
 
 
 if __name__ == "__main__":

@@ -99,7 +99,8 @@ class TrainValDataIterator:
                             split_location,
                             batch_size=None,
                             manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
-                            manual_annotation_file=None
+                            manual_annotation_file=None,
+                            budget=1
                             ):
         """
         Creates and initialize an instance of TrainValDataIterator
@@ -120,6 +121,7 @@ class TrainValDataIterator:
         instance.unique_labels = np.unique(instance.dataset_dict[TrainValDataIterator.VALIDATION_Y_RAW])
         instance.manual_labels_config = manual_labels_config
         _manual_annotation = None
+        instance.budget = budget
         if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
             if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
                 _manual_annotation = cls.load_manual_annotation(manual_annotation_file)
@@ -135,7 +137,7 @@ class TrainValDataIterator:
                 # {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
                 _manual_annotation = np.random.choice(instance.unique_labels, len(instance.train_x))
         instance.get_manual_annotation(manual_annotation_file, _manual_annotation=_manual_annotation)
-
+        print(f"Number of samples with manual annotation {np.sum(instance.manual_annotation[:, 10])}")
         instance.train_idx = 0
         instance.val_idx = 0
         return instance
@@ -153,8 +155,14 @@ class TrainValDataIterator:
                     self.manual_annotation[i, 10] = 0  # set manual annotation confidence as 0
         elif self.manual_labels_config == ExperimentConfig.USE_ACTUAL:
             self.manual_annotation = np.zeros((len(self.train_x), 11), dtype=np.float)
-            self.manual_annotation[:, 0:10] = self.train_y
-            self.manual_annotation[:, 10] = 1  # set manual annotation confidence as 1
+            if self.budget < 1:
+                indices = np.random.choice(len(self.train_x), int(self.budget * len(self.train_x)), replace=False)
+                print(f"Using labels of {len(indices)} samples")
+                self.manual_annotation[indices, 0:10] = self.train_y[indices]
+                self.manual_annotation[indices, 10] = 0.7  # set manual annotation confidence as 1
+            else:
+                self.manual_annotation[:, 0:10] = self.train_y
+                self.manual_annotation[:, 10] = 0.7  # set manual annotation confidence as 1
 
     def __init__(self,
                  dao: IDao,
@@ -167,7 +175,9 @@ class TrainValDataIterator:
                  batch_size=None,
                  manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                  manual_annotation_file=None,
+                 budget=1,
                  seed=547):
+        self.budget = budget
         self.train_idx = 0
         self.val_idx = 0
         self.dataset_path = dataset_path

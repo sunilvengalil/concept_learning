@@ -15,7 +15,8 @@ class Cifar10Classifier(SupervisedClassifierModel):
                  epoch,
                  dao: IDao,
                  num_units_in_layer=None,
-                 test_data_iterator=None
+                 test_data_iterator=None,
+                 check_point_epochs=None
                  ):
         self.strides = [2, 2, 2, 2]
         super().__init__(exp_config=exp_config,
@@ -23,7 +24,8 @@ class Cifar10Classifier(SupervisedClassifierModel):
                          epoch=epoch,
                          num_units_in_layer=num_units_in_layer,
                          dao=dao,
-                         test_data_iterator=test_data_iterator
+                         test_data_iterator=test_data_iterator,
+                         check_point_epochs=check_point_epochs
                          )
 
     def _encoder(self, x, reuse=False):
@@ -39,14 +41,16 @@ class Cifar10F(SupervisedClassifierModel):
                  epoch,
                  dao: IDao,
                  num_units_in_layer=None,
-                 test_data_iterator=None
+                 test_data_iterator=None,
+                 check_point_epochs=None
                  ):
         super().__init__(exp_config,
                          sess,
                          epoch,
-                         num_units_in_layer,
+                         num_units_in_layer=num_units_in_layer,
                          dao=dao,
-                         test_data_iterator=test_data_iterator
+                         test_data_iterator=test_data_iterator,
+                         check_point_epochs=check_point_epochs
                          )
 
     def _encoder(self, x, reuse=False):

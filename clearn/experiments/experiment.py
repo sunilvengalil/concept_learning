@@ -7,6 +7,7 @@ from clearn.dao.idao import IDao
 from clearn.models.classify.cifar_10_classifier import Cifar10Classifier, Cifar10F
 from clearn.models.classify.cifar_10_vae import Cifar10Vae
 from clearn.models.classify.semi_supervised import SemiSupervisedClassifier
+from clearn.models.classify.semi_supervised_mnist import SemiSupervisedClassifierMnist
 from clearn.models.vae import VAE
 from clearn.models.classify.supervised_classifier import SupervisedClassifierModel
 from clearn.dao.dao_factory import get_dao
@@ -22,6 +23,8 @@ VAAL_ARCHITECTURE_FOR_CIFAR = "ACTIVE_LEARNING_VAAL_CIFAR"
 CIFAR_VGG = "CIFAR_VGG"
 CIFAR10_F = "CIFAR10_F"
 MODEL_TYPE_VAE_SEMI_SUPERVISED_CIFAR10 = "VAE_SEMI_SUPERVISED_CIFAR10"
+MODEL_TYPE_VAE_SEMI_SUPERVISED_MNIST = "VAE_SEMI_SUPERVISED_MNIST"
+
 
 model_types = [MODEL_TYPE_VAE_UNSUPERVISED,
                MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10,
@@ -189,6 +192,7 @@ def initialize_model_train_and_get_features(experiment_name,
                                             seed=547,
                                             num_epochs_completed=0,
                                             model_save_interval=1,
+                                            budget=1,
                                             dao: IDao=None):
     if dao is None:
         dao = get_dao(dataset_name, split_name, num_val_samples)
@@ -220,7 +224,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                   run_evaluation_during_training=run_evaluation_during_training,
                                   write_predictions=write_predictions,
                                   model_save_interval=model_save_interval,
-                                  seed=seed
+                                  seed=seed,
+                                  budget=budget
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)
@@ -232,7 +237,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                                          dao,
                                                          exp_config,
                                                          num_epochs_completed,
-                                                         split_name)
+                                                         split_name
+                                                         )
 
     if test_data_iterator is None:
         test_data_location = exp_config.DATASET_ROOT_PATH + "/test/"
@@ -257,8 +263,10 @@ def get_train_val_iterator(create_split:bool,
                            num_epochs_completed: int,
                            split_name: str):
     split_filename = exp_config.DATASET_PATH + split_name + ".json"
+    manual_annotation_file_name = f"manual_annotation_epoch_{num_epochs_completed - 1:.1f}.csv"
+
     manual_annotation_file = os.path.join(exp_config.ANALYSIS_PATH,
-                                          f"manual_annotation_epoch_{int(num_epochs_completed)}.csv"
+                                          manual_annotation_file_name
                                           )
     if os.path.isfile(split_filename):
         if manual_annotation_file is not None:
@@ -267,7 +275,8 @@ def get_train_val_iterator(create_split:bool,
                                                                                split_location=exp_config.DATASET_PATH,
                                                                                batch_size=exp_config.BATCH_SIZE,
                                                                                manual_labels_config=exp_config.manual_labels_config,
-                                                                               manual_annotation_file=manual_annotation_file
+                                                                               manual_annotation_file=manual_annotation_file,
+                                                                               budget=exp_config.budget
                                                                                )
     elif create_split:
         train_val_data_iterator = TrainValDataIterator(dataset_path=exp_config.DATASET_ROOT_PATH,
@@ -280,7 +289,9 @@ def get_train_val_iterator(create_split:bool,
                                                        batch_size=exp_config.BATCH_SIZE,
                                                        manual_labels_config=exp_config.manual_labels_config,
                                                        manual_annotation_file=manual_annotation_file,
-                                                       seed=exp_config.seed)
+                                                       seed=exp_config.seed,
+                                                       budget=exp_config.budget
+                                                       )
     else:
         raise Exception(f"File does not exists {split_filename}")
     return train_val_data_iterator
@@ -292,14 +303,17 @@ def get_model(dao: IDao,
               num_epochs,
               sess,
               test_data_iterator=None,
-              train_val_data_iterator=None):
+              train_val_data_iterator=None,
+              check_point_epochs=None
+              ):
     if model_type == MODEL_TYPE_SUPERVISED_CLASSIFIER:
         model = SupervisedClassifierModel(exp_config=exp_config,
                                           sess=sess,
                                           epoch=num_epochs,
                                           num_units_in_layer=exp_config.num_units,
                                           dao=dao,
-                                          test_data_iterator=test_data_iterator
+                                          test_data_iterator=test_data_iterator,
+                                          check_point_epochs=check_point_epochs
                                           )
     elif model_type == VAAL_ARCHITECTURE_FOR_CIFAR:
         model = Cifar10Classifier(exp_config=exp_config,
@@ -307,7 +321,8 @@ def get_model(dao: IDao,
                                   epoch=num_epochs,
                                   num_units_in_layer=exp_config.num_units,
                                   dao=dao,
-                                  test_data_iterator=test_data_iterator
+                                  test_data_iterator=test_data_iterator,
+                                  check_point_epochs=check_point_epochs
                                   )
     elif model_type == CIFAR10_F:
         model = Cifar10F(exp_config=exp_config,
@@ -315,14 +330,16 @@ def get_model(dao: IDao,
                          epoch=num_epochs,
                          num_units_in_layer=exp_config.num_units,
                          dao=dao,
-                         test_data_iterator=test_data_iterator
+                         test_data_iterator=test_data_iterator,
+                         check_point_epochs=check_point_epochs
                          )
 
     elif model_type == MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10:
         model = Cifar10Vae(exp_config=exp_config,
                            sess=sess,
                            epoch=num_epochs,
-                           dao=dao
+                           dao=dao,
+                           check_point_epochs=check_point_epochs
                            )
     elif model_type == MODEL_TYPE_VAE_SEMI_SUPERVISED_CIFAR10:
         model = SemiSupervisedClassifier(exp_config=exp_config,
@@ -330,7 +347,8 @@ def get_model(dao: IDao,
                                          epoch=num_epochs,
                                          dao=dao,
                                          train_val_data_iterator=train_val_data_iterator,
-                                         test_data_iterator=test_data_iterator
+                                         test_data_iterator=test_data_iterator,
+                                         check_point_epochs=check_point_epochs
                                          )
     elif model_type == VAE._model_name_:
         model = VAE(exp_config=exp_config,
@@ -338,7 +356,18 @@ def get_model(dao: IDao,
                     epoch=num_epochs,
                     dao=dao,
                     train_val_data_iterator=train_val_data_iterator,
-                    test_data_iterator=test_data_iterator)
+                    test_data_iterator=test_data_iterator,
+                    check_point_epochs=check_point_epochs
+                    )
+    elif model_type == MODEL_TYPE_VAE_SEMI_SUPERVISED_MNIST:
+        model = SemiSupervisedClassifierMnist(exp_config=exp_config,
+                                         sess=sess,
+                                         epoch=num_epochs,
+                                         dao=dao,
+                                         train_val_data_iterator=train_val_data_iterator,
+                                         test_data_iterator=test_data_iterator,
+                                         check_point_epochs=check_point_epochs
+                                         )
     else:
         raise Exception(
             f"Unrecognized model type {model_type}"
@@ -362,7 +391,6 @@ def train_and_get_features(exp: Experiment,
     train_val_data_iterator.reset_counter("train")
     train_val_data_iterator.reset_counter("val")
     return exp.encode_latent_vector(train_val_data_iterator, "val")
-
 
 
 def test(exp: Experiment,
