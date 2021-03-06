@@ -17,6 +17,13 @@ from clearn.utils.data_loader import TrainValDataIterator, DataIterator
 from clearn.config import ExperimentConfig
 from clearn.utils.utils import show_all_variables
 
+from clearn.config import DISTANCE_EUCLIDEAN
+DISTANCE_MAHALANOBIS = "MAHALANOBIS"
+CLUSTERING_K_MEANS = "K_MEANS"
+CLUSTERING_GMM = "GMM"
+CONFIDENCE_DECAY_FUNCTION_EXPONENTIAL = "EXPONENTIAL"
+CONFIDENCE_DECAY_FUNCTION_GAUSSIAN = "GAUSSIAN"
+
 MODEL_TYPE_VAE_UNSUPERVISED = "VAE"
 MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10 = "VAE_UNSUPERVISED_CIFAR10"
 MODEL_TYPE_SUPERVISED_CLASSIFIER = "CLASSIFIER_SUPERVISED"
@@ -194,7 +201,11 @@ def initialize_model_train_and_get_features(experiment_name,
                                             model_save_interval=1,
                                             budget=1,
                                             confidence_decay_factor=5,
-                                            dao: IDao = None):
+                                            dao: IDao = None,
+                                            distance_metric=ExperimentConfig.DISTANCE_EUCLIDEAN,
+                                            clustering_alg=ExperimentConfig.CLUSTERING_K_MEANS,
+                                            confidence_decay_function=ExperimentConfig.CONFIDENCE_DECAY_FUNCTION_EXPONENTIAL
+                                            ):
     if dao is None:
         dao = get_dao(dataset_name, split_name, num_val_samples)
 
@@ -226,7 +237,10 @@ def initialize_model_train_and_get_features(experiment_name,
                                   write_predictions=write_predictions,
                                   model_save_interval=model_save_interval,
                                   seed=seed,
-                                  budget=budget
+                                  budget=budget,
+                                  confidence_decay_function=confidence_decay_function,
+                                  distance_metric=distance_metric,
+                                  clustering_alg=clustering_alg
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)
