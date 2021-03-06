@@ -16,6 +16,7 @@ from clearn.models.model import Model
 from clearn.utils.data_loader import TrainValDataIterator, DataIterator
 from clearn.config import ExperimentConfig
 from clearn.utils.utils import show_all_variables
+
 MODEL_TYPE_VAE_UNSUPERVISED = "VAE"
 MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10 = "VAE_UNSUPERVISED_CIFAR10"
 MODEL_TYPE_SUPERVISED_CLASSIFIER = "CLASSIFIER_SUPERVISED"
@@ -24,7 +25,6 @@ CIFAR_VGG = "CIFAR_VGG"
 CIFAR10_F = "CIFAR10_F"
 MODEL_TYPE_VAE_SEMI_SUPERVISED_CIFAR10 = "VAE_SEMI_SUPERVISED_CIFAR10"
 MODEL_TYPE_VAE_SEMI_SUPERVISED_MNIST = "VAE_SEMI_SUPERVISED_MNIST"
-
 
 model_types = [MODEL_TYPE_VAE_UNSUPERVISED,
                MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10,
@@ -92,11 +92,11 @@ class Experiment:
     def encode_latent_vector(self, _train_val_data_iterator, dataset_type,
                              save_images=True):
         encoded_df = encode_images(self.model,
-                             _train_val_data_iterator,
-                             dataset_type=dataset_type,
-                             save_images=save_images
-                             )
-        return encoded_df, self. model.exp_config
+                                   _train_val_data_iterator,
+                                   dataset_type=dataset_type,
+                                   save_images=save_images
+                                   )
+        return encoded_df, self.model.exp_config
 
     def encode_latent_vector_and_get_features(self, _train_val_data_iterator, epoch, dataset_type,
                                               save_results=True):
@@ -193,7 +193,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             num_epochs_completed=0,
                                             model_save_interval=1,
                                             budget=1,
-                                            dao: IDao=None):
+                                            confidence_decay_factor=5,
+                                            dao: IDao = None):
     if dao is None:
         dao = get_dao(dataset_name, split_name, num_val_samples)
 
@@ -204,7 +205,7 @@ def initialize_model_train_and_get_features(experiment_name,
                                   z_dim=z_dim,
                                   num_units=num_units,
                                   num_cluster_config=num_cluster_config,
-                                  confidence_decay_factor=5,
+                                  confidence_decay_factor=confidence_decay_factor,
                                   beta=beta,
                                   supervise_weight=supervise_weight,
                                   dataset_name=dataset_name,
@@ -257,8 +258,8 @@ def initialize_model_train_and_get_features(experiment_name,
         return train_val_data_iterator, exp_config, model
 
 
-def get_train_val_iterator(create_split:bool,
-                           dao:IDao,
+def get_train_val_iterator(create_split: bool,
+                           dao: IDao,
                            exp_config: ExperimentConfig,
                            num_epochs_completed: int,
                            split_name: str):
@@ -361,13 +362,13 @@ def get_model(dao: IDao,
                     )
     elif model_type == MODEL_TYPE_VAE_SEMI_SUPERVISED_MNIST:
         model = SemiSupervisedClassifierMnist(exp_config=exp_config,
-                                         sess=sess,
-                                         epoch=num_epochs,
-                                         dao=dao,
-                                         train_val_data_iterator=train_val_data_iterator,
-                                         test_data_iterator=test_data_iterator,
-                                         check_point_epochs=check_point_epochs
-                                         )
+                                              sess=sess,
+                                              epoch=num_epochs,
+                                              dao=dao,
+                                              train_val_data_iterator=train_val_data_iterator,
+                                              test_data_iterator=test_data_iterator,
+                                              check_point_epochs=check_point_epochs
+                                              )
     else:
         raise Exception(
             f"Unrecognized model type {model_type}"

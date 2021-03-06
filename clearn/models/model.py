@@ -30,11 +30,11 @@ class Model(ABC):
                     restore_from_existing_checkpoint=True,
                     check_point_epochs=None):
         # saver to save model
-        self.saver = tf.train.Saver(max_to_keep=50)
+        self.saver = tf.compat.v1.train.Saver(max_to_keep=50)
         # summary writer
-        self.writer = tf.summary.FileWriter(self.exp_config.LOG_PATH + '/' + self._model_name_,
+        self.writer = tf.compat.v1.summary.FileWriter(self.exp_config.LOG_PATH + '/' + self._model_name_,
                                             self.sess.graph)
-        self.writer_v = tf.summary.FileWriter(self.exp_config.LOG_PATH + '/' + self._model_name_ + "_v",
+        self.writer_v = tf.compat.v1.summary.FileWriter(self.exp_config.LOG_PATH + '/' + self._model_name_ + "_v",
                                               self.sess.graph)
 
         if restore_from_existing_checkpoint:
@@ -63,9 +63,10 @@ class Model(ABC):
         # saver to save model
         self.saver = tf.compat.v1.train.Saver(max_to_keep=20)
 
-        print(" [*] Reading checkpoints...")
         checkpoint_dir = checkpoint_dir
         ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
+        print(f"Reading checkpoints from {checkpoint_dir} State {ckpt} ")
+
         if ckpt and ckpt.model_checkpoint_path:
             ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
             if check_point_epochs is not None:

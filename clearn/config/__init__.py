@@ -49,6 +49,12 @@ class ExperimentConfig:
     NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW = "TWO_TIMES_ELBOW"
     USE_ACTUAL = "USE_ACTUAL"
     USE_CLUSTER_CENTER = "USE_CLUSTER_CENTER"
+    DISTANCE_EUCLIDEAN = "EUCLIDEAN"
+    DISTANCE_MAHALANOBIS = "MAHALANOBIS"
+    CLUSTERING_K_MEANS = "K_MEANS"
+    CLUSTERING_GMM = "GMM"
+    CONFIDENCE_DECAY_FUNCTION_EXPONENTIAL = "EXPONENTIAL"
+    CONFIDENCE_DECAY_FUNCTION_GAUSSIAN = "GAUSSIAN"
 
     def __init__(self,
                  root_path,
@@ -80,7 +86,10 @@ class ExperimentConfig:
                  eval_interval_in_epochs=1,
                  return_latent_vector=True,
                  budget=1,
-                 seed=547
+                 seed=547,
+                 distance_metric=DISTANCE_EUCLIDEAN,
+                 clustering_alg=CLUSTERING_K_MEANS,
+                 confidence_decay_function=CONFIDENCE_DECAY_FUNCTION_EXPONENTIAL
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -132,6 +141,9 @@ class ExperimentConfig:
         self.return_latent_vector = return_latent_vector
         self.seed = seed
         self.budget = budget
+        self.clustering_alg = clustering_alg
+        self.confidence_decay_function = confidence_decay_function
+        self.distance_metric = distance_metric
 
     def as_json(self):
         config_json = dict()
@@ -164,6 +176,10 @@ class ExperimentConfig:
         config_json["RETURN_LATENT_VECTOR"] = self.return_latent_vector
         config_json["SEED"] = self.seed
         config_json["BUDGET"] = self.budget
+        config_json["CLUSTERING_ALG"] = self.clustering_alg
+        config_json["CONFIDENCE_DECAY_FUNCTION"] = self.confidence_decay_function
+        config_json["DISTANCE_METRIC"] = self.distance_metric
+
         return config_json
 
     def get_exp_name_with_parameters(self, run_id):
@@ -280,15 +296,17 @@ class ExperimentConfig:
         self.return_latent_vector = exp_config_dict["RETURN_LATENT_VECTOR"]
         self.seed = exp_config_dict["SEED"]
         self.budget = exp_config_dict["BUDGET"]
+        self.confidence_decay_function = exp_config_dict["CONFIDENCE_DECAY_FUNCTION"]
+        self.distance_metric = exp_config_dict["DISTANCE_METRIC"]
+        self.clustering_alg = exp_config_dict["CLUSTERING_ALG"]
 
 
 if __name__ == "__main__":
     _root_path = "/Users/sunilv/concept_learning_exp"
-    num_units = [128, 256, 512, 1024]
     exp_config = ExperimentConfig(root_path=_root_path,
                                   num_decoder_layer=5,
                                   z_dim=32,
-                                  num_units=num_units,
+                                  num_units=[128, 256, 512, 1024],
                                   num_cluster_config=None,
                                   confidence_decay_factor=5,
                                   beta=5,

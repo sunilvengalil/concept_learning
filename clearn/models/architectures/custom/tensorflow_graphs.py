@@ -8,7 +8,7 @@ def cnn_3_layer(model, x, num_out_units, reuse=False):
     w = dict()
     b = dict()
     n = model.exp_config.num_units
-    with tf.variable_scope("encoder", reuse=reuse):
+    with tf.compat.v1.variable_scope("encoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
             model.conv1 = lrelu(conv2d(x, n[0], 3, 3, 2, 2, name='en_conv1'))
             model.conv2 = lrelu((conv2d(model.conv1, n[1], 3, 3, 2, 2, name='en_conv2')))
@@ -34,7 +34,7 @@ def deconv_3_layer(model, z, reuse=False):
     # Network Architecture is exactly same as in infoGAN (https://arxiv.org/abs/1606.03657)
     # Architecture : FC1024_BR-FC7x7x128_BR-(64)4dc2s_BR-(1)4dc2s_S
     n = model.exp_config.num_units
-    with tf.variable_scope("decoder", reuse=reuse):
+    with tf.compat.v1.variable_scope("decoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
             model.dense1_de = lrelu((linear(z, n[2], scope='de_fc1')))
             model.dense2_de = lrelu((linear(model.dense1_de, n[1] * 7 * 7)))
@@ -154,7 +154,7 @@ def deconv_4_layer(model, z, reuse=False):
                     layer_2_size[2] // model.strides[3],
                     n[3]]
 
-    with tf.variable_scope("decoder", reuse=reuse):
+    with tf.compat.v1.variable_scope("decoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
 
             model.dense1_de = lrelu(linear(z, layer_1_size[1] * layer_1_size[2] * layer_1_size[3], scope="de_fc1"), 0)

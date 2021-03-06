@@ -25,12 +25,11 @@ def decode(model:GenerativeModel, z, batch_size):
     return reconstructed_images
 
 
-def decode_l3(model, z, batch_size):
+def decode_l3(model:GenerativeModel, z: np.ndarray, batch_size:int):
     """
     z =
     """
-    # TODO remove this hard-coding
-    feature_dimension = [len(z), 28, 28, 1]
+    feature_dimension = [len(z), model.dao.image_shape[0], model.dao.image_shape[1], model.dao.image_shape[2]]
     reconstructed_images = np.zeros(feature_dimension)
     num_latent_vectors = z.shape[0]
     num_batches = num_latent_vectors // batch_size
@@ -48,8 +47,7 @@ def decode_l3(model, z, batch_size):
 
 
 def decode_layer1(model, z, batch_size):
-    # TODO remove this hard-coding
-    feature_dimension = [len(z), 32]
+    feature_dimension = [len(z), model.exp_config.num_units[2]]
     reconstructed_images = np.zeros(feature_dimension)
     num_latent_vectors = z.shape[0]
     num_batches = num_latent_vectors // batch_size
@@ -75,8 +73,7 @@ def classify_images(model, images, batch_size, num_classes):
         logits[batch_num * batch_size: (batch_num + 1) * batch_size] = _logits
     left_out = num_images % batch_size
     if left_out > 0:
-        # TODO remove this hard-coding
-        feature_dimension = [batch_size, 28, 28, 1]
+        feature_dimension = [batch_size, model.dao.image_shape[0], model.dao.image_shape[1], model.dao.image_shape[2]]
         last_batch = np.zeros(feature_dimension)
         last_batch[0:left_out] = images[num_batches * batch_size:]
         _logits = model.classify(last_batch)[0]
@@ -102,8 +99,7 @@ def encode(model, images, batch_size, z_dim):
         latent_vectors[batch_num * batch_size: (batch_num + 1) * batch_size] = z
     left_out = num_images % batch_size
     if left_out != 0:
-        # TODO remove this hard coding
-        feature_dimension = [batch_size, 28, 28, 1]
+        feature_dimension = [batch_size, model.dao.image_shape[0], model.dao.image_shape[1], model.dao.image_shape[2]]
         last_batch = np.zeros(feature_dimension)
         last_batch[0:left_out] = images[num_batches * batch_size:]
         mu, sigma, z = model.encode(last_batch)
@@ -111,9 +107,8 @@ def encode(model, images, batch_size, z_dim):
     return latent_vectors
 
 
-def decode_and_get_features(model, z, batch_size):
-    # TODO remove this hard-coding
-    feature_dimension = [len(z), 28, 28, 1]
+def decode_and_get_features(model: GenerativeModel, z: np.ndarray, batch_size: int):
+    feature_dimension = [len(z), model.dao.image_shape[0], model.dao.image_shape[1], model.dao.image_shape[2]]
     reconstructed_images = np.zeros(feature_dimension)
     num_latent_vectors = z.shape[0]
     num_batches = num_latent_vectors // batch_size
@@ -142,14 +137,14 @@ def decode_and_get_features(model, z, batch_size):
     return reconstructed_images, dense1_des, dense2_des, reshaped_des, deconv1_des
 
 
-def encode_and_get_features(model, images, batch_size, z_dim):
+def encode_and_get_features(model: GenerativeModel,
+                            images, batch_size, z_dim):
     num_images = images.shape[0]
     num_batches = num_images // batch_size
     mus = np.zeros([len(images), z_dim])
     sigmas = np.zeros([len(images), z_dim])
     latent_vectors = np.zeros([len(images), z_dim])
-    # TODO remove the hard coding of feature dimension. Instead, ddd an api to get the dimension
-    dense2_ens = np.zeros([len(images), 32])
+    dense2_ens = np.zeros([len(images), model.exp_config.num_units[2]])
     reshapeds = []
     conv2_ens = []
     conv1_ens = []
@@ -167,8 +162,7 @@ def encode_and_get_features(model, images, batch_size, z_dim):
 
     left_out = num_images % batch_size
     if left_out > 0:
-        # TODO remove this hard-coding
-        feature_dimension = [batch_size, 28, 28, 1]
+        feature_dimension = [batch_size, model.dao.image_shape[0], model.dao.image_shape[1], model.dao.image_shape[2]]
         last_batch = np.zeros(feature_dimension)
         last_batch[0:left_out] = images[num_batches * batch_size:]
         mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en = model.encode_and_get_features(last_batch)

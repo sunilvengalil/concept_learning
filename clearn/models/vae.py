@@ -46,12 +46,12 @@ class VAE(GenerativeModel):
         self.sample_num = 64  # number of generated images to be saved
         self.num_images_per_row = 4  # should be a factor of sample_num
         self.label_dim = dao.num_classes  # one hot encoding for 10 classes
-        self.mu = tf.placeholder(tf.float32, [self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM], name='mu')
-        self.sigma = tf.placeholder(tf.float32, [self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM], name='sigma')
+        self.mu = tf.compat.v1.placeholder(tf.float32, [self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM], name='mu')
+        self.sigma = tf.compat.v1.placeholder(tf.float32, [self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM], name='sigma')
         self.images = None
         self._build_model()
         # initialize all variables
-        tf.global_variables_initializer().run()
+        tf.compat.v1.global_variables_initializer().run()
         self.sample_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
         self.counter, self.start_batch_id, self.start_epoch = self._initialize(read_from_existing_checkpoint,
                                                                                check_point_epochs)
@@ -85,17 +85,17 @@ class VAE(GenerativeModel):
 
         """ Graph Input """
         # images
-        self.inputs = tf.placeholder(tf.float32, [bs] + image_dims, name='real_images')
+        self.inputs = tf.compat.v1.placeholder(tf.float32, [bs] + image_dims, name='real_images')
 
         # random vectors with  multi-variate gaussian distribution
         # 0 mean and covariance matrix as Identity
-        self.standard_normal = tf.placeholder(tf.float32, [bs, self.exp_config.Z_DIM], name='z')
+        self.standard_normal = tf.compat.v1.placeholder(tf.float32, [bs, self.exp_config.Z_DIM], name='z')
 
         """ Encode the input """
         self.mu, self.sigma = self._encoder(self.inputs, reuse=False)
 
         # sampling by re-parameterization technique
-        self.z = self.mu + self.sigma * tf.random_normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
+        self.z = self.mu + self.sigma * tf.random.normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
 
         # decoding
         out = self._decoder(self.z, reuse=False)
@@ -103,8 +103,8 @@ class VAE(GenerativeModel):
 
         # loss
         if self.exp_config.activation_output_layer == "SIGMOID":
-            self.marginal_likelihood = tf.reduce_sum(self.inputs * tf.log(self.out) +
-                                                (1 - self.inputs) * tf.log(1 - self.out),
+            self.marginal_likelihood = tf.reduce_sum(self.inputs * tf.math.log(self.out) +
+                                                (1 - self.inputs) * tf.math.log(1 - self.out),
                                                 [1, 2])
             self.neg_loglikelihood = -tf.reduce_mean(self.marginal_likelihood)
 
@@ -115,7 +115,7 @@ class VAE(GenerativeModel):
 
         kl = 0.5 * tf.reduce_sum(tf.square(self.mu) +
                                  tf.square(self.sigma) -
-                                 tf.log(1e-8 + tf.square(self.sigma)) - 1, [1])
+                                 tf.math.log(1e-8 + tf.square(self.sigma)) - 1, [1])
 
         self.KL_divergence = tf.reduce_mean(kl)
         self.compute_and_optimize_loss()
@@ -368,7 +368,7 @@ class VAE(GenerativeModel):
         param_values = self.sess.run(params)
         return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
 
-    def encode_and_get_features(self, images):
+    def encode_and_get_features(self, images: np.ndarray):
         mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en = self.sess.run([self.mu,
                                                                                self.sigma,
                                                                                self.z,
@@ -380,7 +380,7 @@ class VAE(GenerativeModel):
 
         return mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en
 
-    def decode_and_get_features(self, z):
+    def decode_and_get_features(self, z: np.ndarray):
         batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
         images, dense1_de, dense2_de, reshaped_de, deconv1_de = self.sess.run([self.out,

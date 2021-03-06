@@ -74,61 +74,59 @@ class SemiSupervisedClassifierMnist(VAE):
         return deconv_3_layer(self, z, reuse)
 
     def get_decoder_weights_bias(self):
-        # name_w_1 = "decoder/de_fc1/Matrix:0"
-        # name_w_2 = "decoder/de_dc3/w:0"
-        # name_w_3 = "decoder/de_dc4/w:0"
-        #
-        # name_b_1 = "decoder/de_fc1/bias:0"
-        # name_b_2 = "decoder/de_dc3/biases:0"
-        # name_b_3 = "decoder/de_dc4/biases:0"
-        #
-        # layer_param_names = [name_w_1,
-        #                      name_b_1,
-        #                      name_w_2,
-        #                      name_b_2,
-        #                      name_w_3,
-        #                      name_b_3,
-        #                      ]
-        #
-        # default_graph = tf.get_default_graph()
-        # params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
-        # param_values = self.sess.run(params)
-        # return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
-        return None
+        name_w_1 = "decoder/de_fc1/Matrix:0"
+        name_w_2 = "decoder/de_dc3/w:0"
+        name_w_3 = "decoder/de_dc4/w:0"
+
+        name_b_1 = "decoder/de_fc1/bias:0"
+        name_b_2 = "decoder/de_dc3/biases:0"
+        name_b_3 = "decoder/de_dc4/biases:0"
+
+        layer_param_names = [name_w_1,
+                             name_b_1,
+                             name_w_2,
+                             name_b_2,
+                             name_w_3,
+                             name_b_3,
+                             ]
+
+        default_graph = tf.get_default_graph()
+        params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
+        param_values = self.sess.run(params)
+        return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
 
     def get_encoder_weights_bias(self):
-        # name_w_1 = "encoder/en_conv1/w:0"
-        # name_w_2 = "encoder/en_conv2/w:0"
-        # name_w_3 = "encoder/en_fc3/Matrix:0"
-        # name_w_4 = "encoder/en_fc4/Matrix:0"
-        #
-        # name_b_1 = "encoder/en_conv1/biases:0"
-        # name_b_2 = "encoder/en_conv2/biases:0"
-        # name_b_3 = "encoder/en_fc3/bias:0"
-        # name_b_4 = "encoder/en_fc4/bias:0"
-        #
-        # layer_param_names = [name_w_1,
-        #                      name_b_1,
-        #                      name_w_2,
-        #                      name_b_2,
-        #                      name_w_3,
-        #                      name_b_3,
-        #                      name_w_4,
-        #                      name_b_4
-        #                      ]
-        #
-        # default_graph = tf.get_default_graph()
-        # params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
-        # param_values = self.sess.run(params)
-        # return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
-        return None
+        name_w_1 = "encoder/en_conv1/w:0"
+        name_w_2 = "encoder/en_conv2/w:0"
+        name_w_3 = "encoder/en_fc3/Matrix:0"
+        name_w_4 = "encoder/en_fc4/Matrix:0"
+
+        name_b_1 = "encoder/en_conv1/biases:0"
+        name_b_2 = "encoder/en_conv2/biases:0"
+        name_b_3 = "encoder/en_fc3/bias:0"
+        name_b_4 = "encoder/en_fc4/bias:0"
+
+        layer_param_names = [name_w_1,
+                             name_b_1,
+                             name_w_2,
+                             name_b_2,
+                             name_w_3,
+                             name_b_3,
+                             name_w_4,
+                             name_b_4
+                             ]
+
+        default_graph = tf.get_default_graph()
+        params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
+        param_values = self.sess.run(params)
+        return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
 
     def compute_and_optimize_loss(self):
         self.y_pred = linear(self.z, 10)
-        self.supervised_loss = tf.losses.softmax_cross_entropy(onehot_labels=self.labels,
-                                                               logits=self.y_pred,
-                                                               weights=self.is_manual_annotated
-                                                               )
+        self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
+                                                                         logits=self.y_pred,
+                                                                         weights=self.is_manual_annotated
+                                                                         )
 
         self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
                     self.exp_config.beta * self.KL_divergence + \
@@ -137,9 +135,10 @@ class SemiSupervisedClassifierMnist(VAE):
 
         """ Training """
         # optimizers
-        t_vars = tf.trainable_variables()
-        with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
-            self.optim = tf.train.AdamOptimizer(self.exp_config.learning_rate, beta1=self.exp_config.beta1_adam) \
+        t_vars = tf.compat.v1.trainable_variables()
+        with tf.control_dependencies(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
+            self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate,
+                                                          beta1=self.exp_config.beta1_adam) \
                 .minimize(self.loss, var_list=t_vars)
 
         """" Testing """
@@ -147,13 +146,13 @@ class SemiSupervisedClassifierMnist(VAE):
         self.fake_images = self._decoder(self.standard_normal, reuse=True)
 
         """ Summary """
-        tf.summary.scalar("Negative Log Likelihood", self.neg_loglikelihood)
-        tf.summary.scalar("K L Divergence", self.KL_divergence)
-        tf.summary.scalar("Supervised Loss", self.supervised_loss)
+        tf.compat.v1.summary.scalar("Negative Log Likelihood", self.neg_loglikelihood)
+        tf.compat.v1.summary.scalar("K L Divergence", self.KL_divergence)
+        tf.compat.v1.summary.scalar("Supervised Loss", self.supervised_loss)
 
-        tf.summary.scalar("Total Loss", self.loss)
+        tf.compat.v1.summary.scalar("Total Loss", self.loss)
         # final summary operations
-        self.merged_summary_op = tf.summary.merge_all()
+        self.merged_summary_op = tf.compat.v1.summary.merge_all()
 
     def train(self, train_val_data_iterator):
         start_batch_id = self.start_batch_id
@@ -171,19 +170,23 @@ class SemiSupervisedClassifierMnist(VAE):
                 batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
                 # update autoencoder and classifier parameters
-                _, summary_str, loss, nll_loss, nll_batch,  kl_loss, supervised_loss = self.sess.run([self.optim,
-                                                                                          self.merged_summary_op,
-                                                                                          self.loss,
-                                                                                          self.neg_loglikelihood,
-                                                                                          self.marginal_likelihood,
-                                                                                          self.KL_divergence,
-                                                                                          self.supervised_loss],
-                                                                                         feed_dict={
-                                                                                             self.inputs: batch_images,
-                                                                                             self.labels: manual_labels[:,:self.dao.num_classes],
-                                                                                             self.is_manual_annotated: manual_labels[:,self.dao.num_classes],
-                                                                                             self.standard_normal: batch_z}
-                                                                                         )
+                _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss = self.sess.run([self.optim,
+                                                                                                     self.merged_summary_op,
+                                                                                                     self.loss,
+                                                                                                     self.neg_loglikelihood,
+                                                                                                     self.marginal_likelihood,
+                                                                                                     self.KL_divergence,
+                                                                                                     self.supervised_loss],
+                                                                                                    feed_dict={
+                                                                                                        self.inputs: batch_images,
+                                                                                                        self.labels: manual_labels[
+                                                                                                                     :,
+                                                                                                                     :self.dao.num_classes],
+                                                                                                        self.is_manual_annotated: manual_labels[
+                                                                                                                                  :,
+                                                                                                                                  self.dao.num_classes],
+                                                                                                        self.standard_normal: batch_z}
+                                                                                                    )
                 # print(f"Epoch: {epoch}/{batch}, Nll_loss shape: {nll_loss.shape}, Nll_batch: {nll_batch.shape}")
                 print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss}")
 
@@ -292,7 +295,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                               10],
                     self.standard_normal: batch_z})
 
-            #print(f"Batch shape for nll {nll_batch.shape}")
+            # print(f"Batch shape for nll {nll_batch.shape}")
             reconstruction_losses.append(nll)
             if len(nll_batch.shape) == 0:
                 data_iterator.reset_counter(dataset_type)
@@ -359,7 +362,6 @@ class SemiSupervisedClassifierMnist(VAE):
         if "accuracy" in self.metrics_to_compute:
             accuracy = accuracy_score(labels, labels_predicted)
             self.metrics[dataset_type]["accuracy"].append([self.num_training_epochs_completed, accuracy])
-
 
         if save_images:
             reconstructed_dir = get_eval_result_dir(self.exp_config.PREDICTION_RESULTS_PATH,

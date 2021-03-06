@@ -9,6 +9,7 @@ from clearn.analysis.encode_decode import decode
 import math
 from matplotlib import pyplot as plt
 import matplotlib
+from sklearn.mixture import GaussianMixture
 
 from clearn.analysis import Cluster
 from clearn.analysis import ClusterGroup
@@ -40,7 +41,7 @@ def trace_dim(f, num_trace_steps, dim, feature_dim, z_min, z_max):
     return z
 
 
-def plot_features(exp_config, features, digits, dimensions_to_be_plotted,  new_fig=True):
+def plot_features(exp_config, features, digits, dimensions_to_be_plotted, new_fig=True):
     """
     Plot the mean latent vector corresponding to symbols `digits`
     @param exp_config Instance of ExperimentConfig
@@ -114,7 +115,7 @@ def cluster_next_level(exp_config: ExperimentConfig,
                 _latent_vectors,
                 exp_config,
                 dao
-                )
+            )
             df[cluster_column_name_2].iloc[_indices] = _cluster_labels
             image_filename = exp_config.ANALYSIS_PATH + f"cluster_centers__level_2_epoch_{epochs_completed}_cluster_id_{cluster.id}.png"
 
@@ -166,7 +167,7 @@ def plot_distance_distribution(df: DataFrame,
         _df = get_samples_for_cluster(df, cluster_num, cluster_column_name)
         col_name = "distance_{}".format(cluster_num)
         v, b = np.histogram(_df[col_name].values, bins=20, normed=False)
-        v = v/np.sum(v)
+        v = v / np.sum(v)
         plt.plot(b[:-1], v, label=legend_string.format(cluster_num, manual_labels[cluster_num]))
         plt.xlabel("Distance from cluster center")
         plt.ylabel("Number of samples")
@@ -200,6 +201,19 @@ def cluster_and_decode_latent_vectors(model_type: str,
     return decoded_images, cluster_centers, cluster_labels
 
 
+def cluster_and_decode_latent_vectors_gmm(model_type: str,
+                                          num_clusters: int,
+                                          latent_vectors: np.ndarray,
+                                          exp_config: ExperimentConfig,
+                                          dao: IDao):
+    gm = GaussianMixture(n_components=num_clusters, random_state=0)
+    cluster_labels = gm.fit_predict(latent_vectors)
+    cluster_centers = gm.means_
+    decoded_images = decode_latent_vectors(model_type, cluster_centers, exp_config, dao)
+
+    return decoded_images, cluster_centers, cluster_labels
+
+
 def display_cluster_center_images(decoded_images,
                                   image_filename,
                                   cluster_centers
@@ -228,6 +242,7 @@ def get_cluster(cluster_num,
         cluster = cluster_group.get_cluster(cluster_num)
         if cluster is not None:
             return cluster_group, cluster
+
 
 def assign_manual_label_and_confidence(df,
                                        manual_annotation_dict,
@@ -321,6 +336,7 @@ def assign_manual_label_and_confidence(df,
 
         print("********************************")
 
+
 def get_samples_for_cluster(df, cluster_num, cluster_column_name):
     _df = df[df[cluster_column_name] == cluster_num]
     return _df
@@ -368,7 +384,7 @@ def get_cluster_groups(manual_labels,
             "indices": indices,  # Indices of this cluster elements in parent DataFrame
             "cluster_data_frame": _df,
             "whole_data_frame": df
-           }
+        }
         if isinstance(cluster_center_label, tuple) or isinstance(cluster_center_label, list):
             # impure cluster
             # create an impure clusterGroup
