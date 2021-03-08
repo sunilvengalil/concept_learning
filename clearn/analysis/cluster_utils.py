@@ -2,6 +2,8 @@ from typing import *
 from sklearn.cluster import KMeans
 import tensorflow as tf
 import numpy as np
+from numpy.linalg import norm
+
 from pandas import DataFrame
 from clearn.config import ExperimentConfig
 from clearn.dao.idao import IDao
@@ -10,6 +12,9 @@ import math
 from matplotlib import pyplot as plt
 import matplotlib
 from sklearn.mixture import GaussianMixture
+from scipy.spatial.distance import mahalanobis
+import scipy as sp
+
 
 from clearn.analysis import Cluster
 from clearn.analysis import ClusterGroup
@@ -261,7 +266,7 @@ def assign_manual_label_and_confidence(df,
         if assign_only_correct:
             wrong_indices = (_df["manual_annotation"] == _manual_label) & (_df["label"] != _manual_label)
             _df["manual_annotation_confidence"].loc[wrong_indices] = 0
-
+    num_individual_samples_annotated = 0
     df["manual_annotation"] = np.ones(df.shape[0]) * -1
     df["manual_annotation_confidence"] = np.zeros(df.shape[0])
     df["distance_to_confidence"] = np.zeros(df.shape[0])
@@ -328,6 +333,7 @@ def assign_manual_label_and_confidence(df,
                         indices = np.where((np.asarray(cluster_labels) == cluster.id)
                                            & (df[cluster_column_name_2].values == _cluster.id))[0]
                         print(f"Annotating individual samples {indices.shape}")
+                        num_individual_samples_annotated += indices.shape[0]
                         df["manual_annotation"].iloc[indices] = df["label"][indices].values
                         df["manual_annotation_confidence"].iloc[indices] = 1
 
@@ -335,6 +341,8 @@ def assign_manual_label_and_confidence(df,
                         df["distance_to_confidence"].iloc[indices] = dist_to_conf(_dist)
 
         print("********************************")
+
+    return num_individual_samples_annotated
 
 
 def get_samples_for_cluster(df, cluster_num, cluster_column_name):
@@ -428,3 +436,83 @@ def get_cluster_groups(manual_labels,
                 cluster_groups_dict[cluster_group_label] = ClusterGroup(cluster_group_label,
                                                                         [cluster])
     return cluster_groups_dict
+
+
+def distance_eu(row,cluster_center,z_col_names):
+    return norm(row[z_col_names].values - cluster_center)
+
+
+def distance(row, inv_cov, cluster_center,z_col_names):
+    return mahalanobis(row[z_col_names].values, cluster_center, inv_cov)
+
+
+def compute_distance(df, num_clusters, cluster_labels, z_col_names, cluster_centers):
+    for i in range(num_clusters):
+        df["distance_{}".format(i)] = 100000
+    for cluster_num in range(num_clusters):
+        indices = np.where( np.asarray(cluster_labels) == cluster_num)[0]
+        lv = df[z_col_names].values[indices, :]
+        print(lv.shape)
+        cov = np.cov(lv.T)
+        inv_cov = sp.linalg.inv(cov)
+        df["distance_{}".format(cluster_num)].iloc[indices] = df.iloc[indices].apply(lambda x:distance(x,
+                                                                                                       inv_cov,
+                                                                                                       cluster_centers[cluster_num],
+                                                                                                       z_col_names),
+                                                                                     axis=1)
+
+
+def compute_distance_level_2(df, num_level_2_clusters, cluster_labels, z_col_names, cluster, cluster_column_name_2):
+    for i in range(num_level_2_clusters):
+        df[f"distance_level_2_{cluster.id}_{i}"] = 100000
+    for cluster_group_label, level_2_cluster_group in cluster.next_level_clusters.items():
+        if cluster_group_label == "unknown_cluster":
+            print("Skipping distance computation for unknown cluster")
+            continue
+        for level_2_cluster in level_2_cluster_group:
+            indices = np.where((np.asarray(cluster_labels) == cluster.id) &
+                               (df[cluster_column_name_2].values == level_2_cluster.id) )[0]
+            cluster_centers_level_2 = level_2_cluster.details["cluster_centers"]
+            lv= df[z_col_names].values[indices, :]
+            cov = np.cov(lv.T)
+            inv_cov = sp.linalg.inv(cov)
+
+            print(level_2_cluster.id, indices.shape)
+            df[f"distance_level_2_{cluster.id}_{level_2_cluster.id}"].iloc[indices] = df.iloc[indices].apply(lambda x:distance(x,
+                                                                                                                               inv_cov,
+                                                                                                                               cluster_centers_level_2,
+                                                                                                                               z_col_names),
+                                                                                                             axis=1)
+
+
+def get_manual_annotation_col_name(epochs_completed):
+    epoch_col_confidence = f"manual_confidence_{int(epochs_completed)}"
+    epoch_col_label = f"manual_label_{int(epochs_completed)}"
+    return epoch_col_confidence, epoch_col_label
+
+def get_overall_confidence(row, epochs_competed:List[int]):
+    if len(epochs_competed) == 1:
+        epoch_col_confidence, epoch_col_label = get_manual_annotation_col_name(epochs_competed[0])
+        return row[epoch_col_confidence]
+    else:
+        confidences = [row[get_manual_annotation_col_name(epoch)[0]] for epoch in epochs_competed]
+        if max(confidences) == 1:
+            return 1
+        else:
+            return confidences[-1]
+
+
+def get_overall_label(row, epochs_competed:List[int]):
+    if len(epochs_competed) == 1:
+        epoch_col_confidence, epoch_col_label = get_manual_annotation_col_name(epochs_competed[0])
+        return row[epoch_col_label]
+    else:
+        confidences = [row[get_manual_annotation_col_name(epoch)[0]] for epoch in epochs_competed]
+        labels = [row[get_manual_annotation_col_name(epoch)[1]] for epoch in epochs_competed]
+
+        # argmax of confidences
+        max_index = max(enumerate(confidences), key=lambda x: x[1])[0]
+        if confidences[max_index] == 1:
+            return labels[max_index]
+        else:
+            return labels[-1]

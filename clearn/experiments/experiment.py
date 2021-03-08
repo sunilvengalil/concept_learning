@@ -271,7 +271,7 @@ def get_train_val_iterator(create_split: bool,
                            num_epochs_completed: int,
                            split_name: str):
     split_filename = exp_config.DATASET_PATH + split_name + ".json"
-    manual_annotation_file_name = f"manual_annotation_epoch_{num_epochs_completed - 1:.1f}.csv"
+    manual_annotation_file_name = f"manual_annotation.csv"
 
     manual_annotation_file = os.path.join(exp_config.ANALYSIS_PATH,
                                           manual_annotation_file_name

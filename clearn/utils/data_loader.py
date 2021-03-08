@@ -42,7 +42,7 @@ class TrainValDataIterator:
     @classmethod
     def load_manual_annotation(cls, manual_annotation_file):
         df = pd.read_csv(manual_annotation_file)
-        return df.values
+        return df[["manual_annotation", "manual_annotation_confidence"]].values
 
     def load_train_val_existing_split(self, split_name, split_location):
         with open(split_location + split_name + ".json") as fp:
@@ -95,11 +95,11 @@ class TrainValDataIterator:
     @classmethod
     def from_existing_split(cls,
                             dao: IDao,
-                            split_name,
-                            split_location,
-                            batch_size=None,
-                            manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
-                            manual_annotation_file=None,
+                            split_name:str,
+                            split_location:str,
+                            batch_size: int = 64,
+                            manual_labels_config = ExperimentConfig.USE_CLUSTER_CENTER,
+                            manual_annotation_file: str = None,
                             budget=1
                             ):
         """
@@ -137,7 +137,8 @@ class TrainValDataIterator:
                 # {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
                 _manual_annotation = np.random.choice(instance.unique_labels, len(instance.train_x))
         instance.get_manual_annotation(manual_annotation_file, _manual_annotation=_manual_annotation)
-        print(f"Number of samples with manual annotation {np.sum(instance.manual_annotation[:, 10])}")
+
+        print(f"Total Manual annotation confidence {np.sum(instance.manual_annotation[:, 10])}")
         instance.train_idx = 0
         instance.val_idx = 0
         return instance
