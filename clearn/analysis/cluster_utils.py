@@ -77,15 +77,11 @@ def plot_features(exp_config, features, digits, dimensions_to_be_plotted, new_fi
         # ax = fig.add_subplot(2, 2, i % 4 + 1)
         for d, mean in zip(digits, means):
             # TODO plot only sensitive dimensions
-
             plt.plot(mean[dimensions_to_be_plotted[d]])
-
             # plt.xticks(list(range(len(sensitive_dimensions))), sensitive_dimensions[d])
             # ax = plt.gca()
             # iax = inset_axes(ax, width="50%", height=1, loc=1)
-
             # plt.axes([0.65, 0.65, 0.2, 0.2], facecolor='y')
-
         reconstructed_image_for_means = decode(model, means.reshape([len(digits), 10]), exp_config.BATCH_SIZE)
         # plt.imshow(np.squeeze(reconstructed_image),cmap="gray")
     tf.reset_default_graph()
@@ -254,15 +250,19 @@ def assign_manual_label_and_confidence(df,
                                        dist_to_conf,
                                        cluster_group_dict,
                                        cluster_column_name_2,
-                                       assign_only_correct=False
+                                       assign_only_correct=False,
+                                       estimate_type="distance_function"
                                        ):
     def assign_label(_df, _manual_label):
         _indices = np.where((np.asarray(cluster_labels) == cluster.id)
                             & (_df[cluster_column_name_2].values == _cluster.id))[0]
         _df["manual_annotation"].iloc[_indices] = _manual_label
         dst = _distance_df.iloc[_indices]
-        _df["manual_annotation_confidence"].iloc[_indices] = _cluster.manual_annotation.confidence * dist_to_conf(dst)
-        _df["distance_to_confidence"].iloc[_indices] = dist_to_conf(dst)
+        if estimate_type == "distance_function":
+            _df["manual_annotation_confidence"].iloc[_indices] = _cluster.manual_annotation.confidence * dist_to_conf(dst)
+            _df["distance_to_confidence"].iloc[_indices] = dist_to_conf(dst)
+        elif estimate_type == "map":
+            _df["manual_annotation_confidence"].iloc[_indices] = _cluster.manual_annotation.confidence * _confidence_df.iloc[_indices]
         if assign_only_correct:
             wrong_indices = (_df["manual_annotation"] == _manual_label) & (_df["label"] != _manual_label)
             _df["manual_annotation_confidence"].loc[wrong_indices] = 0
@@ -276,14 +276,15 @@ def assign_manual_label_and_confidence(df,
 
     num_clusters = len(manual_labels)
     for annotate_cluster in range(num_clusters):
-        distance_df = df["distance_{}".format(annotate_cluster)]
         manual_label = manual_labels[annotate_cluster]
         _manual_confidence = manual_annotation_dict["manual_confidence"][annotate_cluster]
         if isinstance(manual_label, tuple) or isinstance(manual_label, list):
             _, cluster = get_cluster(annotate_cluster, cluster_group_dict)
             for _cluster in cluster.next_level_clusters["good_clusters"]:
                 _distance_df = df[f"distance_level_2_{cluster.id}_{_cluster.id}"]
+                _confidence_df = df[f"confidence_level_2_{cluster.id}_{_cluster.id}"]
                 _manual_label = _cluster.manual_annotation.label
+
                 if isinstance(_manual_label, tuple) or isinstance(_manual_label, list):
                     # TODO add this code
                     pass
@@ -292,7 +293,6 @@ def assign_manual_label_and_confidence(df,
         elif manual_label != -1:
             print("Manual Label", manual_label)
             indices = np.where(cluster_labels == annotate_cluster)
-
             df["manual_annotation"].iloc[indices] = manual_label
             _, cluster = get_cluster(annotate_cluster, cluster_group_dict)
             print(df[df["manual_annotation"] == manual_label].shape, cluster.details["cluster_data_frame"].shape)
@@ -301,13 +301,19 @@ def assign_manual_label_and_confidence(df,
 
             percentage_correct = 100 * num_correct / df[df["manual_annotation"] == manual_label].shape[0]
             print(f"Cluster {annotate_cluster} Manual Label {manual_label} Percentage correct {percentage_correct}")
-            dist = distance_df.iloc[indices]
-            df["manual_annotation_confidence"].iloc[indices] = _manual_confidence * dist_to_conf(dist)
+
+            if estimate_type == "distance_function":
+                distance_df = df["distance_{}".format(annotate_cluster)]
+                dist = distance_df.iloc[indices]
+                df["manual_annotation_confidence"].iloc[indices] = _manual_confidence * dist_to_conf(dist)
+                df["distance_to_confidence"].iloc[indices] = dist_to_conf(dist)
+            elif estimate_type == "map":
+                confidence_df = df["confidence_{}".format(annotate_cluster)]
+                df["manual_annotation_confidence"].iloc[indices] = _manual_confidence * confidence_df.iloc[indices]
             if assign_only_correct:
                 wrong_indices = (df["manual_annotation"] == manual_label) & (df["label"] != manual_label)
                 print(len(wrong_indices), wrong_indices.shape)
                 df["manual_annotation_confidence"].loc[wrong_indices] = 0
-            df["distance_to_confidence"].iloc[indices] = dist_to_conf(dist)
         else:
             print("unknown")
             # TODO second level clustering is not used now so commenting the code
@@ -329,7 +335,7 @@ def assign_manual_label_and_confidence(df,
                         assign_label(df, _manual_label)
                     else:
                         # Manual label is -1
-                        # Label all the 600 samples in the second level cluster
+                        # Label all the ~600 samples in the second level cluster
                         indices = np.where((np.asarray(cluster_labels) == cluster.id)
                                            & (df[cluster_column_name_2].values == _cluster.id))[0]
                         print(f"Annotating individual samples {indices.shape}")
@@ -339,7 +345,6 @@ def assign_manual_label_and_confidence(df,
 
                         _dist = _distance_df.iloc[indices]
                         df["distance_to_confidence"].iloc[indices] = dist_to_conf(_dist)
-
         print("********************************")
 
     return num_individual_samples_annotated
