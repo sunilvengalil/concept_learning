@@ -226,20 +226,20 @@ class SemiSupervisedClassifierMnist(VAE):
                 print("Saving check point", self.exp_config.TRAINED_MODELS_PATH)
                 self.save(self.exp_config.TRAINED_MODELS_PATH, self.counter)
 
-            # save metrics
-            df = None
-            for i, metric in enumerate(self.metrics_to_compute):
-                column_name = f"train_{metric}"
-                if i == 0:
-                    df = pd.DataFrame(self.metrics["train"][metric], columns=["epoch", column_name])
-                else:
-                    df[column_name] = np.asarray(self.metrics["train"][metric])[:, 1]
-                df[f"val_{metric}"] = np.asarray(self.metrics["val"][metric])[:, 1]
-                df[f"test_{metric}"] = np.asarray(self.metrics["test"][metric])[:, 1]
-                max_value = df[f"test_{metric}"].max()
-                print(f"Max test {metric}", max_value)
-            if df is not None:
-                df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"metrics_{start_epoch}.csv"), index=False)
+        # save metrics
+        df = None
+        for i, metric in enumerate(self.metrics_to_compute):
+            column_name = f"train_{metric}"
+            if i == 0:
+                df = pd.DataFrame(self.metrics["train"][metric], columns=["epoch", column_name])
+            else:
+                df[column_name] = np.asarray(self.metrics["train"][metric])[:, 1]
+            df[f"val_{metric}"] = np.asarray(self.metrics["val"][metric])[:, 1]
+            df[f"test_{metric}"] = np.asarray(self.metrics["test"][metric])[:, 1]
+            max_value = df[f"test_{metric}"].max()
+            print(f"Max test {metric}", max_value)
+        if df is not None:
+            df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"metrics_{self.num_training_epochs_completed}.csv"), index=False)
 
     def evaluate(self,
                  data_iterator,
