@@ -160,7 +160,7 @@ def cluster_next_level_gmm(exp_config: ExperimentConfig,
             for i in range(10):
                 __indices = np.where((cluster_labels == cluster.id) &
                                      (df[cluster_column_name_2].values == i))[0]
-
+                df[f"confidence_level_2_{cluster.id}_{i}"] = 0
                 df[f"confidence_level_2_{cluster.id}_{i}"].iloc[_indices] = posterior_proba_level_2[:, i]
 
             image_filename = exp_config.ANALYSIS_PATH + f"cluster_centers__level_2_epoch_{epochs_completed}_cluster_id_{cluster.id}.png"
