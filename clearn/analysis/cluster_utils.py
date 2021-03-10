@@ -21,7 +21,7 @@ from clearn.analysis import ClusterGroup
 from clearn.analysis import ManualAnnotation
 from clearn.models.classify.classifier import ClassifierModel
 from clearn.experiments.experiment import get_model
-from clearn.utils.utils import get_pmf_y_given_z
+from clearn.utils.utils import get_pmf_y_given_z, get_latent_vector_column
 
 
 def trace_dim(f, num_trace_steps, dim, feature_dim, z_min, z_max):
@@ -126,6 +126,66 @@ def cluster_next_level(exp_config: ExperimentConfig,
     return None, None, None
 
 
+def cluster_next_level_gmm(exp_config: ExperimentConfig,
+                           df: DataFrame,
+                           cluster_column_name_2,
+                           cluster_labels,
+                           model_type,
+                           epochs_completed,
+                           dao: IDao,
+                           cluster_group_dict: Dict[str, ClusterGroup],
+                           cluster_type="unknown_cluster"
+                           ):
+    _, _, z_col_names, _ = get_latent_vector_column(exp_config.Z_DIM)
+    level2_manual_annotations = dict()
+    if cluster_type in cluster_group_dict.keys():
+        df[cluster_column_name_2] = -1
+        tf.reset_default_graph()
+        for cluster in cluster_group_dict[cluster_type]:
+            print(cluster.id)
+            _indices = np.where(cluster_labels == cluster.id)
+            _df = df.iloc[_indices]
+
+            _latent_vectors = _df[z_col_names].values
+            tf.reset_default_graph()
+            _decoded_images, _cluster_centers, _cluster_labels, posterior_proba_level_2 = cluster_and_decode_latent_vectors_gmm(
+                model_type,
+                10,
+                _latent_vectors,
+                exp_config,
+                dao
+            )
+            df[cluster_column_name_2].iloc[_indices] = _cluster_labels
+            print(posterior_proba_level_2.shape, _cluster_labels.shape)
+            for i in range(10):
+                __indices = np.where((cluster_labels == cluster.id) &
+                                     (df[cluster_column_name_2].values == i))[0]
+
+                df[f"confidence_level_2_{cluster.id}_{i}"].iloc[_indices] = posterior_proba_level_2[:, i]
+
+            image_filename = exp_config.ANALYSIS_PATH + f"cluster_centers__level_2_epoch_{epochs_completed}_cluster_id_{cluster.id}.png"
+
+            display_cluster_center_images(_decoded_images, image_filename, _cluster_centers)
+            # class_labels = widgets.Text(place_holder="-1,-1,-1,-1,-1,-1,-1,-1,-1,-1",
+            #     description="Labels")
+            # display(class_labels)
+            # labels_input = input("Enter the labels in above text box")
+            # print(validate_tokenize(labels_input, 10))
+
+            # confidence_input = input("Enter the confidence in above text box")
+            # print(validate_tokenize(confidence_input, 10))
+
+            level_2_cluster_dict = dict()
+            level_2_cluster_dict["cluster_centers"] = _cluster_centers.tolist()
+            level_2_cluster_dict["cluster_labels"] = _cluster_labels.tolist()
+            level_2_cluster_dict["posterier_prob"] = posterior_proba_level_2.tolist()
+            # level_2_cluster_dict["manual_labels"] = validate_tokenize_int(labels_input, 10)
+            # level_2_cluster_dict["manual_confidences"] = validate_tokenize_float(confidence_input, 10)
+            level2_manual_annotations[cluster.id] = level_2_cluster_dict
+
+    return level2_manual_annotations
+
+
 def plot_number_of_samples_vs_label(exp_config: ExperimentConfig,
                                     cluster_group_name: str,
                                     cluster_group: ClusterGroup,
@@ -211,8 +271,9 @@ def cluster_and_decode_latent_vectors_gmm(model_type: str,
     cluster_labels = gm.fit_predict(latent_vectors)
     cluster_centers = gm.means_
     decoded_images = decode_latent_vectors(model_type, cluster_centers, exp_config, dao)
+    posterior = gm.predict_proba(latent_vectors)
 
-    return decoded_images, cluster_centers, cluster_labels
+    return decoded_images, cluster_centers, cluster_labels, posterior
 
 
 def display_cluster_center_images(decoded_images,
@@ -234,6 +295,7 @@ def display_cluster_center_images(decoded_images,
     plt.savefig(image_filename,
                 bbox="tight",
                 pad_inches=0)
+    plt.show()
 
 
 # Given a cluster_num, return the cluster object and ClusterGroup which it belongs to
@@ -257,11 +319,13 @@ def assign_manual_label_and_confidence(df,
         _indices = np.where((np.asarray(cluster_labels) == cluster.id)
                             & (_df[cluster_column_name_2].values == _cluster.id))[0]
         _df["manual_annotation"].iloc[_indices] = _manual_label
-        dst = _distance_df.iloc[_indices]
         if estimate_type == "distance_function":
+            _distance_df = df[f"distance_level_2_{cluster.id}_{_cluster.id}"]
+            dst = _distance_df.iloc[_indices]
             _df["manual_annotation_confidence"].iloc[_indices] = _cluster.manual_annotation.confidence * dist_to_conf(dst)
             _df["distance_to_confidence"].iloc[_indices] = dist_to_conf(dst)
         elif estimate_type == "map":
+            _confidence_df = df[f"confidence_level_2_{cluster.id}_{_cluster.id}"]
             _df["manual_annotation_confidence"].iloc[_indices] = _cluster.manual_annotation.confidence * _confidence_df.iloc[_indices]
         if assign_only_correct:
             wrong_indices = (_df["manual_annotation"] == _manual_label) & (_df["label"] != _manual_label)
@@ -321,10 +385,11 @@ def assign_manual_label_and_confidence(df,
             _, cluster = get_cluster(annotate_cluster, cluster_group_dict)
             print(type(cluster.next_level_clusters))
             print(list(cluster.next_level_clusters.keys()))
+            print(cluster.id)
 
             for cluster_group_name, cluster_group in cluster.next_level_clusters.items():
                 for _cluster in cluster_group:
-                    _distance_df = df[f"distance_level_2_{cluster.id}_{_cluster.id}"]
+                    print(f"Second level cluster id {_cluster.id}")
                     _manual_label = _cluster.manual_annotation.label
                     print(f"********{_manual_label}*******")
                     if isinstance(_manual_label, tuple) or isinstance(_manual_label, list):
@@ -342,9 +407,9 @@ def assign_manual_label_and_confidence(df,
                         num_individual_samples_annotated += indices.shape[0]
                         df["manual_annotation"].iloc[indices] = df["label"][indices].values
                         df["manual_annotation_confidence"].iloc[indices] = 1
-
-                        _dist = _distance_df.iloc[indices]
-                        df["distance_to_confidence"].iloc[indices] = dist_to_conf(_dist)
+                        if estimate_type =="distance_function":
+                            _dist = _distance_df.iloc[indices]
+                            df["distance_to_confidence"].iloc[indices] = dist_to_conf(_dist)
         print("********************************")
 
     return num_individual_samples_annotated
