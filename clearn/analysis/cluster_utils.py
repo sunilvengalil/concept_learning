@@ -120,7 +120,7 @@ def cluster_next_level(exp_config: ExperimentConfig,
             df[cluster_column_name_2].iloc[_indices] = _cluster_labels
             image_filename = exp_config.ANALYSIS_PATH + f"cluster_centers__level_2_epoch_{epochs_completed}_cluster_id_{cluster.id}.png"
 
-            display_cluster_center_images(_decoded_images, image_filename, _cluster_centers)
+            display_images(_decoded_images, image_filename, _cluster_centers)
 
             return cluster, _cluster_centers, _cluster_labels
     return None, None, None
@@ -165,7 +165,7 @@ def cluster_next_level_gmm(exp_config: ExperimentConfig,
 
             image_filename = exp_config.ANALYSIS_PATH + f"cluster_centers__level_2_epoch_{epochs_completed}_cluster_id_{cluster.id}.png"
 
-            display_cluster_center_images(_decoded_images, image_filename, _cluster_centers)
+            display_images(_decoded_images, image_filename, _cluster_centers)
             # class_labels = widgets.Text(place_holder="-1,-1,-1,-1,-1,-1,-1,-1,-1,-1",
             #     description="Labels")
             # display(class_labels)
@@ -226,12 +226,12 @@ def plot_distance_distribution(df: DataFrame,
     plt.figure(figsize=(20, 8))
     for cluster_num in clusters:
         _df = get_samples_for_cluster(df, cluster_num, cluster_column_name)
-        col_name = "distance_{}".format(cluster_num)
+        col_name = f"distance_{cluster_num}"
         v, b = np.histogram(_df[col_name].values, bins=20, normed=False)
         v = v / np.sum(v)
         plt.plot(b[:-1], v, label=legend_string.format(cluster_num, manual_labels[cluster_num]))
         plt.xlabel("Distance from cluster center")
-        plt.ylabel("Number of samples")
+        plt.ylabel("Percentage of samples")
         plt.title("Distribution of distance from cluster center")
     plt.legend()
 
@@ -276,10 +276,10 @@ def cluster_and_decode_latent_vectors_gmm(model_type: str,
     return decoded_images, cluster_centers, cluster_labels, posterior
 
 
-def display_cluster_center_images(decoded_images,
-                                  image_filename,
-                                  cluster_centers
-                                  ):
+def display_images(decoded_images,
+                   image_filename,
+                   cluster_centers
+                   ):
     colormap = "Greys"
     fig = plt.figure()
     fig.tight_layout()
