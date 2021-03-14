@@ -278,18 +278,17 @@ def cluster_and_decode_latent_vectors_gmm(model_type: str,
 
 def display_images(decoded_images,
                    image_filename,
-                   cluster_centers
+                   title
                    ):
     colormap = "Greys"
     fig = plt.figure()
     fig.tight_layout()
     num_cols = 4
-    num_clusters = cluster_centers.shape[0]
-    num_rows = math.ceil(num_clusters / num_cols)
-    # fig.suptitle(
-    #     f"Decoded Cluster Centers. \nClustered the latent vectors of training set N_3={exp_config.num_units[2]}"
-    #     f" z_dim={exp_config.Z_DIM} run_id={run_id + 1}")
-    for i in range(cluster_centers.shape[0]):
+    num_images = decoded_images.shape[0]
+    print(num_images)
+    num_rows = math.ceil(num_images / num_cols)
+    fig.suptitle(title)
+    for i in range(num_images):
         ax = fig.add_subplot(num_rows, num_cols, i + 1)
         ax.imshow(np.squeeze(decoded_images[i]), cmap=colormap)
     plt.savefig(image_filename,
