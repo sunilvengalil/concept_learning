@@ -165,7 +165,7 @@ def cluster_next_level_gmm(exp_config: ExperimentConfig,
 
             image_filename = exp_config.ANALYSIS_PATH + f"cluster_centers__level_2_epoch_{epochs_completed}_cluster_id_{cluster.id}.png"
 
-            display_images(_decoded_images, image_filename, _cluster_centers)
+            display_images(_decoded_images, image_filename, "Reconstructed images for cluster center")
             # class_labels = widgets.Text(place_holder="-1,-1,-1,-1,-1,-1,-1,-1,-1,-1",
             #     description="Labels")
             # display(class_labels)
