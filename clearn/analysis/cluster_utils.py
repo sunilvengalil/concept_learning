@@ -120,7 +120,7 @@ def cluster_next_level(exp_config: ExperimentConfig,
             df[cluster_column_name_2].iloc[_indices] = _cluster_labels
             image_filename = exp_config.ANALYSIS_PATH + f"cluster_centers__level_2_epoch_{epochs_completed}_cluster_id_{cluster.id}.png"
 
-            display_images(_decoded_images, image_filename, _cluster_centers)
+            display_images(_decoded_images, image_filename, "Reconstructed images for cluster centers")
 
             return cluster, _cluster_centers, _cluster_labels
     return None, None, None
