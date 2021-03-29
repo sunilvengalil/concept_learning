@@ -95,7 +95,7 @@ def encode(model, images, batch_size, z_dim):
     num_images = images.shape[0]
     num_batches = num_images // batch_size
     for batch_num in range(num_batches):
-        mu, sigma, z = model.encode(images[batch_num * batch_size: (batch_num + 1) * batch_size])
+        mu, sigma, z, _ = model.encode(images[batch_num * batch_size: (batch_num + 1) * batch_size])
         latent_vectors[batch_num * batch_size: (batch_num + 1) * batch_size] = z
     left_out = num_images % batch_size
     if left_out != 0:
