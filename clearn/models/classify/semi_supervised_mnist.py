@@ -411,7 +411,7 @@ class SemiSupervisedClassifierMnist(VAE):
         return encoded_df
 
     def encode(self, images):
-        mu, sigma, z, y_pred = self.sess.run([self.mu, self.sigma, self.z],
+        mu, sigma, z, y_pred = self.sess.run([self.mu, self.sigma, self.z, self.y_pred],
                                              feed_dict={self.inputs: images})
         return mu, sigma, z, y_pred
 
