@@ -285,15 +285,17 @@ def display_images(decoded_images,
     fig.tight_layout()
     num_cols = 4
     num_images = decoded_images.shape[0]
-    print(num_images)
+    print(f"Number of images {num_images}")
     num_rows = math.ceil(num_images / num_cols)
     fig.suptitle(title)
     for i in range(num_images):
         ax = fig.add_subplot(num_rows, num_cols, i + 1)
         ax.imshow(np.squeeze(decoded_images[i]), cmap=colormap)
-    plt.savefig(image_filename,
-                bbox="tight",
-                pad_inches=0)
+    if image_filename is not None and len(image_filename) > 0:
+        print(f"Saving the image to {image_filename}")
+        plt.savefig(image_filename,
+                    bbox="tight",
+                    pad_inches=0)
     plt.show()
 
 
