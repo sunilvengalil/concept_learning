@@ -226,6 +226,22 @@ class SemiSupervisedClassifierMnist(VAE):
                 print("Saving check point", self.exp_config.TRAINED_MODELS_PATH)
                 self.save(self.exp_config.TRAINED_MODELS_PATH, self.counter)
 
+        train_val_data_iterator.reset_counter("val")
+        train_val_data_iterator.reset_counter("train")
+        self.evaluate(data_iterator=train_val_data_iterator,
+                      dataset_type="val")
+        self.evaluate(data_iterator=train_val_data_iterator,
+                      dataset_type="train")
+        if self.test_data_iterator is not None:
+            self.test_data_iterator.reset_counter("test")
+            self.evaluate(self.test_data_iterator, dataset_type="test")
+            self.test_data_iterator.reset_counter("test")
+
+        for metric in self.metrics_to_compute:
+            print(f"Accuracy: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
+            print(f"Accuracy: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
+            print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
+
         # save metrics
         df = None
         for i, metric in enumerate(self.metrics_to_compute):
@@ -306,6 +322,11 @@ class SemiSupervisedClassifierMnist(VAE):
             if len(nll_batch.shape) == 2:
                 num_pixels = self.dao.image_shape[0] * self.dao.image_shape[1]
                 mse = np.sum(nll_batch * num_pixels, axis=1) / num_pixels
+                # TODO fix this later
+                #print(f"Type of mse is {type(mse)}")
+                #print(f"shape mse = {mse.shape}")
+                if len(mse.shape) >= 1:
+                    mse = np.sum(mse)
 
             labels_predicted_for_batch = np.argmax(softmax(y_pred), axis=1)
             labels_for_batch = np.argmax(batch_labels, axis=1)
@@ -315,12 +336,18 @@ class SemiSupervisedClassifierMnist(VAE):
             Update priority queues for keeping top and bottom N samples for all the required metrics present save_policy
             """
             if save_images:
-                for policy in save_policies:
-                    policy_type = policy.split("_")[1]
-                    if "reconstruction_loss" in metrics:
-                        rp = RetentionPolicy(policy_type=policy_type, N=int(policy.split("_")[2]))
-                        rp.update_heap(mse, reconstructed_image)
-                        retention_policies.append(rp)
+                try:
+                    for policy in save_policies:
+                        policy_type = policy.split("_")[1]
+                        if "reconstruction_loss" in metrics:
+                            rp = RetentionPolicy(policy_type=policy_type, N=int(policy.split("_")[2]))
+                            if mse.shape >= 1:
+                                mse = np.sum(mse)
+                            rp.update_heap(mse, reconstructed_image)
+                            retention_policies.append(rp)
+                except:
+                    print(f"Shape of mse is {mse.shape}")
+
 
             if labels_predicted is None:
                 labels_predicted = labels_predicted_for_batch
@@ -382,6 +409,8 @@ class SemiSupervisedClassifierMnist(VAE):
                         for sample_num, e in enumerate(rp.data_queue[image_no: image_no + num_samples_per_image]):
                             samples_to_save[sample_num, :, :, :] = e[1]
                         save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file)
+
+
 
         data_iterator.reset_counter(dataset_type)
 
