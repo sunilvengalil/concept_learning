@@ -1,4 +1,5 @@
 from typing import *
+from math import log
 from sklearn.cluster import KMeans
 import tensorflow as tf
 import numpy as np
@@ -561,6 +562,7 @@ def get_manual_annotation_col_name(epochs_completed):
     epoch_col_label = f"manual_label_{int(epochs_completed)}"
     return epoch_col_confidence, epoch_col_label
 
+
 def get_overall_confidence(row, epochs_competed:List[int]):
     if len(epochs_competed) == 1:
         epoch_col_confidence, epoch_col_label = get_manual_annotation_col_name(epochs_competed[0])
@@ -587,3 +589,138 @@ def get_overall_label(row, epochs_competed:List[int]):
             return labels[max_index]
         else:
             return labels[-1]
+
+
+def convert_distance_to_confidence_exp(dist, a):
+    return np.exp(-1 / a * dist)
+
+
+def get_distance_exp(confidence, a):
+    return -a * log(confidence)
+
+
+def convert_distance_to_confidence(dist, a):
+    return np.exp(-1 / a * dist * dist)
+
+
+def get_percentage_correct(confidence, df):
+    df1 = df[df["manual_annotation_confidence"] > confidence]
+    if df1.shape[0] != 0:
+        df2 = df1[df1["manual_annotation"] == df1["label"]]
+        return df2.shape[0] / df1.shape[0]
+    else:
+        return 1
+
+
+def get_distance(confidence, a):
+    return math.sqrt(-a * log(confidence))
+
+
+def get_num_samples_wrongly_annotated(df):
+    df1 = df[df["manual_annotation_confidence"] > 0]
+    if df1.shape[0] >  0:
+        df2 = df1[df1["manual_annotation"] != df1["label"]]
+        return df2.shape[0]
+    else:
+        return 0
+
+
+def get_sum_confidence_wrong(df):
+    df1 = df[df["manual_annotation_confidence"] > 0]
+    if df1.shape[0] >  0:
+        df2 = df1[df1["manual_annotation"] != df1["label"]]
+        return df2["manual_annotation_confidence"].sum()
+    else:
+        return 0
+
+
+def process_second_level_clusters(df,
+                                  cluster_group_dict,
+                                  level2_manual_annotations,
+                                  z_col_names,
+                                  cluster_column_name_2,
+                                  cluster_column_name):
+    print("Setting  next_level_clusters attribute to each primary cluster")
+    for cluster_id in level2_manual_annotations.keys():
+        _cluster_centers = level2_manual_annotations[cluster_id]["cluster_centers"]
+        _cluster_labels = level2_manual_annotations[cluster_id]["cluster_labels"]
+
+        print(cluster_id)
+        level_2_cluster_dict = level2_manual_annotations[cluster_id]
+        _indices = np.where(df[cluster_column_name].values == cluster_id)
+        cluster_level_2_group_dict = get_cluster_groups(level_2_cluster_dict["manual_labels"],
+                                                        level_2_cluster_dict["manual_confidences"],
+                                                        "cluster_level_2",
+                                                        _cluster_centers,
+                                                        _cluster_labels,
+                                                        df,
+                                                        _indices
+                                                        )
+        _, cluster = get_cluster(cluster_id, cluster_group_dict)
+        cluster.set_next_level_clusters(cluster_level_2_group_dict)
+
+    print("Computing distances from second level cluster centers")
+    for cluster_id in level2_manual_annotations.keys():
+        _cluster_centers = level2_manual_annotations[cluster_id]["cluster_centers"]
+        _cluster_labels = level2_manual_annotations[cluster_id]["cluster_labels"]
+
+        print(cluster_id)
+
+        _, cluster = get_cluster(cluster_id, cluster_group_dict)
+        num_level_2_clusters = cluster.next_lever_cluster_count()
+        print(num_level_2_clusters)
+        compute_distance_level_2(df, num_level_2_clusters, df[cluster_column_name].values, z_col_names, cluster,
+                                 cluster_column_name_2)
+
+
+
+    # impure_cluster = None
+    # if "impure_cluster" in cluster_group_dict.keys():
+    #     for cluster in cluster_group_dict["impure_cluster"]:
+    #         print(cluster.id)
+    #         _indices =np.where( cluster_labels == cluster.id)
+    #         _df = df.iloc[_indices]
+    #         _latent_vectors = _df[z_col_names].values
+    #         _decoded_images, _cluster_centers, _cluster_labels = cluster_and_decode_latent_vectors(4,
+    #                                                                                             _latent_vectors,
+    #                                                                                             exp_config)
+    #         df[cluster_column_name_2].iloc[_indices] = _cluster_labels
+    #         image_filename = exp_config.ANALYSIS_PATH + f"cluster_centers__level_2_epoch_{epochs_completed}.png"
+
+    #         display_cluster_center_images(_decoded_images, image_filename, _cluster_centers)
+
+    #         print(_df.iloc[_cluster_labels == 1].shape)
+    #         print(_df.iloc[_cluster_labels == 0].shape)
+    #         impure_cluster = cluster
+
+    # level_2_cluster_dict = dict()
+    # if "impure_cluster" in cluster_group_dict.keys():
+    #     cluster_level_2_group_dict = get_cluster_groups(level_2_cluster_dict["manual_labels"],
+    #                                                     level_2_cluster_dict["manual_confidences"],
+    #                                                     "cluster_level_2",
+    #                                                     _cluster_centers,
+    #                                                     _cluster_labels,
+    #                                                     df,
+    #                                                     _indices
+    #                                                   )
+    #     impure_cluster.set_next_level_clusters(cluster_level_2_group_dict)
+
+    # if "impure_cluster" in cluster_group_dict.keys():
+
+    #     for cluster in cluster_group_dict["impure_cluster"]:
+    #         num_level_2_clusters = cluster.next_lever_cluster_count()
+    #         print(num_level_2_clusters)
+    #         for i in range(num_level_2_clusters):
+    #             df[f"distance_level_2_{cluster.id}_{i}"] = 100000
+    #         for level_2_cluster in cluster.next_level_clusters["good_clusters"]:
+    #             #print(level_2_cluster.id)
+    #             indices = np.where((np.asarray(cluster_labels) == cluster.id) & (df[cluster_column_name_2].values == level_2_cluster.id) )[0]
+    #             #level_2_indices = np.where(level_2_cluster.details["cluster_labels"] == level_2_cluster.id )
+    #             cluster_centers_level_2 = level_2_cluster.details["cluster_centers"]
+    #             print(level_2_cluster.id, indices.shape)
+    #             df[f"distance_level_2_{cluster.id}_{level_2_cluster.id}"].iloc[indices] = df.iloc[indices].apply(lambda x:distance(x,
+    #                                                                                                                               cluster_centers_level_2,
+    #                                                                                                                               z_col_names), axis=1)
+
+
+
