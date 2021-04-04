@@ -101,14 +101,14 @@ class ExperimentConfig:
         # if ExperimentConfig._instance is not None:
         #     raise Exception("ExperimentConfig is singleton class. Use class method get_exp_config() instead")
         self.root_path = root_path
-        if len(num_units) != num_decoder_layer - 1:
-            print(num_units, num_decoder_layer)
-            raise ValueError("No of units should be same as number of layers minus one")
+        if len(num_units) < 2 or len(num_units) > 3 :
+            print(num_units)
+            raise ValueError("Length of num_units should be 2 or 3")
 
         # num_units.append(z_dim * 2)
         self.learning_rate = learning_rate
 
-        self.num_decoder_layer = num_decoder_layer
+        self.num_decoder_layer = len(num_units) + 1
         self.Z_DIM = z_dim
         self.num_units = num_units
         self.dataset_name = dataset_name

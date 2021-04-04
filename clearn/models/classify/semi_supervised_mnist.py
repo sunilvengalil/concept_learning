@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
+import traceback
 import os
 from collections import defaultdict
 from typing import List, DefaultDict
@@ -10,7 +11,7 @@ from statistics import mean
 
 from clearn.config.common_path import get_encoded_csv_file
 from clearn.dao.idao import IDao
-from clearn.models.architectures.custom.tensorflow_graphs import cnn_3_layer, deconv_3_layer
+from clearn.models.architectures.custom.tensorflow_graphs import cnn_3_layer, deconv_3_layer, cnn_2_layer, deconv_2_layer
 from clearn.models.classify.classifier import ClassifierModel
 from clearn.models.vae import VAE
 from clearn.utils import prior_factory as prior
@@ -61,7 +62,13 @@ class SemiSupervisedClassifierMnist(VAE):
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_test][metric] = []
 
     def _encoder(self, x, reuse=False):
-        gaussian_params = cnn_3_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
+        if len(self.exp_config.num_units) == 3 :
+            gaussian_params = cnn_3_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
+        elif len(self.exp_config.num_units) == 2:
+            gaussian_params = cnn_2_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
+        else:
+            raise Exception("Invalid configuration. Length of num_units should be 2 or 3")
+
         # The mu parameter is unconstrained
         mu = gaussian_params[:, :self.exp_config.Z_DIM]
         # The standard deviation must be positive. Parametrize with a softplus and
@@ -70,8 +77,14 @@ class SemiSupervisedClassifierMnist(VAE):
         return mu, stddev
 
     def _decoder(self, z, reuse=False):
+        if len(self.exp_config.num_units) == 3 :
+            return deconv_3_layer(self, z, reuse)
+        elif len(self.exp_config.num_units) == 2:
+            return deconv_2_layer(self, z, reuse)
+        else:
+            raise Exception("Invalid configuration. Length of num_units should be 2 or 3")
+
         # Models the probability P(X/z)
-        return deconv_3_layer(self, z, reuse)
 
     def get_decoder_weights_bias(self):
         name_w_1 = "decoder/de_fc1/Matrix:0"
@@ -325,8 +338,8 @@ class SemiSupervisedClassifierMnist(VAE):
                 # TODO fix this later
                 #print(f"Type of mse is {type(mse)}")
                 #print(f"shape mse = {mse.shape}")
-                if len(mse.shape) >= 1:
-                    mse = np.sum(mse)
+                if len(mse.shape) >= 2:
+                    mse = np.sum(mse, axis=1)
 
             labels_predicted_for_batch = np.argmax(softmax(y_pred), axis=1)
             labels_for_batch = np.argmax(batch_labels, axis=1)
@@ -341,12 +354,13 @@ class SemiSupervisedClassifierMnist(VAE):
                         policy_type = policy.split("_")[1]
                         if "reconstruction_loss" in metrics:
                             rp = RetentionPolicy(policy_type=policy_type, N=int(policy.split("_")[2]))
-                            if mse.shape >= 1:
-                                mse = np.sum(mse)
+                            if len(mse.shape) >= 2:
+                                mse = np.sum(mse, axis=1)
                             rp.update_heap(mse, reconstructed_image)
                             retention_policies.append(rp)
                 except:
                     print(f"Shape of mse is {mse.shape}")
+                    traceback.print_exc()
 
 
             if labels_predicted is None:

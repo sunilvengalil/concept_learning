@@ -197,7 +197,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             dao: IDao = None,
                                             distance_metric=ExperimentConfig.DISTANCE_EUCLIDEAN,
                                             clustering_alg=ExperimentConfig.CLUSTERING_K_MEANS,
-                                            confidence_decay_function=ExperimentConfig.CONFIDENCE_DECAY_FUNCTION_EXPONENTIAL
+                                            confidence_decay_function=ExperimentConfig.CONFIDENCE_DECAY_FUNCTION_EXPONENTIAL,
+                                            batch_size=64
                                             ):
     if dao is None:
         dao = get_dao(dataset_name, split_name, num_val_samples)
@@ -215,7 +216,7 @@ def initialize_model_train_and_get_features(experiment_name,
                                   dataset_name=dataset_name,
                                   split_name=split_name,
                                   model_name="VAE",
-                                  batch_size=64,
+                                  batch_size=batch_size,
                                   eval_interval_in_epochs=eval_interval_in_epochs,
                                   name=experiment_name,
                                   num_val_samples=num_val_samples,
