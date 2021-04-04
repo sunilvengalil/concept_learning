@@ -203,7 +203,7 @@ class ClassifierModel(Model):
                 if z is None:
                     z = z_for_batch
                 else:
-                    z = np.hstack([z, z_for_batch])
+                    z = np.vstack([z, z_for_batch])
             batch_no += 1
 
         if "accuracy" in self.metrics_to_compute:
@@ -212,9 +212,12 @@ class ClassifierModel(Model):
 
         encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
                                   columns=["label", "label_predicted"])
+
         if self.exp_config.return_latent_vector:
             mean_col_names, sigma_col_names, z_col_names, l3_col_names = get_latent_vector_column(self.exp_config.Z_DIM)
-            encoded_df[z_col_names] = z
+            for i, z_col_name in enumerate(z_col_names):
+                encoded_df[z_col_name] = z[:, i]
+
         if self.exp_config.write_predictions:
             output_csv_file = get_encoded_csv_file(self.exp_config,
                                                    self.num_training_epochs_completed,

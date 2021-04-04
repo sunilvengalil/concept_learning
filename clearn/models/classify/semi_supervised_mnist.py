@@ -11,7 +11,7 @@ from statistics import mean
 
 from clearn.config.common_path import get_encoded_csv_file
 from clearn.dao.idao import IDao
-from clearn.models.architectures.custom.tensorflow_graphs import cnn_3_layer, deconv_3_layer, cnn_2_layer, deconv_2_layer
+from clearn.models.architectures.custom.tensorflow_graphs import cnn_3_layer, deconv_3_layer, cnn_n_layer, deconv_n_layer
 from clearn.models.classify.classifier import ClassifierModel
 from clearn.models.vae import VAE
 from clearn.utils import prior_factory as prior
@@ -65,7 +65,7 @@ class SemiSupervisedClassifierMnist(VAE):
         if len(self.exp_config.num_units) == 3 :
             gaussian_params = cnn_3_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
         elif len(self.exp_config.num_units) == 2:
-            gaussian_params = cnn_2_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
+            gaussian_params = cnn_n_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
         else:
             raise Exception("Invalid configuration. Length of num_units should be 2 or 3")
 
@@ -80,7 +80,7 @@ class SemiSupervisedClassifierMnist(VAE):
         if len(self.exp_config.num_units) == 3 :
             return deconv_3_layer(self, z, reuse)
         elif len(self.exp_config.num_units) == 2:
-            return deconv_2_layer(self, z, reuse)
+            return deconv_n_layer(self, z, reuse)
         else:
             raise Exception("Invalid configuration. Length of num_units should be 2 or 3")
 
