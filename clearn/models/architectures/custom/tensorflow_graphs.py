@@ -3,26 +3,30 @@ import tensorflow as tf
 from clearn.utils.tensorflow_wrappers import conv2d, lrelu, linear, deconv2d
 
 
-def cnn_2_layer(model, x, num_out_units, reuse=False):
+def cnn_n_layer(model, x, num_out_units, reuse=False):
     # Encoder models the probability  P(z/X)
     w = dict()
     b = dict()
-    n = model.exp_config.num_units
+    n_units = model.exp_config.num_units
     layer_num = 0
     with tf.compat.v1.variable_scope("encoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
-            model.conv1 = lrelu(conv2d(x, n[layer_num], 3, 3, 2, 2, name='en_conv1'))
+            model.final_conv = lrelu(conv2d(x, n_units[layer_num], 3, 3, 2, 2, name='en_conv1'))
             layer_num += 1
-            model.reshaped_en = tf.reshape(model.conv1, [model.exp_config.BATCH_SIZE, -1])
-            model.dense2_en = lrelu(linear(model.reshaped_en, n[layer_num], scope='en_fc2'))
+            if len(n_units) > 2:
+                model.final_conv = lrelu((conv2d(model.final_conv, n_units[layer_num], 3, 3, 2, 2, name='en_conv2')))
+
+            model.reshaped_en = tf.reshape(model.final_conv, [model.exp_config.BATCH_SIZE, -1])
+            model.dense2_en = lrelu(linear(model.reshaped_en, n_units[layer_num], scope='en_fc2'))
         elif model.exp_config.activation_hidden_layer == "LINEAR":
-            model.conv1 = conv2d(x, n[layer_num], 3, 3, 2, 2, name='en_conv1')
+            model.final_conv = conv2d(x, n_units[layer_num], 3, 3, 2, 2, name='en_conv1')
             layer_num += 1
-            model.reshaped_en = tf.reshape(model.conv1, [model.exp_config.BATCH_SIZE, -1])
-            model.dense2_en = linear(model.reshaped_en, n[layer_num], scope='en_fc2')
+            if len(n_units) > 2:
+                model.final_conv = conv2d(model.final_conv, n_units[1], 3, 3, 2, 2, name='en_conv2')
+            model.reshaped_en = tf.reshape(model.final_conv, [model.exp_config.BATCH_SIZE, -1])
+            model.dense2_en = linear(model.reshaped_en, n_units[layer_num], scope='en_fc2')
         else:
             raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
-
         # with tf.control_dependencies([net_before_gauss]):
         z, w["en_fc3"], b["en_fc3"] = linear(model.dense2_en, num_out_units,
                                              scope='en_fc3',
@@ -30,32 +34,47 @@ def cnn_2_layer(model, x, num_out_units, reuse=False):
         return z
 
 
-def deconv_2_layer(model, z, reuse=False):
-    n = model.exp_config.num_units
-    layer_num = 0
+def deconv_n_layer(model, z, reuse=False):
+    n_units = model.exp_config.num_units
+    h,w = model.dao.image_shape
+    if len(n_units) > 2:
+        re_scale_factor = 4
+    else:
+        re_scale_factor = 2
     with tf.compat.v1.variable_scope("decoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
-            model.dense1_de = lrelu((linear(z, n[1], scope='de_fc1')))
-            model.dense2_de = lrelu((linear(model.dense1_de, n[0] * 14 * 14)))
-            model.reshaped_de = tf.reshape(model.dense2_de, [model.exp_config.BATCH_SIZE, 14, 14, n[0]])
-            # model.deconv1_de = lrelu(
-            #     deconv2d(model.reshaped_de, [model.exp_config.BATCH_SIZE, 14, 14, n[0]], 3, 3, 2, 2, name='de_dc3'))
+            layer_num = 1
+            model.dense1_de = lrelu((linear(z, n_units[len(n_units) - layer_num], scope='de_fc1')))
+            layer_num += 1
+
+            model.dense2_de = lrelu((linear(model.dense1_de, n_units[ len(n_units) - layer_num ] * h//re_scale_factor * w//re_scale_factor)))
+            model.reshaped_de = tf.reshape(model.dense2_de, [model.exp_config.BATCH_SIZE, h//re_scale_factor, w//re_scale_factor, n_units[len(n_units) - layer_num]])
+            if len(n_units) > 2:
+                layer_num += 1
+                re_scale_factor = re_scale_factor//2
+                model.deconv1_de = lrelu(
+                    deconv2d(model.reshaped_de, [model.exp_config.BATCH_SIZE, h//re_scale_factor, w//re_scale_factor, n_units[len(n_units) - layer_num]], 3, 3, 2, 2, name='de_dc3'))
             if model.exp_config.activation_output_layer == "SIGMOID":
                 out = tf.nn.sigmoid(
-                    deconv2d(model.reshaped_de, [model.exp_config.BATCH_SIZE, 28, 28, 1], 3, 3, 2, 2, name='de_dc3'))
+                    deconv2d(model.reshaped_de, [model.exp_config.BATCH_SIZE, h, w, 1], 3, 3, 2, 2, name='de_dc3'))
             elif model.exp_config.activation_output_layer == "LINEAR":
-                out = deconv2d(model.reshaped_de, [model.exp_config.BATCH_SIZE, 28, 28, 1], 3, 3, 2, 2, name='de_dc3')
+                out = deconv2d(model.reshaped_de, [model.exp_config.BATCH_SIZE, h, w, 1], 3, 3, 2, 2, name='de_dc3')
         elif model.exp_config.activation_hidden_layer == "LINEAR":
-            model.dense1_de = linear(z, n[2], scope='de_fc1')
-            model.dense2_de = linear(model.dense1_de, n[1] * 7 * 7)
-            model.reshaped_de = tf.reshape(model.dense2_de, [model.exp_config.BATCH_SIZE, 7, 7, n[1]])
-            # model.deconv1_de = deconv2d(model.reshaped_de, [model.exp_config.BATCH_SIZE, 14, 14, n[0]], 3, 3, 2, 2,
-            #                             name='de_dc3')
+            layer_num = 2
+            model.dense1_de = linear(z, n_units[layer_num], scope='de_fc1')
+            layer_num -= 1
+            model.dense2_de = linear(model.dense1_de, n_units[layer_num] * h//re_scale_factor * w//re_scale_factor)
+            model.reshaped_de = tf.reshape(model.dense2_de, [model.exp_config.BATCH_SIZE, h//re_scale_factor, w//re_scale_factor, n_units[1]])
+            if len(n_units) > 2:
+                layer_num -= 1
+                re_scale_factor = re_scale_factor//2
+                model.deconv1_de = deconv2d(model.reshaped_de, [model.exp_config.BATCH_SIZE, h//re_scale_factor * w//re_scale_factor, n_units[layer_num]], 3, 3, 2, 2,
+                                            name='de_dc3')
             if model.exp_config.activation_output_layer == "SIGMOID":
                 out = tf.nn.sigmoid(
-                    deconv2d(model.reshaped_de, [model.exp_config.BATCH_SIZE, 28, 28, 1], 3, 3, 2, 2, name='de_dc4'))
+                    deconv2d(model.reshaped_de, [model.exp_config.BATCH_SIZE, h, w, 1], 3, 3, 2, 2, name='de_dc4'))
             elif model.exp_config.activation_output_layer == "LINEAR":
-                out = deconv2d(model.reshaped_de, [model.exp_config.BATCH_SIZE, 28, 28, 1], 3, 3, 2, 2, name='de_dc4')
+                out = deconv2d(model.reshaped_de, [model.exp_config.BATCH_SIZE, h, w, 1], 3, 3, 2, 2, name='de_dc4')
         else:
             raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
         # out = lrelu(deconv2d(deconv1, [self.exp_config.BATCH_SIZE, 28, 28, 1], 3, 3, 2, 2, name='de_dc4'))
@@ -66,21 +85,21 @@ def cnn_3_layer(model, x, num_out_units, reuse=False):
     # Encoder models the probability  P(z/X)
     w = dict()
     b = dict()
-    n = model.exp_config.num_units
+    n_units = model.exp_config.num_units
+    n = len(n_units)
     with tf.compat.v1.variable_scope("encoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
-            model.conv1 = lrelu(conv2d(x, n[0], 3, 3, 2, 2, name='en_conv1'))
-            model.conv2 = lrelu((conv2d(model.conv1, n[1], 3, 3, 2, 2, name='en_conv2')))
+            model.conv1 = lrelu(conv2d(x, n_units[0], 3, 3, 2, 2, name='en_conv1'))
+            model.conv2 = lrelu((conv2d(model.conv1, n_units[1], 3, 3, 2, 2, name='en_conv2')))
             model.reshaped_en = tf.reshape(model.conv2, [model.exp_config.BATCH_SIZE, -1])
-            model.dense2_en = lrelu(linear(model.reshaped_en, n[2], scope='en_fc3'))
+            model.dense2_en = lrelu(linear(model.reshaped_en, n_units[2], scope='en_fc3'))
         elif model.exp_config.activation_hidden_layer == "LINEAR":
-            model.conv1 = conv2d(x, n[0], 3, 3, 2, 2, name='en_conv1')
-            model.conv2 = (conv2d(model.conv1, n[1], 3, 3, 2, 2, name='en_conv2'))
+            model.conv1 = conv2d(x, n_units[0], 3, 3, 2, 2, name='en_conv1')
+            model.conv2 = (conv2d(model.conv1, n_units[1], 3, 3, 2, 2, name='en_conv2'))
             model.reshaped_en = tf.reshape(model.conv2, [model.exp_config.BATCH_SIZE, -1])
-            model.dense2_en = linear(model.reshaped_en, n[2], scope='en_fc3')
+            model.dense2_en = linear(model.reshaped_en, n_units[2], scope='en_fc3')
         else:
             raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
-
         # with tf.control_dependencies([net_before_gauss]):
         z, w["en_fc4"], b["en_fc4"] = linear(model.dense2_en, num_out_units,
                                              scope='en_fc4',
