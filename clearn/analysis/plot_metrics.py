@@ -51,14 +51,37 @@ def plot_z_dim_vs_accuracy(root_path: str,
                                       )
         exp_config.check_and_create_directories(run_id, False)
         file_prefix = "/train_accuracy_*.csv"
-        train_epochs, _train_accuracies = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
+        df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
+        if df is not None:
+            _train_accuracies = df["accuracy"].values
+        else:
+            # Try older version of accuracy file
+            file_prefix = "/accuracy_*.csv"
+            df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
+            if df is not None:
+                _train_accuracies = df["train_accuracy"].values
+                _val_accuracies = df["val_accuracy"].values
+            else:
+                raise Exception(f"File does not exist {exp_config.ANALYSIS_PATH + file_prefix}")
         max_accuracy = np.max(_train_accuracies)
         max_index = np.argmax(_train_accuracies)
         training_accuracies.append(max_accuracy)
 
         exp_config.check_and_create_directories(run_id)
+
         file_prefix = "/val_accuracy_*.csv"
-        val_epochs, _val_accuracies = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
+
+        df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
+        if df is not None:
+            _val_accuracies = df["accuracy"].values
+        else:
+            # Try older version of accuracy file
+            file_prefix = "/accuracy_*.csv"
+            df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
+            if df is not None:
+                _val_accuracies = df["val_accuracy"].values
+            else:
+                raise Exception(f"File does not exist {exp_config.ANALYSIS_PATH + file_prefix}")
         max_accuracy = np.max(_val_accuracies)
         max_index = np.argmax(_val_accuracies)
         validation_accuracies.append(max_accuracy)
@@ -92,14 +115,14 @@ def plot_epoch_vs_metric(root_path: str,
                          num_cluster_config: str,
                          z_dim: int,
                          run_id: int,
-                         dataset_types: List[str]=["train", "test"],
+                         dataset_types: List[str] = ["train", "test"],
                          activation_output_layer="SIGMOID",
                          dataset_name="mnist",
                          split_name="Split_1",
                          batch_size=64,
                          num_val_samples=128,
                          num_decoder_layer=4,
-                         metrics: List[str]=["accuracy"],
+                         metrics: List[str] = ["accuracy"],
                          legend_loc="best",
                          show_sample_images=True
                          ):
@@ -131,7 +154,7 @@ def plot_epoch_vs_metric(root_path: str,
     ax = [None] * len(metrics)
     plots = [None] * (len(metrics) * len(dataset_types))
     plot_number = 0
-    fig = plt.figure(figsize=[20,10])
+    fig = plt.figure(figsize=[20, 10])
     for i, metric in enumerate(metrics):
         if i == 0:
             main_axis = plt.subplot(1, 2, 1)
@@ -148,16 +171,16 @@ def plot_epoch_vs_metric(root_path: str,
         plt.ylabel(metric.title())
         plt.xlabel("Epochs")
     if show_sample_images:
-      im_ax = plt.subplot(1,2,2)
-      _num_epochs_trained = df["epoch"].max()
-      _num_batches_train = dao.number_of_training_samples // exp_config.BATCH_SIZE
+        im_ax = plt.subplot(1, 2, 2)
+        _num_epochs_trained = df["epoch"].max()
+        _num_batches_train = dao.number_of_training_samples // exp_config.BATCH_SIZE
 
-      reconstructed_dir = get_eval_result_dir(exp_config.PREDICTION_RESULTS_PATH,
-                                              _num_epochs_trained,
-                                              _num_batches_train)
-      print(reconstructed_dir)
-      sample_image = cv2.imread(reconstructed_dir + "/im_0.png")
-      im_ax.imshow( sample_image )
+        reconstructed_dir = get_eval_result_dir(exp_config.PREDICTION_RESULTS_PATH,
+                                                _num_epochs_trained,
+                                                _num_batches_train)
+        print(reconstructed_dir)
+        sample_image = cv2.imread(reconstructed_dir + "/im_0.png")
+        im_ax.imshow(sample_image)
 
     main_axis.legend(handles=plots,
                      labels=[l.get_label() for l in plots],
@@ -187,9 +210,10 @@ def plot_hidden_units_accuracy_layerwise(root_path: str,
     dao = get_dao(dataset_name, split_name, num_val_samples)
     for dataset_name in dataset_types:
         plt.figure()
-
         plt.xlabel("Hidden Units")
-        plt.ylabel("Max Accuracy")
+        plt.ylabel(f"Max Accuracy({dataset_name})")
+        # key is number of units in layer layer_num
+        # value is list with total number of unit in subsequent layers for different configurations
         accuracies = dict()
         num_epochs_trained = -1
         for num_unit in num_units:
@@ -247,7 +271,7 @@ def plot_hidden_units_accuracy_layerwise(root_path: str,
 
         plt.legend(loc='lower right', shadow=True, fontsize='x-large')
 
-        plt.title(f"Number of epochs trained {num_epochs_trained} Fixed units ={fixed_layers}")
+        plt.title(f"Number of epochs trained {num_epochs_trained}. Fixed units ={fixed_layers}")
 
     plt.legend(loc='lower right', shadow=True, fontsize='x-large')
     plt.grid()
