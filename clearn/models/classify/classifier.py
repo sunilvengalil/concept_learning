@@ -175,11 +175,6 @@ class ClassifierModel(Model):
                 print("Max test accuracy", max_accuracy)
 
     def evaluate(self, data_iterator, dataset_type="train", num_batches_train=0, save_images=True):
-        if num_batches_train == 0:
-            num_batches_train = self.num_batches_train
-        print(
-            f"Running evaluation after epoch:{self.num_training_epochs_completed} and step:{self.num_steps_completed} ")
-
         labels_predicted = None
         labels = None
         z = None
