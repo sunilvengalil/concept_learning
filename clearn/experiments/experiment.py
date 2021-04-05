@@ -199,7 +199,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             distance_metric=ExperimentConfig.DISTANCE_EUCLIDEAN,
                                             clustering_alg=ExperimentConfig.CLUSTERING_K_MEANS,
                                             confidence_decay_function=ExperimentConfig.CONFIDENCE_DECAY_FUNCTION_EXPONENTIAL,
-                                            batch_size=64
+                                            batch_size=64,
+                                            return_latent_vector=True
                                             ):
     if dao is None:
         dao = get_dao(dataset_name, split_name, num_val_samples)
@@ -235,7 +236,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                   budget=budget,
                                   confidence_decay_function=confidence_decay_function,
                                   distance_metric=distance_metric,
-                                  clustering_alg=clustering_alg
+                                  clustering_alg=clustering_alg,
+                                  return_latent_vector=return_latent_vector
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)

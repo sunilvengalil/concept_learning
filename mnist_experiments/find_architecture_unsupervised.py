@@ -1,5 +1,5 @@
 import tensorflow as tf
-from clearn.experiments.experiment import initialize_model_train_and_get_features
+from clearn.experiments.experiment import initialize_model_train_and_get_features, MODEL_TYPE_VAE_UNSUPERVISED
 
 experiment_name = "find_architecture_unsup"
 root_path = "/Users/sunilv/concept_learning_exp/"
@@ -29,5 +29,8 @@ for num_unit in num_unit_list:
                                                 model_save_interval=10,
                                                 run_evaluation_during_training=True,
                                                 eval_interval_in_epochs=1,
-                                                model_type="VAE")
+                                                model_type=MODEL_TYPE_VAE_UNSUPERVISED,
+                                                return_latent_vector=False,
+                                                write_predictions=False
+                                                )
         tf.reset_default_graph()
