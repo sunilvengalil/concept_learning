@@ -36,7 +36,7 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
 
 def deconv_n_layer(model, z, reuse=False):
     n_units = model.exp_config.num_units
-    h,w = model.dao.image_shape
+    h, w = model.dao.image_shape[0], model.dao.image_shape[1]
     if len(n_units) > 2:
         re_scale_factor = 4
     else:

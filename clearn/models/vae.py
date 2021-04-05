@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
+
+import traceback
+from typing import DefaultDict, List
+from collections import defaultdict
 import os
 import numpy as np
 import pandas as pd
@@ -8,9 +12,10 @@ from statistics import mean
 from clearn.config import ExperimentConfig
 from clearn.config.common_path import get_encoded_csv_file
 from clearn.dao.idao import IDao
-from clearn.models.architectures.custom.tensorflow_graphs import cnn_3_layer, deconv_3_layer
+from clearn.models.architectures.custom.tensorflow_graphs import cnn_n_layer, deconv_n_layer
 from clearn.models.generative_model import GenerativeModel
 from clearn.utils import prior_factory as prior
+from clearn.utils.retention_policy.policy import RetentionPolicy
 from clearn.utils.utils import save_image, save_single_image, get_latent_vector_column
 from clearn.utils.dir_utils import get_eval_result_dir
 
@@ -25,7 +30,6 @@ class VAE(GenerativeModel):
                  sess,
                  epoch,
                  dao: IDao,
-                 train_val_data_iterator=None,
                  test_data_iterator=None,
                  read_from_existing_checkpoint=True,
                  check_point_epochs=None,
@@ -60,7 +64,7 @@ class VAE(GenerativeModel):
 
     #   Gaussian Encoder
     def _encoder(self, x, reuse=False):
-        gaussian_params = cnn_3_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
+        gaussian_params = cnn_n_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
         # The mean parameter is unconstrained
         mean = gaussian_params[:, :self.exp_config.Z_DIM]
         # The standard deviation must be positive. Parametrize with a softplus and
@@ -70,7 +74,7 @@ class VAE(GenerativeModel):
 
     # Bernoulli decoder
     def _decoder(self, z, reuse=False):
-        out = deconv_3_layer(self, z, reuse)
+        out = deconv_n_layer(self, z, reuse)
         return out
 
     def inference(self):
@@ -154,6 +158,9 @@ class VAE(GenerativeModel):
 
         for epoch in range(start_epoch, self.epoch):
             # get batch data
+            mean_nll = 0
+            variance_nll = 0
+            num_samples_processed = 0
             for batch in range(start_batch_id, self.num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
@@ -163,17 +170,24 @@ class VAE(GenerativeModel):
                 batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
                 # update autoencoder
-                _, summary_str, loss, nll_loss, kl_loss = self.sess.run( [self.optim,
+                _, summary_str, loss, nll_loss, kl_loss, marginal_ll = self.sess.run( [self.optim,
                                                                           self.merged_summary_op,
                                                                           self.loss,
                                                                           self.neg_loglikelihood,
-                                                                          self.KL_divergence],
+                                                                          self.KL_divergence,
+                                                                          self.marginal_likelihood
+                                                                                       ],
                                                                          feed_dict={self.inputs: batch_images,
                                                                                     self.standard_normal: batch_z})
-                # print(f"Epoch:{epoch} Batch:{batch}  loss={loss} nll={nll_loss} kl_loss={kl_loss}")
+                marginal_ll = -marginal_ll
+                sum_nll_batch =  np.mean(marginal_ll) * self.exp_config.BATCH_SIZE
+                mean_nll = (mean_nll * num_samples_processed + sum_nll_batch) /(num_samples_processed + self.exp_config.BATCH_SIZE)
                 self.counter += 1
                 self.num_steps_completed = batch + 1
-                self.writer.add_summary(summary_str, self.counter - 1)
+                num_samples_processed = self.num_steps_completed * self.exp_config.BATCH_SIZE
+                print(f"Epoch:{epoch} Batch:{batch}  loss={loss} nll={nll_loss} kl_loss={kl_loss} batch_mean_nll={np.mean(marginal_ll)}  overall_mean_nll={mean_nll} Number of samples completed ={num_samples_processed}")
+
+                #self.writer.add_summary(summary_str, self.counter - 1)
             self.num_training_epochs_completed = epoch + 1
             print(f"Completed {epoch} epochs")
             if self.exp_config.run_evaluation_during_training:
@@ -213,12 +227,19 @@ class VAE(GenerativeModel):
                 max_value = df[f"test_{metric}"].max()
                 print(f"Max test {metric}", max_value)
 
-    def evaluate(self, data_iterator, dataset_type="train", num_batches_train=0, save_images=True ):
+    def evaluate(self, data_iterator, dataset_type="train", num_batches_train=0, save_images=True,
+                 metrics=[],
+                 save_policies=("TEST_TOP_128", "TEST_BOTTOM_128",
+                                "TRAIN_TOP_128", "TRAIN_BOTTOM_128",
+                                "VAL_TOP_128", "VAL_BOTTOM_128")
+                                ):
+        if metrics is None or len(metrics) == 0:
+            metrics = self.metrics_to_compute
         if num_batches_train == 0:
             num_batches_train = self.exp_config.BATCH_SIZE
         print(f"Running evaluation after epoch:{self.num_training_epochs_completed} and step:{self.num_steps_completed} ")
         start_eval_batch = 0
-        reconstructed_images = []
+        reconstructed_images: DefaultDict[str, List] = defaultdict()
         num_eval_batches = data_iterator.get_num_samples(dataset_type) // self.exp_config.BATCH_SIZE
         manifold_w = 4
         tot_num_samples = min(self.sample_num, self.exp_config.BATCH_SIZE)
@@ -228,28 +249,65 @@ class VAE(GenerativeModel):
         z = None
         data_iterator.reset_counter(dataset_type)
         reconstruction_losses = []
+        retention_policies: List[RetentionPolicy] = list()
         for batch_no in range(start_eval_batch, num_eval_batches):
-            batch_eval_images, batch_labels, manual_labels = data_iterator.get_next_batch(dataset_type)
-            if batch_eval_images.shape[0] < self.exp_config.BATCH_SIZE:
+            batch_images, batch_labels, manual_labels = data_iterator.get_next_batch(dataset_type)
+            # skip last batch
+            if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                 data_iterator.reset_counter(dataset_type)
                 break
             batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
-            reconstructed_image, summary, reconstruction_loss, mu_for_batch, sigma_for_batch, z_for_batch = self.sess.run([self.out,
-                                                                                                                           self.merged_summary_op,
-                                                                                                                           self.neg_loglikelihood,
-                                                                                                     self.mu,
-                                                                                                     self.sigma,
-                                                                                                     self.z
-                                                                                                      ],
-                                                                                                     feed_dict={
-                                                                                                         self.inputs: batch_eval_images,
-                                                                                                         self.standard_normal: batch_z
-                                                                                                     }
-                                                                                                     )
-            reconstruction_losses.append(reconstruction_loss)
+            reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, nll, nll_batch = self.sess.run(
+                [self.out,
+                 self.merged_summary_op,
+                 self.mu,
+                 self.sigma,
+                 self.z,
+                 self.neg_loglikelihood,
+                 self.marginal_likelihood
+                 ],
+                feed_dict={
+                    self.inputs: batch_images,
+                    self.standard_normal: batch_z})
+            nll_batch = -nll_batch
+            reconstruction_losses.append(nll)
+            print(f"nll {nll.shape}  marginal_ll:{nll_batch.shape}")
+            if len(nll_batch.shape) == 0:
+                data_iterator.reset_counter(dataset_type)
+                print(f"Skipping batch {batch_no}. Investigate and fix this issue later")
+                print(
+                    f"Length of batch_images: {batch_images.shape} Nll_batch: {nll_batch} Nll shape: {nll.shape} Nll:{nll} ")
+                break
+            if len(nll_batch.shape) == 2:
+                num_pixels = self.dao.image_shape[0] * self.dao.image_shape[1]
+                mse = np.sum(nll_batch * num_pixels, axis=1) / num_pixels
+                # TODO fix this later
+                #print(f"Type of mse is {type(mse)}")
+                #print(f"shape mse = {mse.shape}")
+                if len(mse.shape) >= 2:
+                    mse = np.sum(mse, axis=1)
+            reconstruction_losses.append(nll)
+
+            """
+            Update priority queues for keeping top and bottom N samples for all the required metrics present save_policy
+            """
+            if save_images:
+                try:
+                    for policy in save_policies:
+                        policy_type = policy.split("_")[1]
+                        if "reconstruction_loss" in metrics:
+                            rp = RetentionPolicy(policy_type=policy_type, N=int(policy.split("_")[2]))
+                            if len(mse.shape) >= 2:
+                                mse = np.sum(mse, axis=1)
+                            rp.update_heap(mse, reconstructed_image)
+                            retention_policies.append(rp)
+                except:
+                    print(f"Shape of mse is {mse.shape}")
+                    traceback.print_exc()
+
             if self.exp_config.return_latent_vector:
-                if mu is None:
+                if z is None:
                     mu = mu_for_batch
                     sigma = sigma_for_batch
                     z = z_for_batch
@@ -259,16 +317,18 @@ class VAE(GenerativeModel):
                     z = np.vstack([z, z_for_batch])
 
             training_batch = self.num_training_epochs_completed * num_batches_train + self.num_steps_completed
-            if dataset_type != "train" and save_images:
-                save_single_image(reconstructed_image,
-                                  self.exp_config.reconstructed_images_path,
-                                  self.num_training_epochs_completed,
-                                  self.num_steps_completed,
-                                  training_batch,
-                                  batch_no,
-                                  self.exp_config.BATCH_SIZE)
+            # if dataset_type != "train" and save_images:
+            #     save_single_image(reconstructed_image,
+            #                       self.exp_config.reconstructed_images_path,
+            #                       self.num_training_epochs_completed,
+            #                       self.num_steps_completed,
+            #                       training_batch,
+            #                       batch_no,
+            #                       self.exp_config.BATCH_SIZE)
             self.writer_v.add_summary(summary, self.counter)
-            reconstructed_images.append(reconstructed_image[:manifold_h * manifold_w, :, :, :])
+        for rp, policy in zip(retention_policies, save_policies):
+            reconstructed_images[policy] = retention_policies
+
 
         # if "accuracy" in self.metrics_to_compute:
         #     # accuracy = accuracy_score(labels, labels_predicted)
@@ -278,14 +338,34 @@ class VAE(GenerativeModel):
             reconstruction_loss = mean(reconstruction_losses)
             self.metrics[dataset_type]["reconstruction_loss"].append([self.num_training_epochs_completed, reconstruction_loss])
 
-
-        if dataset_type != "train" and save_images:
+        if save_images:
             reconstructed_dir = get_eval_result_dir(self.exp_config.PREDICTION_RESULTS_PATH,
                                                     self.num_training_epochs_completed,
                                                     self.num_steps_completed)
-            for batch_no in range(start_eval_batch, num_eval_batches):
-                file = "im_" + str(batch_no) + ".png"
-                save_image(reconstructed_images[batch_no], [manifold_h, manifold_w], reconstructed_dir + file)
+            num_samples_per_image = 64
+            for rp, save_policy in zip(retention_policies, save_policies):
+                manifold_w = 4
+                manifold_h = num_samples_per_image // manifold_w
+                num_images = rp.N // num_samples_per_image
+                if dataset_type.upper() == save_policy.split("_")[0].upper():
+                    for image_no in range(num_images):
+                        file = f"{dataset_type}_{rp.policy_type}_{image_no}.png"
+                        samples_to_save = np.zeros((num_samples_per_image,
+                                                    self.dao.image_shape[0],
+                                                    self.dao.image_shape[1],
+                                                    self.dao.image_shape[2]))
+                        for sample_num, e in enumerate(rp.data_queue[image_no: image_no + num_samples_per_image]):
+                            samples_to_save[sample_num, :, :, :] = e[1]
+                        save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file)
+
+
+        # if dataset_type != "train" and save_images:
+        #     reconstructed_dir = get_eval_result_dir(self.exp_config.PREDICTION_RESULTS_PATH,
+        #                                             self.num_training_epochs_completed,
+        #                                             self.num_steps_completed)
+        #     for batch_no in range(start_eval_batch, num_eval_batches):
+        #         file = "im_" + str(batch_no) + ".png"
+        #         save_image(reconstructed_images[batch_no], [manifold_h, manifold_w], reconstructed_dir + file)
 
         data_iterator.reset_counter(dataset_type)
 
@@ -307,7 +387,8 @@ class VAE(GenerativeModel):
                                                    )
             print("Saving evaluation results to ", self.exp_config.ANALYSIS_PATH)
             encoded_df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, output_csv_file), index=False)
-        print("Evaluation completed")
+
+        return encoded_df
 
     @property
     def model_dir(self):

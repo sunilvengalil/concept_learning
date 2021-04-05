@@ -18,13 +18,14 @@ from clearn.config import ExperimentConfig
 from clearn.utils.utils import show_all_variables
 
 MODEL_TYPE_VAE_UNSUPERVISED = "VAE"
-MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10 = "VAE_UNSUPERVISED_CIFAR10"
+MODEL_TYPE_VAE_SEMI_SUPERVISED_MNIST = "VAE_SEMI_SUPERVISED_MNIST"
 MODEL_TYPE_SUPERVISED_CLASSIFIER = "CLASSIFIER_SUPERVISED"
+
+MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10 = "VAE_UNSUPERVISED_CIFAR10"
 VAAL_ARCHITECTURE_FOR_CIFAR = "ACTIVE_LEARNING_VAAL_CIFAR"
 CIFAR_VGG = "CIFAR_VGG"
 CIFAR10_F = "CIFAR10_F"
 MODEL_TYPE_VAE_SEMI_SUPERVISED_CIFAR10 = "VAE_SEMI_SUPERVISED_CIFAR10"
-MODEL_TYPE_VAE_SEMI_SUPERVISED_MNIST = "VAE_SEMI_SUPERVISED_MNIST"
 
 model_types = [MODEL_TYPE_VAE_UNSUPERVISED,
                MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10,
@@ -364,7 +365,6 @@ def get_model(dao: IDao,
                     sess=sess,
                     epoch=num_epochs,
                     dao=dao,
-                    train_val_data_iterator=train_val_data_iterator,
                     test_data_iterator=test_data_iterator,
                     check_point_epochs=check_point_epochs
                     )
@@ -373,7 +373,6 @@ def get_model(dao: IDao,
                                               sess=sess,
                                               epoch=num_epochs,
                                               dao=dao,
-                                              train_val_data_iterator=train_val_data_iterator,
                                               test_data_iterator=test_data_iterator,
                                               check_point_epochs=check_point_epochs
                                               )

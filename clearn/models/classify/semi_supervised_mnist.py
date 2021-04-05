@@ -34,7 +34,6 @@ class SemiSupervisedClassifierMnist(VAE):
                  sess,
                  epoch,
                  dao: IDao,
-                 train_val_data_iterator=None,
                  test_data_iterator=None,
                  read_from_existing_checkpoint=True,
                  check_point_epochs=None
@@ -46,7 +45,6 @@ class SemiSupervisedClassifierMnist(VAE):
                          sess=sess,
                          epoch=epoch,
                          dao=dao,
-                         train_val_data_iterator=train_val_data_iterator,
                          test_data_iterator=test_data_iterator,
                          read_from_existing_checkpoint=read_from_existing_checkpoint,
                          check_point_epochs=check_point_epochs)
@@ -325,6 +323,7 @@ class SemiSupervisedClassifierMnist(VAE):
                     self.standard_normal: batch_z})
 
             # print(f"Batch shape for nll {nll_batch.shape}")
+            nll_batch = -nll_batch
             reconstruction_losses.append(nll)
             if len(nll_batch.shape) == 0:
                 data_iterator.reset_counter(dataset_type)

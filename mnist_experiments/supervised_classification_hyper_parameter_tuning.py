@@ -55,21 +55,18 @@ if __name__ == '__main__':
     z_dim_range = [4, 30, 2]
     train_val_data_iterator = None
     model_type = MODEL_TYPE_SUPERVISED_CLASSIFIER
-    for num_units in [[64, 128, 32],
-                      [64, 64, 32],
-                      [64, 32, 32],
-                      [32, 32, 32],
-                      [32, 16, 32],
-                      [16, 16, 32],
-                      [8, 8, 32],
-                      [8, 4, 32],
-                      [4, 4, 32],
+    for num_units in [[64, 32],
+                      [32, 32],
+                      [16, 32],
+                      [8, 32],
+                      [4, 32],
+                      [2, 32],
                       ]:
         for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
-
             train_val_data_iterator, _, _ = initialize_model_train_and_get_features(experiment_name=experiment_name,
                                                                                     z_dim=z_dim,
                                                                                     run_id=run_id,
+                                                                                    batch_size=128,
                                                                                     create_split=create_split,
                                                                                     num_epochs=num_epochs,
                                                                                     num_cluster_config=num_cluster_config,
@@ -83,6 +80,7 @@ if __name__ == '__main__':
                                                                                     split_name="Split_70_30",
                                                                                     train_val_data_iterator=train_val_data_iterator,
                                                                                     num_val_samples=-1,
-                                                                                    write_predictions=False
+                                                                                    write_predictions=False,
+                                                                                    model_save_interval=4,
                                                                                     )
             tf.reset_default_graph()
