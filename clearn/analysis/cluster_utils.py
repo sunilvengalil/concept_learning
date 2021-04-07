@@ -296,7 +296,8 @@ def display_images(decoded_images,
         print(f"Saving the image to {image_filename}")
         plt.savefig(image_filename,
                     bbox="tight",
-                    pad_inches=0)
+                    pad_inches=0
+                    )
     plt.show()
 
 
