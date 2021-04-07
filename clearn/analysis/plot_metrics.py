@@ -22,13 +22,15 @@ def plot_z_dim_vs_accuracy(root_path: str,
                            activation_output_layer="SIGMOID",
                            dataset_name="mnist",
                            batch_size=64,
-                           num_decoder_layer=4
+                           num_decoder_layer=4,
+                           metric="accuracy",
+                           cumulative_function=np.max
                            ):
     dao = get_dao(dataset_name, split_name, num_val_samples)
     training_accuracies = []
     z_dims = []
     validation_accuracies = []
-    for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
+    for z_dim in z_dim_range:
         exp_config = ExperimentConfig(root_path=root_path,
                                       num_decoder_layer=num_decoder_layer,
                                       z_dim=z_dim,
@@ -50,40 +52,48 @@ def plot_z_dim_vs_accuracy(root_path: str,
                                       activation_output_layer=activation_output_layer
                                       )
         exp_config.check_and_create_directories(run_id, False)
-        file_prefix = "/train_accuracy_*.csv"
+        file_prefix = f"/train_{metric}_*.csv"
         df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
         if df is not None:
-            _train_accuracies = df["accuracy"].values
+            _train_accuracies = df[metric].values
         else:
             # Try older version of accuracy file
-            file_prefix = "/accuracy_*.csv"
+            file_prefix = f"/{metric}_*.csv"
             df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
             if df is not None:
-                _train_accuracies = df["train_accuracy"].values
-                _val_accuracies = df["val_accuracy"].values
+                if f"train_{metric}_mean" in df.columns:
+                    _train_accuracies = df[f"train_{metric}_mean"].values
+                    _val_accuracies = df[f"val_{metric}_mean"].values
+                else:
+                    _train_accuracies = df[f"train_{metric}"].values
+                    _val_accuracies = df[f"val_{metric}"].values
+
             else:
                 raise Exception(f"File does not exist {exp_config.ANALYSIS_PATH + file_prefix}")
-        max_accuracy = np.max(_train_accuracies)
-        max_index = np.argmax(_train_accuracies)
+        max_accuracy = cumulative_function(_train_accuracies)
+        # max_index = np.argmax(_train_accuracies)
         training_accuracies.append(max_accuracy)
 
         exp_config.check_and_create_directories(run_id)
 
-        file_prefix = "/val_accuracy_*.csv"
+        file_prefix = f"/val_{metric}_*.csv"
 
         df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
         if df is not None:
-            _val_accuracies = df["accuracy"].values
+            _val_accuracies = df[metric].values
         else:
             # Try older version of accuracy file
-            file_prefix = "/accuracy_*.csv"
+            file_prefix = f"/{metric}_*.csv"
             df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
             if df is not None:
-                _val_accuracies = df["val_accuracy"].values
+                if f"val_{metric}_mean" in df.columns:
+                    _val_accuracies = df[f"val_{metric}_mean"].values
+                else:
+                    _val_accuracies = df[f"val_{metric}"].values
             else:
                 raise Exception(f"File does not exist {exp_config.ANALYSIS_PATH + file_prefix}")
-        max_accuracy = np.max(_val_accuracies)
-        max_index = np.argmax(_val_accuracies)
+        max_accuracy = cumulative_function(_val_accuracies)
+        # max_index = np.argmax(_val_accuracies)
         validation_accuracies.append(max_accuracy)
 
         z_dims.append(z_dim)
@@ -92,7 +102,7 @@ def plot_z_dim_vs_accuracy(root_path: str,
     plt.plot(z_dims, validation_accuracies)
     plt.legend(["train", "Validation"])
     plt.xlabel("z_dim")
-    plt.ylabel("Accuracy")
+    plt.ylabel(metric.capitalize())
     plt.title(f"Num units {num_units} Training epochs {num_epochs}")
 
 
@@ -198,22 +208,30 @@ def plot_hidden_units_accuracy_layerwise(root_path: str,
                                          z_dim: int,
                                          run_id: int,
                                          dataset_types: List[str] = ["train", "test"],
-                                         activation_output_layer="SIGMOID",
                                          dataset_name="mnist",
                                          split_name="Split_1",
                                          batch_size=64,
                                          num_val_samples=128,
                                          num_decoder_layer=4,
                                          layer_num=0,
-                                         fixed_layers=[]
+                                         fixed_layers=[],
+                                         metric="accuracy",
+                                         cumulative_function="max"
                                          ):
+    if cumulative_function == "max":
+        function_to_cumulate = np.max
+        arg_function = np.argmax
+    elif cumulative_function == "min":
+        function_to_cumulate = np.min
+        arg_function = np.argmin
+    else:
+        raise Exception("Argument cumulative function should be either min or max")
     dao = get_dao(dataset_name, split_name, num_val_samples)
     for dataset_name in dataset_types:
-        plt.figure()
+        plt.figure(figsize=(18, 8))
+
         plt.xlabel("Hidden Units")
         plt.ylabel(f"Max Accuracy({dataset_name})")
-        # key is number of units in layer layer_num
-        # value is list with total number of unit in subsequent layers for different configurations
         accuracies = dict()
         num_epochs_trained = -1
         for num_unit in num_units:
@@ -224,6 +242,7 @@ def plot_hidden_units_accuracy_layerwise(root_path: str,
                         skip_this = True
                         break
                 if skip_this:
+                    print(f"Skipping num_units {num_unit}")
                     continue
 
             exp_config = ExperimentConfig(root_path=root_path,
@@ -243,21 +262,29 @@ def plot_hidden_units_accuracy_layerwise(root_path: str,
                                           total_training_samples=dao.number_of_training_samples,
                                           manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                                           reconstruction_weight=1,
-                                          activation_hidden_layer="RELU",
-                                          activation_output_layer=activation_output_layer
+                                          activation_hidden_layer="RELU"
                                           )
             exp_config.check_and_create_directories(run_id, False)
 
-            file_prefix = "/accuracy_*.csv"
+            file_prefix = f"/{metric}*.csv"
             df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
-            print(df.shape, df[f"{dataset_name}_accuracy"].max())
+            metric_col_name = f"{dataset_name}_{metric}_mean"
+            if metric_col_name not in df.columns:
+                metric_col_name = f"{dataset_name}_{metric}"
+
+            metric_values = df[metric_col_name].values
             if num_unit[layer_num] in accuracies:
                 accuracies[num_unit[layer_num]].append([sum(num_unit[layer_num + 1:]),
-                                                        df[f"{dataset_name}_accuracy"].max()])
+                                                        float(function_to_cumulate( metric_values)),
+                                                        int(arg_function(metric_values))
+                                                        ]
+                                                       )
             else:
                 accuracies[num_unit[layer_num]] = [[sum(num_unit[layer_num + 1:]),
-                                                    df[f"{dataset_name}_accuracy"].max()]]
-
+                                                    float(function_to_cumulate(metric_values)),
+                                                    int(arg_function(metric_values))
+                                                    ]
+                                                   ]
             _num_epochs_trained = df["epoch"].max() + 1
             if num_epochs_trained == -1:
                 num_epochs_trained = _num_epochs_trained
@@ -268,9 +295,7 @@ def plot_hidden_units_accuracy_layerwise(root_path: str,
         for layer_0_units in accuracies.keys():
             x_y = np.asarray(accuracies[layer_0_units])
             plt.scatter(x_y[:, 0], x_y[:, 1], label=f"Units in layer {layer_num} {layer_0_units}")
-
         plt.legend(loc='lower right', shadow=True, fontsize='x-large')
-
         plt.title(f"Number of epochs trained {num_epochs_trained}. Fixed units ={fixed_layers}")
 
     plt.legend(loc='lower right', shadow=True, fontsize='x-large')
@@ -336,3 +361,59 @@ def plot_accuracy_multiple_runs(root_path: str,
     plt.plot(accuracies)
 
     return accuracies
+
+
+def plot_epoch_vs_accuracy(root_path: str,
+                           experiment_name: str,
+                           num_units: List[int],
+                           num_cluster_config: str,
+                           z_dim: int,
+                           run_id: int,
+                           dataset_types: List[str] = ["train", "test"],
+                           activation_output_layer="SIGMOID",
+                           dataset_name="mnist",
+                           split_name="Split_1",
+                           batch_size=64,
+                           num_val_samples=128,
+                           num_decoder_layer=4,
+                           metric="accuracy",
+                           legend_loc="best"
+                           ):
+    dao = get_dao(dataset_name, split_name, num_val_samples)
+    exp_config = ExperimentConfig(root_path=root_path,
+                                  num_decoder_layer=num_decoder_layer,
+                                  z_dim=z_dim,
+                                  num_units=num_units,
+                                  num_cluster_config=num_cluster_config,
+                                  confidence_decay_factor=5,
+                                  beta=5,
+                                  supervise_weight=1,
+                                  dataset_name=dataset_name,
+                                  split_name=split_name,
+                                  model_name="VAE",
+                                  batch_size=batch_size,
+                                  name=experiment_name,
+                                  num_val_samples=num_val_samples,
+                                  total_training_samples=dao.number_of_training_samples,
+                                  manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
+                                  reconstruction_weight=1,
+                                  activation_hidden_layer="RELU",
+                                  activation_output_layer=activation_output_layer
+                                  )
+    exp_config.check_and_create_directories(run_id)
+
+    file_prefix = f"/{metric}_*.csv"
+    print(exp_config.ANALYSIS_PATH + file_prefix)
+    df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
+    print(df.shape)
+    for dataset_name in dataset_types:
+        print(dataset_name)
+        if f"{dataset_name}_{metric}_mean" in df.columns:
+          plt.plot(df["epoch"], df[f"{dataset_name}_{metric}_mean"], label=f"{dataset_name}_z_dim_{z_dim}")
+        else:
+          plt.plot(df["epoch"], df[f"{dataset_name}_{metric}"], label=f"{dataset_name}_z_dim_{z_dim}")
+    plt.xlabel("Epochs")
+    plt.ylabel(metric.capitalize())
+    plt.legend(loc=legend_loc, shadow=True, fontsize='x-large')
+    plt.title(f"Number of units {num_units}")
+    plt.grid()
