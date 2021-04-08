@@ -326,7 +326,7 @@ class VAE(GenerativeModel):
             #                       training_batch,
             #                       batch_no,
             #                       self.exp_config.BATCH_SIZE)
-            self.writer_v.add_summary(summary, self.counter)
+            # self.writer_v.add_summary(summary, self.counter)
         for rp, policy in zip(retention_policies, save_policies):
             reconstructed_images[policy] = retention_policies
 
@@ -375,7 +375,7 @@ class VAE(GenerativeModel):
 
             for i, z_col_name in enumerate(z_col_names):
                 encoded_df[z_col_name] = z[:, i]
-
+        print("Write predictions",self.exp_config.write_predictions)
         if self.exp_config.write_predictions:
             output_csv_file = get_encoded_csv_file(self.exp_config,
                                                    self.num_training_epochs_completed,

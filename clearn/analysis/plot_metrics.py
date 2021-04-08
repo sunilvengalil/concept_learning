@@ -3,6 +3,7 @@ import glob
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 import cv2
 
 from clearn.config import ExperimentConfig
@@ -216,7 +217,9 @@ def plot_hidden_units_accuracy_layerwise(root_path: str,
                                          layer_num=0,
                                          fixed_layers=[],
                                          metric="accuracy",
-                                         cumulative_function="max"
+                                         cumulative_function="max",
+                                         fig_size=(20,8),
+                                         fname=None
                                          ):
     if cumulative_function == "max":
         function_to_cumulate = np.max
@@ -228,10 +231,10 @@ def plot_hidden_units_accuracy_layerwise(root_path: str,
         raise Exception("Argument cumulative function should be either min or max")
     dao = get_dao(dataset_name, split_name, num_val_samples)
     for dataset_name in dataset_types:
-        plt.figure(figsize=(18, 8))
+        plt.figure(figsize=fig_size)
 
         plt.xlabel("Hidden Units")
-        plt.ylabel(f"Max Accuracy({dataset_name})")
+        plt.ylabel(f"Max {metric.capitalize()}({dataset_name})")
         accuracies = dict()
         num_epochs_trained = -1
         for num_unit in num_units:
@@ -294,9 +297,14 @@ def plot_hidden_units_accuracy_layerwise(root_path: str,
 
         for layer_0_units in accuracies.keys():
             x_y = np.asarray(accuracies[layer_0_units])
-            plt.scatter(x_y[:, 0], x_y[:, 1], label=f"Units in layer {layer_num} {layer_0_units}")
+            sns.scatterplot(x_y[:, 0], x_y[:, 1], label=f"Units in layer {layer_num} {layer_0_units}", s=450)
+            sns.lineplot(x_y[:, 0], x_y[:, 1])
         plt.legend(loc='lower right', shadow=True, fontsize='x-large')
         plt.title(f"Number of epochs trained {num_epochs_trained}. Fixed units ={fixed_layers}")
+        if fname is not None:
+            fname = exp_config.ANALYSIS_PATH + fname
+            print(f"Saving plot in file {fname}")
+            plt.savefig(fname, bbox="tight")
 
     plt.legend(loc='lower right', shadow=True, fontsize='x-large')
     plt.grid()
