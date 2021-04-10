@@ -1,4 +1,5 @@
 import heapq
+import traceback
 from typing import List
 
 
@@ -14,15 +15,19 @@ class RetentionPolicy:
         else:
             current_max_in_heap = -self.data_queue[0][0]
         reconstructed_images, labels, nlls = data[0], data[1], data[2]
-        for cost, reconstructed_image, label, nll in zip(costs, reconstructed_images, labels, nlls):
-            if len(self.data_queue) < self.N:
-                heapq.heappush(self.data_queue, (-cost, [reconstructed_image, label, nll]))
-                if cost < current_max_in_heap:
-                    current_max_in_heap = cost
-            else:
-                if cost < current_max_in_heap:
-                    _current_max_in_heap = heapq.heappushpop(self.data_queue, (-cost, [reconstructed_image, label, nll]))
-                    current_max_in_heap = -_current_max_in_heap[0]
+        try:
+            for cost, reconstructed_image, label, nll in zip(costs, reconstructed_images, labels, nlls):
+                if len(self.data_queue) < self.N:
+                    heapq.heappush(self.data_queue, (-cost, [reconstructed_image, label, nll]))
+                    if cost < current_max_in_heap:
+                        current_max_in_heap = cost
+                else:
+                    if cost < current_max_in_heap:
+                        _current_max_in_heap = heapq.heappushpop(self.data_queue, (-cost, [reconstructed_image, label, nll]))
+                        current_max_in_heap = -_current_max_in_heap[0]
+        except:
+            print(f"Shape of mse is {cost.shape}")
+            traceback.print_exc()
 
     def update_heap(self, cost, data):
         if self.policy_type == "TOP":
