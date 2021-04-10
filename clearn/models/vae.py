@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 
+import json
 import traceback
 from typing import DefaultDict, List
 from collections import defaultdict
@@ -186,7 +187,7 @@ class VAE(GenerativeModel):
                 num_samples_processed = self.num_steps_completed * self.exp_config.BATCH_SIZE
                 # print(f"Epoch:{epoch} Batch:{batch}  loss={loss} nll={nll_loss} kl_loss={kl_loss} batch_mean_nll={np.mean(marginal_ll)}  overall_mean_nll={mean_nll} Number of samples completed ={num_samples_processed}")
 
-                #self.writer.add_summary(summary_str, self.counter - 1)
+                # self.writer.add_summary(summary_str, self.counter - 1)
             self.num_training_epochs_completed = epoch + 1
             print(f"Completed {self.num_training_epochs_completed} epochs")
             if self.exp_config.run_evaluation_during_training:
@@ -256,6 +257,13 @@ class VAE(GenerativeModel):
         data_iterator.reset_counter(dataset_type)
         reconstruction_losses = None
         retention_policies: List[RetentionPolicy] = list()
+        if save_images:
+            for policy in save_policies:
+                if dataset_type.upper() == policy.split("_")[0]:
+                    policy_type = policy.split("_")[1]
+                    if "reconstruction_loss" in metrics:
+                        rp = RetentionPolicy(policy_type=policy_type, N=int(policy.split("_")[2]))
+                        retention_policies.append(rp)
         for batch_no in range(start_eval_batch, num_eval_batches):
             batch_images, batch_labels, manual_labels = data_iterator.get_next_batch(dataset_type)
             # skip last batch
@@ -277,7 +285,7 @@ class VAE(GenerativeModel):
                     self.inputs: batch_images,
                     self.standard_normal: batch_z})
             nll_batch = -nll_batch
-            #vprint(f"nll {nll.shape}  marginal_ll:{nll_batch.shape}")
+            # vprint(f"nll {nll.shape}  marginal_ll:{nll_batch.shape}")
             if len(nll_batch.shape) == 0:
                 data_iterator.reset_counter(dataset_type)
                 print(f"Skipping batch {batch_no}. Investigate and fix this issue later")
@@ -292,12 +300,8 @@ class VAE(GenerativeModel):
             """
             if save_images:
                 try:
-                    for policy in save_policies:
-                        policy_type = policy.split("_")[1]
-                        if "reconstruction_loss" in metrics:
-                            rp = RetentionPolicy(policy_type=policy_type, N=int(policy.split("_")[2]))
-                            rp.update_heap(nll_batch, reconstructed_image)
-                            retention_policies.append(rp)
+                    for rp in retention_policies:
+                        rp.update_heap(nll_batch, [reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch] )
                 except:
                     print(f"Shape of mse is {nll_batch.shape}")
                     traceback.print_exc()
@@ -315,7 +319,6 @@ class VAE(GenerativeModel):
                     mu = np.vstack([mu, mu_for_batch])
                     sigma = np.vstack([sigma, sigma_for_batch])
                     z = np.vstack([z, z_for_batch])
-                    print(z.shape, reconstruction_losses.shape)
 
             # training_batch = self.num_training_epochs_completed * num_batches_train + self.num_steps_completed
             # if dataset_type != "train" and save_images:
@@ -343,17 +346,33 @@ class VAE(GenerativeModel):
                 manifold_w = 4
                 manifold_h = num_samples_per_image // manifold_w
                 num_images = rp.N // num_samples_per_image
+
                 if dataset_type.upper() == save_policy.split("_")[0].upper():
                     for image_no in range(num_images):
-                        file = f"{dataset_type}_{rp.policy_type}_{image_no}.png"
+                        file_image = f"{dataset_type}_{rp.policy_type}_{image_no}.png"
+                        file_label = f"{dataset_type}_{rp.policy_type}_{image_no}_labels.json"
+                        file_loss = f"{dataset_type}_{rp.policy_type}_{image_no}_loss.json"
                         samples_to_save = np.zeros((num_samples_per_image,
                                                     self.dao.image_shape[0],
                                                     self.dao.image_shape[1],
                                                     self.dao.image_shape[2]))
-                        for sample_num, e in enumerate(rp.data_queue[image_no: image_no + num_samples_per_image]):
-                            samples_to_save[sample_num, :, :, :] = e[1]
-                        save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file)
+                        labels = np.zeros( num_samples_per_image )
+                        losses = np.zeros( num_samples_per_image )
 
+                        for sample_num, e in enumerate(rp.data_queue[image_no * num_samples_per_image: (image_no + 1) * num_samples_per_image]):
+                            # print(e[1][0].shape)
+                            # print(e[1][1].shape)
+                            # print(e[1][2].shape)
+                            samples_to_save[sample_num, :, :, :] = e[1][0]
+                            labels[sample_num] = e[1][1]
+                            losses[sample_num] = e[1][2]
+                        save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file_image)
+
+                        with open(reconstructed_dir + file_label, "w") as fp:
+                            json.dump(labels.tolist(), fp)
+
+                        with open(reconstructed_dir + file_loss, "w") as fp:
+                            json.dump(losses.tolist(), fp)
 
         # if dataset_type != "train" and save_images:
         #     reconstructed_dir = get_eval_result_dir(self.exp_config.PREDICTION_RESULTS_PATH,
