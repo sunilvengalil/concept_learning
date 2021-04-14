@@ -43,6 +43,7 @@ class RetentionPolicy:
 
         try:
             for cost, reconstructed_image, label, nll in zip(costs, reconstructed_images, labels, nlls):
+                cost = float(cost)
                 if len(self.data_queue) < self.N:
                     heapq.heappush(self.data_queue, (-cost, [reconstructed_image, label, nll]))
                     if cost < current_max_in_heap:
