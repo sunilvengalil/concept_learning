@@ -3,6 +3,11 @@ import traceback
 from typing import List
 import numpy as np
 
+from itertools import count
+
+tiebreaker = count()
+
+
 from clearn.config import ExperimentConfig
 
 
@@ -44,13 +49,13 @@ class RetentionPolicy:
         try:
             for cost, reconstructed_image, label, nll in zip(costs, reconstructed_images, labels, nlls):
                 if len(self.data_queue) < self.N:
-                    heapq.heappush(self.data_queue, (-cost, [reconstructed_image, label, nll]))
+                    heapq.heappush(self.data_queue, (-cost,  next(tiebreaker), [reconstructed_image, label, nll]))
                     if cost < current_max_in_heap:
                         current_max_in_heap = cost
                     # print("Cost", cost, current_max_in_heap)
                 else:
                     if cost < current_max_in_heap:
-                        _current_max_in_heap = heapq.heappushpop(self.data_queue, (-cost, [reconstructed_image, label, nll]))
+                        _current_max_in_heap = heapq.heappushpop(self.data_queue, (-cost, next(tiebreaker),  [reconstructed_image, label, nll]))
                         current_max_in_heap = -_current_max_in_heap[0]
         except:
             print(f" Type of cost {type(cost)}. Cost:{cost}")

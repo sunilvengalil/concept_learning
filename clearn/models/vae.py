@@ -360,9 +360,9 @@ class VAE(GenerativeModel):
                         losses = np.zeros( num_samples_per_image )
 
                         for sample_num, e in enumerate(rp.data_queue[image_no * num_samples_per_image: (image_no + 1) * num_samples_per_image]):
-                            samples_to_save[sample_num, :, :, :] = e[1][0]
-                            labels[sample_num] = e[1][1]
-                            losses[sample_num] = e[1][2]
+                            samples_to_save[sample_num, :, :, :] = e[2][0]
+                            labels[sample_num] = e[2][1]
+                            losses[sample_num] = e[2][2]
                         save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file_image)
 
                         with open(reconstructed_dir + file_label, "w") as fp:
