@@ -301,7 +301,7 @@ class VAE(GenerativeModel):
             if save_images:
                 try:
                     for rp in retention_policies:
-                        rp.update_heap(nll_batch, [reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch] )
+                        rp.update_heap(cost=nll_batch, exp_config=self.exp_config, data=[reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch] )
                 except:
                     print(f"Shape of mse is {nll_batch.shape}")
                     traceback.print_exc()
@@ -360,9 +360,6 @@ class VAE(GenerativeModel):
                         losses = np.zeros( num_samples_per_image )
 
                         for sample_num, e in enumerate(rp.data_queue[image_no * num_samples_per_image: (image_no + 1) * num_samples_per_image]):
-                            # print(e[1][0].shape)
-                            # print(e[1][1].shape)
-                            # print(e[1][2].shape)
                             samples_to_save[sample_num, :, :, :] = e[1][0]
                             labels[sample_num] = e[1][1]
                             losses[sample_num] = e[1][2]

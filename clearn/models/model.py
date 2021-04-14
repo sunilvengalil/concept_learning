@@ -1,6 +1,7 @@
 from abc import ABC
 import os
 import tensorflow as tf
+
 from tensorflow.compat.v1 import Session
 
 from clearn.config import ExperimentConfig
@@ -26,16 +27,17 @@ class Model(ABC):
         self.dao = dao
         self.test_data_iterator = test_data_iterator
 
+
     def _initialize(self,
                     restore_from_existing_checkpoint=True,
                     check_point_epochs=None):
         # saver to save model
         self.saver = tf.compat.v1.train.Saver(max_to_keep=50)
-        # summary writer
-        self.writer = tf.compat.v1.summary.FileWriter(self.exp_config.LOG_PATH + '/' + self._model_name_,
-                                            self.sess.graph)
-        self.writer_v = tf.compat.v1.summary.FileWriter(self.exp_config.LOG_PATH + '/' + self._model_name_ + "_v",
-                                              self.sess.graph)
+        # # summary writer
+        # self.writer = tf.compat.v1.summary.FileWriter(self.exp_config.LOG_PATH + '/' + self._model_name_,
+        #                                     self.sess.graph)
+        # self.writer_v = tf.compat.v1.summary.FileWriter(self.exp_config.LOG_PATH + '/' + self._model_name_ + "_v",
+        #                                       self.sess.graph)
 
         if restore_from_existing_checkpoint:
             # restore check-point if it exits

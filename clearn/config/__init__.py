@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 
 from clearn.dao.dao_factory import get_dao
 from clearn.utils.dir_utils import check_and_create_folder
@@ -89,7 +90,8 @@ class ExperimentConfig:
                  seed=547,
                  distance_metric=DISTANCE_EUCLIDEAN,
                  clustering_alg=CLUSTERING_K_MEANS,
-                 confidence_decay_function=CONFIDENCE_DECAY_FUNCTION_EXPONENTIAL
+                 confidence_decay_function=CONFIDENCE_DECAY_FUNCTION_EXPONENTIAL,
+                 log_level=logging.INFO
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -144,6 +146,7 @@ class ExperimentConfig:
         self.clustering_alg = clustering_alg
         self.confidence_decay_function = confidence_decay_function
         self.distance_metric = distance_metric
+        self.log_level = log_level
 
     def as_json(self):
         config_json = dict()
@@ -179,6 +182,7 @@ class ExperimentConfig:
         config_json["CLUSTERING_ALG"] = self.clustering_alg
         config_json["CONFIDENCE_DECAY_FUNCTION"] = self.confidence_decay_function
         config_json["DISTANCE_METRIC"] = self.distance_metric
+        config_json["LOG_LEVEL"] = self.log_level
 
         return config_json
 
@@ -299,6 +303,7 @@ class ExperimentConfig:
         self.confidence_decay_function = exp_config_dict["CONFIDENCE_DECAY_FUNCTION"]
         self.distance_metric = exp_config_dict["DISTANCE_METRIC"]
         self.clustering_alg = exp_config_dict["CLUSTERING_ALG"]
+        self.log_level = exp_config_dict["LOG_LEVEL"]
 
 
 if __name__ == "__main__":
