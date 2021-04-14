@@ -55,6 +55,9 @@ class RetentionPolicy:
                         current_max_in_heap = -_current_max_in_heap[0]
         except:
             print(f" Type of cost {type(cost)}. Cost:{cost}")
+            print(f"type present in data queue")
+            for d in self.data_queue:
+                print(f"type of element in dataqueue {type(d[0])}")
             if isinstance(cost, list):
                 print(f"Length of cost is {len(cost)}" )
             elif isinstance(cost, np.ndarray):
