@@ -12,10 +12,15 @@ from clearn.config import ExperimentConfig
 
 
 class RetentionPolicy:
-    def __init__(self, policy_type: str, N: int):
+    def __init__(self,
+                 data_type:str,
+                 policy_type: str,
+                 N: int
+                 ):
         self.data_queue: List = []
         self.policy_type: str = policy_type
         self.N: int = N
+        self.data_type = data_type
 
     def _update_heap(self, exp_config: ExperimentConfig,  costs: np.ndarray, data):
 
