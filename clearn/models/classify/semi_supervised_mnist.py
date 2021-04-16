@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
+
+import json
 import traceback
 import os
 from collections import defaultdict
@@ -284,7 +286,6 @@ class SemiSupervisedClassifierMnist(VAE):
             num_batches_train = self.exp_config.BATCH_SIZE
         print(
             f"Running evaluation after epoch:{self.num_training_epochs_completed} and step:{self.num_steps_completed} ")
-        reconstructed_images: DefaultDict[str, List] = defaultdict()
         labels_predicted = None
         z = None
         mu = None
@@ -294,6 +295,16 @@ class SemiSupervisedClassifierMnist(VAE):
         data_iterator.reset_counter(dataset_type)
         reconstruction_losses = []
         retention_policies: List[RetentionPolicy] = list()
+        if save_images:
+            for policy in save_policies:
+                if dataset_type.upper() == policy.split("_")[0]:
+                    policy_type = policy.split("_")[1]
+                    if "reconstruction_loss" in metrics:
+                        rp = RetentionPolicy(dataset_type.upper(),
+                                             policy_type=policy_type,
+                                             N=int(policy.split("_")[2])
+                                             )
+                        retention_policies.append(rp)
         while data_iterator.has_next(dataset_type):
             batch_images, batch_labels, manual_labels = data_iterator.get_next_batch(dataset_type)
             # skip last batch
@@ -322,45 +333,32 @@ class SemiSupervisedClassifierMnist(VAE):
                                               10],
                     self.standard_normal: batch_z})
 
-            # print(f"Batch shape for nll {nll_batch.shape}")
             nll_batch = -nll_batch
-            reconstruction_losses.append(nll)
             if len(nll_batch.shape) == 0:
                 data_iterator.reset_counter(dataset_type)
                 print(f"Skipping batch {batch_no}. Investigate and fix this issue later")
                 print(
-                    f"Length of batch_images: {batch_images.shape} Nll_batch: {nll_batch} Nll shape: {nll.shape} Nll:{nll} ")
+                    f"Length of batch_images: {batch_images.shape} Nll_batch shape: {nll_batch.shape} Nll shape: {nll.shape} Nll:{nll} ")
                 break
-            if len(nll_batch.shape) == 2:
-                num_pixels = self.dao.image_shape[0] * self.dao.image_shape[1]
-                mse = np.sum(nll_batch * num_pixels, axis=1) / num_pixels
-                # TODO fix this later
-                #print(f"Type of mse is {type(mse)}")
-                #print(f"shape mse = {mse.shape}")
-                if len(mse.shape) >= 2:
-                    mse = np.sum(mse, axis=1)
-
-            labels_predicted_for_batch = np.argmax(softmax(y_pred), axis=1)
-            labels_for_batch = np.argmax(batch_labels, axis=1)
-            reconstruction_losses.append(nll)
+            if len(nll_batch.shape) != 2:
+                raise Exception(f"Shape of nll_batch {nll_batch.shape}")
 
             """
             Update priority queues for keeping top and bottom N samples for all the required metrics present save_policy
             """
             if save_images:
                 try:
-                    for policy in save_policies:
-                        policy_type = policy.split("_")[1]
-                        if "reconstruction_loss" in metrics:
-                            rp = RetentionPolicy(policy_type=policy_type, N=int(policy.split("_")[2]))
-                            if len(mse.shape) >= 2:
-                                mse = np.sum(mse, axis=1)
-                            rp.update_heap(mse, reconstructed_image)
-                            retention_policies.append(rp)
+                    for rp in retention_policies:
+                        rp.update_heap(cost=nll_batch,
+                                       exp_config=self.exp_config,
+                                       data=[reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch])
                 except:
-                    print(f"Shape of mse is {mse.shape}")
+                    print(f"Shape of mse is {nll_batch.shape}")
                     traceback.print_exc()
 
+            labels_predicted_for_batch = np.argmax(softmax(y_pred), axis=1)
+            labels_for_batch = np.argmax(batch_labels, axis=1)
+            reconstruction_losses.append(nll)
 
             if labels_predicted is None:
                 labels_predicted = labels_predicted_for_batch
@@ -380,20 +378,6 @@ class SemiSupervisedClassifierMnist(VAE):
                     z = np.vstack([z, z_for_batch])
             batch_no += 1
 
-            training_batch = self.num_training_epochs_completed * num_batches_train + self.num_steps_completed
-            # if dataset_type != "train" and save_images:
-            #     save_single_image(reconstructed_image,
-            #                       self.exp_config.reconstructed_images_path,
-            #                       self.num_training_epochs_completed,
-            #                       self.num_steps_completed,
-            #                       training_batch,
-            #                       batch_no,
-            #                       self.exp_config.BATCH_SIZE)
-            # self.writer_v.add_summary(summary, self.counter)
-
-        for rp, policy in zip(retention_policies, save_policies):
-            reconstructed_images[policy] = retention_policies
-
         print(f"epoch:{self.num_training_epochs_completed} step:{self.num_steps_completed}")
         if "reconstruction_loss" in self.metrics_to_compute:
             reconstruction_loss = mean(reconstruction_losses)
@@ -408,22 +392,33 @@ class SemiSupervisedClassifierMnist(VAE):
                                                     self.num_training_epochs_completed,
                                                     self.num_steps_completed)
             num_samples_per_image = 64
-            for rp, save_policy in zip(retention_policies, save_policies):
-                manifold_w = 4
-                manifold_h = num_samples_per_image // manifold_w
+            manifold_w = 4
+            manifold_h = num_samples_per_image // manifold_w
+            for rp in retention_policies:
                 num_images = rp.N // num_samples_per_image
-                if dataset_type.upper() == save_policy.split("_")[0].upper():
+                if dataset_type.upper() == rp.data_type.upper():
                     for image_no in range(num_images):
-                        file = f"{dataset_type}_{rp.policy_type}_{image_no}.png"
+                        file_image = f"{dataset_type}_{rp.policy_type}_{image_no}.png"
+                        file_label = f"{dataset_type}_{rp.policy_type}_{image_no}_labels.json"
+                        file_loss = f"{dataset_type}_{rp.policy_type}_{image_no}_loss.json"
                         samples_to_save = np.zeros((num_samples_per_image,
                                                     self.dao.image_shape[0],
                                                     self.dao.image_shape[1],
                                                     self.dao.image_shape[2]))
-                        for sample_num, e in enumerate(rp.data_queue[image_no: image_no + num_samples_per_image]):
-                            samples_to_save[sample_num, :, :, :] = e[1]
-                        save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file)
+                        labels = np.zeros(num_samples_per_image)
+                        losses = np.zeros(num_samples_per_image)
+                        for sample_num, e in enumerate(rp.data_queue[image_no * num_samples_per_image: (
+                                                                                                               image_no + 1) * num_samples_per_image]):
+                            samples_to_save[sample_num, :, :, :] = e[2][0]
+                            labels[sample_num] = e[2][1]
+                            losses[sample_num] = e[2][2]
+                        save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file_image)
 
+                        with open(reconstructed_dir + file_label, "w") as fp:
+                            json.dump(labels.tolist(), fp)
 
+                        with open(reconstructed_dir + file_loss, "w") as fp:
+                            json.dump(losses.tolist(), fp)
 
         data_iterator.reset_counter(dataset_type)
 
