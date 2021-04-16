@@ -203,7 +203,7 @@ class SemiSupervisedClassifierMnist(VAE):
 
                 self.counter += 1
                 self.num_steps_completed = batch + 1
-                self.writer.add_summary(summary_str, self.counter - 1)
+                # self.writer.add_summary(summary_str, self.counter - 1)
             print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss}")
             self.num_training_epochs_completed = epoch + 1
             print(f"Completed {epoch} epochs")
@@ -389,7 +389,7 @@ class SemiSupervisedClassifierMnist(VAE):
             #                       training_batch,
             #                       batch_no,
             #                       self.exp_config.BATCH_SIZE)
-            self.writer_v.add_summary(summary, self.counter)
+            # self.writer_v.add_summary(summary, self.counter)
 
         for rp, policy in zip(retention_policies, save_policies):
             reconstructed_images[policy] = retention_policies
