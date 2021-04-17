@@ -307,6 +307,7 @@ class SemiSupervisedClassifierMnist(VAE):
                         retention_policies.append(rp)
         while data_iterator.has_next(dataset_type):
             batch_images, batch_labels, manual_labels = data_iterator.get_next_batch(dataset_type)
+            print(f"Batch_images shape {batch_images.shape}. Batch labels shape {batch_labels.shape}")
             # skip last batch
             if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                 data_iterator.reset_counter(dataset_type)
@@ -332,7 +333,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                               :,
                                               10],
                     self.standard_normal: batch_z})
-
+            print(f"Predicted label shape {y_pred.shape}")
             nll_batch = -nll_batch
             if len(nll_batch.shape) == 0:
                 data_iterator.reset_counter(dataset_type)
