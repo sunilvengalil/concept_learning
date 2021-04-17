@@ -226,7 +226,6 @@ class VAE(GenerativeModel):
                 df[f"train_{metric}_mean"] = np.asarray(self.metrics["train"][metric])[:, 1]
                 df[f"val_{metric}_mean"] = np.asarray(self.metrics["val"][metric])[:, 1]
                 df[f"test_{metric}_mean"] = np.asarray(self.metrics["test"][metric])[:, 1]
-                print("shape of val metric", len(np.asarray(self.metrics["val"][metric]).shape))
                 if np.asarray(self.metrics["val"][metric]).shape[1] == 3:
                     df[f"train_{metric}_std"] = np.asarray(self.metrics["train"][metric])[:, 2]
                     df[f"val_{metric}_std"] = np.asarray(self.metrics["val"][metric])[:, 2]
@@ -328,37 +327,7 @@ class VAE(GenerativeModel):
                 [self.num_training_epochs_completed, reconstruction_loss, np.std(reconstruction_losses)])
 
         if save_images:
-            reconstructed_dir = get_eval_result_dir(self.exp_config.PREDICTION_RESULTS_PATH,
-                                                    self.num_training_epochs_completed,
-                                                    self.num_steps_completed)
-            num_samples_per_image = 64
-            manifold_w = 4
-            manifold_h = num_samples_per_image // manifold_w
-            for rp in retention_policies:
-                num_images = rp.N // num_samples_per_image
-                if dataset_type.upper() == rp.data_type.upper():
-                    for image_no in range(num_images):
-                        file_image = f"{dataset_type}_{rp.policy_type}_{image_no}.png"
-                        file_label = f"{dataset_type}_{rp.policy_type}_{image_no}_labels.json"
-                        file_loss = f"{dataset_type}_{rp.policy_type}_{image_no}_loss.json"
-                        samples_to_save = np.zeros((num_samples_per_image,
-                                                    self.dao.image_shape[0],
-                                                    self.dao.image_shape[1],
-                                                    self.dao.image_shape[2]))
-                        labels = np.zeros(num_samples_per_image)
-                        losses = np.zeros(num_samples_per_image)
-                        for sample_num, e in enumerate(rp.data_queue[image_no * num_samples_per_image: (
-                                                                                                               image_no + 1) * num_samples_per_image]):
-                            samples_to_save[sample_num, :, :, :] = e[2][0]
-                            labels[sample_num] = e[2][1]
-                            losses[sample_num] = e[2][2]
-                        save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file_image)
-
-                        with open(reconstructed_dir + file_label, "w") as fp:
-                            json.dump(labels.tolist(), fp)
-
-                        with open(reconstructed_dir + file_loss, "w") as fp:
-                            json.dump(losses.tolist(), fp)
+            self.save_sample_reconstructed_images(dataset_type, retention_policies)
 
         data_iterator.reset_counter(dataset_type)
 
@@ -382,6 +351,39 @@ class VAE(GenerativeModel):
             encoded_df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, output_csv_file), index=False)
 
         return encoded_df
+
+    def save_sample_reconstructed_images(self, dataset_type, retention_policies):
+        reconstructed_dir = get_eval_result_dir(self.exp_config.PREDICTION_RESULTS_PATH,
+                                                self.num_training_epochs_completed,
+                                                self.num_steps_completed)
+        num_samples_per_image = 64
+        manifold_w = 4
+        manifold_h = num_samples_per_image // manifold_w
+        for rp in retention_policies:
+            num_images = rp.N // num_samples_per_image
+            if dataset_type.upper() == rp.data_type.upper():
+                for image_no in range(num_images):
+                    file_image = f"{dataset_type}_{rp.policy_type}_{image_no}.png"
+                    file_label = f"{dataset_type}_{rp.policy_type}_{image_no}_labels.json"
+                    file_loss = f"{dataset_type}_{rp.policy_type}_{image_no}_loss.json"
+                    samples_to_save = np.zeros((num_samples_per_image,
+                                                self.dao.image_shape[0],
+                                                self.dao.image_shape[1],
+                                                self.dao.image_shape[2]))
+                    labels = np.zeros(num_samples_per_image)
+                    losses = np.zeros(num_samples_per_image)
+                    for sample_num, e in enumerate(rp.data_queue[image_no * num_samples_per_image: (
+                                                                                                           image_no + 1) * num_samples_per_image]):
+                        samples_to_save[sample_num, :, :, :] = e[2][0]
+                        labels[sample_num] = e[2][1]
+                        losses[sample_num] = e[2][2]
+                    save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file_image)
+
+                    with open(reconstructed_dir + file_label, "w") as fp:
+                        json.dump(labels.tolist(), fp)
+
+                    with open(reconstructed_dir + file_loss, "w") as fp:
+                        json.dump(losses.tolist(), fp)
 
     @property
     def model_dir(self):

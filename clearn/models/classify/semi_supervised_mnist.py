@@ -307,7 +307,6 @@ class SemiSupervisedClassifierMnist(VAE):
                         retention_policies.append(rp)
         while data_iterator.has_next(dataset_type):
             batch_images, batch_labels, manual_labels = data_iterator.get_next_batch(dataset_type)
-            print(f"Batch_images shape {batch_images.shape}. Batch labels shape {batch_labels.shape}")
             # skip last batch
             if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                 data_iterator.reset_counter(dataset_type)
@@ -333,7 +332,6 @@ class SemiSupervisedClassifierMnist(VAE):
                                               :,
                                               10],
                     self.standard_normal: batch_z})
-            print(f"Predicted label shape {y_pred.shape}")
             nll_batch = -nll_batch
             if len(nll_batch.shape) == 0:
                 data_iterator.reset_counter(dataset_type)
@@ -378,7 +376,7 @@ class SemiSupervisedClassifierMnist(VAE):
                     sigma = np.vstack([sigma, sigma_for_batch])
                     z = np.vstack([z, z_for_batch])
             batch_no += 1
-
+        print(f"Number of evaluation batches completed {batch_no}")
         print(f"epoch:{self.num_training_epochs_completed} step:{self.num_steps_completed}")
         if "reconstruction_loss" in self.metrics_to_compute:
             reconstruction_loss = mean(reconstruction_losses)
@@ -389,40 +387,9 @@ class SemiSupervisedClassifierMnist(VAE):
             self.metrics[dataset_type]["accuracy"].append([self.num_training_epochs_completed, accuracy])
 
         if save_images:
-            reconstructed_dir = get_eval_result_dir(self.exp_config.PREDICTION_RESULTS_PATH,
-                                                    self.num_training_epochs_completed,
-                                                    self.num_steps_completed)
-            num_samples_per_image = 64
-            manifold_w = 4
-            manifold_h = num_samples_per_image // manifold_w
-            for rp in retention_policies:
-                num_images = rp.N // num_samples_per_image
-                if dataset_type.upper() == rp.data_type.upper():
-                    for image_no in range(num_images):
-                        file_image = f"{dataset_type}_{rp.policy_type}_{image_no}.png"
-                        file_label = f"{dataset_type}_{rp.policy_type}_{image_no}_labels.json"
-                        file_loss = f"{dataset_type}_{rp.policy_type}_{image_no}_loss.json"
-                        samples_to_save = np.zeros((num_samples_per_image,
-                                                    self.dao.image_shape[0],
-                                                    self.dao.image_shape[1],
-                                                    self.dao.image_shape[2]))
-                        labels = np.zeros(num_samples_per_image)
-                        losses = np.zeros(num_samples_per_image)
-                        for sample_num, e in enumerate(rp.data_queue[image_no * num_samples_per_image: (
-                                                                                                               image_no + 1) * num_samples_per_image]):
-                            samples_to_save[sample_num, :, :, :] = e[2][0]
-                            labels[sample_num] = e[2][1]
-                            losses[sample_num] = e[2][2]
-                        save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file_image)
-
-                        with open(reconstructed_dir + file_label, "w") as fp:
-                            json.dump(labels.tolist(), fp)
-
-                        with open(reconstructed_dir + file_loss, "w") as fp:
-                            json.dump(losses.tolist(), fp)
+            self.save_sample_reconstructed_images(dataset_type, retention_policies)
 
         data_iterator.reset_counter(dataset_type)
-
         encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
                                   columns=["label", "label_predicted"])
 
