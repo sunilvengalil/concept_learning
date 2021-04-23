@@ -24,6 +24,7 @@ from clearn.models.classify.classifier import ClassifierModel
 from clearn.experiments.experiment import get_model
 from clearn.utils.utils import get_pmf_y_given_z, get_latent_vector_column
 
+MAX_IMAGES_TO_DISPLAY = 36
 
 def trace_dim(f, num_trace_steps, dim, feature_dim, z_min, z_max):
     """
@@ -279,13 +280,23 @@ def cluster_and_decode_latent_vectors_gmm(model_type: str,
 
 def display_images(decoded_images,
                    image_filename,
-                   title
+                   title,
+                   num_images_to_display = 0
                    ):
+
     colormap = "Greys"
     fig = plt.figure()
     fig.tight_layout()
     num_cols = 4
     num_images = decoded_images.shape[0]
+    if num_images_to_display == 0:
+        num_images_to_display = min(num_images, MAX_IMAGES_TO_DISPLAY)
+    elif num_images_to_display > 0:
+        num_images_to_display = min(num_images_to_display, MAX_IMAGES_TO_DISPLAY )
+    else:
+        raise Exception("num_images_to_display should not be negative")
+    if num_images >  num_images_to_display:
+        print(f"Number of image is {num_images}. Printing only first {num_images_to_display} images ")
     print(f"Number of images {num_images}")
     num_rows = math.ceil(num_images / num_cols)
     fig.suptitle(title)
@@ -619,7 +630,7 @@ def get_distance(confidence, a):
 
 def get_num_samples_wrongly_annotated(df):
     df1 = df[df["manual_annotation_confidence"] > 0]
-    if df1.shape[0] >  0:
+    if df1.shape[0] > 0:
         df2 = df1[df1["manual_annotation"] != df1["label"]]
         return df2.shape[0]
     else:
