@@ -297,10 +297,10 @@ def display_images(decoded_images,
         raise Exception("num_images_to_display should not be negative")
     if num_images >  num_images_to_display:
         print(f"Number of image is {num_images}. Printing only first {num_images_to_display} images ")
-    print(f"Number of images {num_images}")
+    print(f"Number of images {num_images}. Number of images displayed {num_images_to_display}")
     num_rows = math.ceil(num_images / num_cols)
     fig.suptitle(title)
-    for i in range(num_images):
+    for i in range(num_images_to_display):
         ax = fig.add_subplot(num_rows, num_cols, i + 1)
         ax.imshow(np.squeeze(decoded_images[i]), cmap=colormap)
     if image_filename is not None and len(image_filename) > 0:
