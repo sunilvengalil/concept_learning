@@ -296,9 +296,9 @@ def display_images(decoded_images,
     else:
         raise Exception("num_images_to_display should not be negative")
     if num_images >  num_images_to_display:
-        print(f"Number of image is {num_images}. Printing only first {num_images_to_display} images ")
+        print(f"Number of image is {num_images}. Displaying only first {num_images_to_display} images ")
     print(f"Number of images {num_images}. Number of images displayed {num_images_to_display}")
-    num_rows = math.ceil(num_images / num_cols)
+    num_rows = math.ceil(num_images_to_display / num_cols)
     fig.suptitle(title)
     for i in range(num_images_to_display):
         ax = fig.add_subplot(num_rows, num_cols, i + 1)
