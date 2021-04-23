@@ -292,7 +292,7 @@ def display_images(decoded_images,
     if num_images_to_display == 0:
         num_images_to_display = min(num_images, MAX_IMAGES_TO_DISPLAY)
     elif num_images_to_display > 0:
-        num_images_to_display = min(num_images_to_display, MAX_IMAGES_TO_DISPLAY )
+        num_images_to_display = min(num_images_to_display, MAX_IMAGES_TO_DISPLAY, num_images )
     else:
         raise Exception("num_images_to_display should not be negative")
     if num_images >  num_images_to_display:
