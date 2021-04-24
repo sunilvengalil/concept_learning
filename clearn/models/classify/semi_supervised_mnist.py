@@ -61,6 +61,11 @@ class SemiSupervisedClassifierMnist(VAE):
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_val][metric] = []
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_test][metric] = []
 
+        # Intermediate features
+        self.dense2_en = None
+        self.reshaped_en = None
+        self.final_conv = None
+
     def _encoder(self, x, reuse=False):
         if len(self.exp_config.num_units) == 3 :
             gaussian_params = cnn_3_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
@@ -425,3 +430,15 @@ class SemiSupervisedClassifierMnist(VAE):
                                feed_dict={self.inputs: images})
 
         return logits
+
+    def encode_and_get_features(self, images: np.ndarray):
+        mu, sigma, z, dense2_en, reshaped, final_conv = self.sess.run([self.mu,
+                                                                       self.sigma,
+                                                                       self.z,
+                                                                       self.dense2_en,
+                                                                       self.reshaped_en,
+                                                                       self.final_conv
+                                                                       ],
+                                                                      feed_dict={self.inputs: images})
+
+        return mu, sigma, z, dense2_en, reshaped, final_conv
