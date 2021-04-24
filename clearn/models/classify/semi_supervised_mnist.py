@@ -61,11 +61,6 @@ class SemiSupervisedClassifierMnist(VAE):
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_val][metric] = []
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_test][metric] = []
 
-        # Intermediate features
-        self.dense2_en = None
-        self.reshaped_en = None
-        self.final_conv = None
-
     def _encoder(self, x, reuse=False):
         if len(self.exp_config.num_units) == 3 :
             gaussian_params = cnn_3_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
@@ -115,25 +110,28 @@ class SemiSupervisedClassifierMnist(VAE):
 
     def get_encoder_weights_bias(self):
         name_w_1 = "encoder/en_conv1/w:0"
-        name_w_2 = "encoder/en_conv2/w:0"
-        name_w_3 = "encoder/en_fc3/Matrix:0"
-        name_w_4 = "encoder/en_fc4/Matrix:0"
+        if len(self.exp_config.num_units) > 2:
+            name_w_2 = "encoder/en_conv2/w:0"
+        name_w_3 = "encoder/en_fc2/Matrix:0"
+        name_w_4 = "encoder/en_fc3/Matrix:0"
 
         name_b_1 = "encoder/en_conv1/biases:0"
-        name_b_2 = "encoder/en_conv2/biases:0"
-        name_b_3 = "encoder/en_fc3/bias:0"
-        name_b_4 = "encoder/en_fc4/bias:0"
+        if len(self.exp_config.num_units) > 2:
+            name_b_2 = "encoder/en_conv2/biases:0"
+        name_b_3 = "encoder/en_fc2/bias:0"
+        name_b_4 = "encoder/en_fc3/bias:0"
 
         layer_param_names = [name_w_1,
-                             name_b_1,
-                             name_w_2,
-                             name_b_2,
-                             name_w_3,
-                             name_b_3,
-                             name_w_4,
-                             name_b_4
-                             ]
-
+                             name_b_1]
+        if len(self.exp_config.num_units) > 2:
+            layer_param_names.append(name_w_2)
+            layer_param_names.append(name_b_2)
+        layer_param_names.extend([ name_w_3,
+                                   name_b_3,
+                                   name_w_4,
+                                   name_b_4
+                                   ]
+                                 )
         default_graph = tf.get_default_graph()
         params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
         param_values = self.sess.run(params)
@@ -441,4 +439,4 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                        ],
                                                                       feed_dict={self.inputs: images})
 
-        return mu, sigma, z, dense2_en, reshaped, final_conv
+        return (mu, sigma, z, dense2_en, reshaped, final_conv)
