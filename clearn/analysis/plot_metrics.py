@@ -334,7 +334,7 @@ def plot_epoch_vs_accuracy(root_path: str,
                                   activation_hidden_layer="RELU",
                                   activation_output_layer=activation_output_layer
                                   )
-    exp_config.check_and_create_directories(run_id)
+    exp_config.check_and_create_directories(run_id, False)
 
     file_prefix = f"/{metric}_*.csv"
     print(exp_config.ANALYSIS_PATH + file_prefix)
