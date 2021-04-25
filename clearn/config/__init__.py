@@ -103,7 +103,7 @@ class ExperimentConfig:
         # if ExperimentConfig._instance is not None:
         #     raise Exception("ExperimentConfig is singleton class. Use class method get_exp_config() instead")
         self.root_path = root_path
-        if len(num_units) < 2 or len(num_units) > 3 :
+        if len(num_units) < 2 or len(num_units) > 4 :
             print(num_units)
             raise ValueError("Length of num_units should be 2 or 3")
 
