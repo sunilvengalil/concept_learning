@@ -1,7 +1,7 @@
 import tensorflow as tf
 from clearn.utils.tensorflow_wrappers.layers import max_pool_2d, avgpool, flatten
 
-from clearn.utils.tensorflow_wrappers import conv2d, lrelu, linear, deconv2d
+from clearn.utils.tensorflow_wrappers import conv2d, lrelu, linear, deconv2d, drop_out
 
 
 def cnn_n_layer(model, x, num_out_units, reuse=False):
@@ -167,11 +167,13 @@ def cnn_4_layer(model, x, num_out_units, reuse=False):
             conv1 = tf.compat.v1.layers.batch_normalization(conv1)
             conv1 = lrelu(conv1, 0.0)
             model.conv1 = max_pool_2d(conv1,kernel_size=2, strides=2)
+            model.conv1 = drop_out(model.conv1, 0.2)
 
             conv2 = conv2d(model.conv1, n[1], 3, 3, 1, 1, name='en_conv2')
             conv2 = tf.compat.v1.layers.batch_normalization(conv2)
             conv2 = lrelu(conv2, 0.0)
             model.conv2 = max_pool_2d(conv2,kernel_size=2, strides=2)
+            model.conv2 = drop_out(model.conv2, 0.2)
 
             conv3 = conv2d(model.conv2, n[2], 3, 3, 1, 1, name='en_conv3')
             conv3 = tf.compat.v1.layers.batch_normalization(conv3)
