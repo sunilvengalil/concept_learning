@@ -1,4 +1,5 @@
 import tensorflow as tf
+from clearn.utils.tensorflow_wrappers.layers import max_pool_2d, avgpool, flatten
 
 from clearn.utils.tensorflow_wrappers import conv2d, lrelu, linear, deconv2d
 
@@ -162,21 +163,25 @@ def cnn_4_layer(model, x, num_out_units, reuse=False):
     n = model.exp_config.num_units
     with tf.compat.v1.variable_scope("encoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
-            conv1 = conv2d(x, n[0], 3, 3, model.strides[0], model.strides[0], name='en_conv1')
+            conv1 = conv2d(x, n[0], 3, 3, 1, 1, name='en_conv1')
             conv1 = tf.compat.v1.layers.batch_normalization(conv1)
-            model.conv1 = lrelu(conv1, 0.0)
+            conv1 = lrelu(conv1, 0.0)
+            model.conv1 = max_pool_2d(conv1,kernel_size=2, strides=2)
 
-            conv2 = conv2d(model.conv1, n[1], 3, 3, model.strides[1], model.strides[1], name='en_conv2')
+            conv2 = conv2d(model.conv1, n[1], 3, 3, 1, 1, name='en_conv2')
             conv2 = tf.compat.v1.layers.batch_normalization(conv2)
-            model.conv2 = lrelu(conv2, 0.0)
+            conv2 = lrelu(conv2, 0.0)
+            model.conv2 = max_pool_2d(conv2,kernel_size=2, strides=2)
 
-            conv3 = conv2d(model.conv2, n[2], 3, 3, model.strides[2], model.strides[2], name='en_conv3')
+            conv3 = conv2d(model.conv2, n[2], 3, 3, 1, 1, name='en_conv3')
             conv3 = tf.compat.v1.layers.batch_normalization(conv3)
-            model.conv3 = lrelu(conv3, 0.0)
+            conv3 = lrelu(conv3, 0.0)
+            model.conv3 = max_pool_2d(conv3,kernel_size=2, strides=2)
 
-            conv4 = conv2d(model.conv3, n[3], 3, 3, model.strides[3], model.strides[3], name='en_conv4')
+            conv4 = conv2d(model.conv3, n[3], 3, 3, 1, 1, name='en_conv4')
             conv4 = tf.compat.v1.layers.batch_normalization(conv4)
-            model.conv4 = lrelu(conv4, 0.01)
+            conv4 = lrelu(conv4, 0.01)
+            model.conv4 = max_pool_2d(conv4, kernel_size=2, strides=2)
 
             model.reshaped = tf.reshape(model.conv3, [model.exp_config.BATCH_SIZE, -1])
 
