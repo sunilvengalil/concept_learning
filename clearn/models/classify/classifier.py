@@ -134,7 +134,7 @@ class ClassifierModel(Model):
 
                 self.counter += 1
                 self.num_steps_completed = batch + 1
-                self.writer.add_summary(summary_str, self.counter - 1)
+                # self.writer.add_summary(summary_str, self.counter - 1)
 
             self.num_training_epochs_completed = epoch + 1
             print(f"Completed {epoch} epochs")
@@ -175,21 +175,21 @@ class ClassifierModel(Model):
                 print("Max test accuracy", max_accuracy)
 
             # save metrics
-            df = None
-            for i, metric in enumerate(self.metrics_to_compute):
-                column_name = f"train_{metric}"
-                if i == 0:
-                    df = pd.DataFrame(self.metrics["train"][metric], columns=["epoch", column_name])
-                else:
-                    df[column_name] = np.asarray(self.metrics["train"][metric])[:, 1]
-                df[f"val_{metric}"] = np.asarray(self.metrics["val"][metric])[:, 1]
-                df[f"test_{metric}"] = np.asarray(self.metrics["test"][metric])[:, 1]
-                max_value = df[f"test_{metric}"].max()
-                print(f"Max test {metric}", max_value)
-            if df is not None:
-                df.to_csv(
-                    os.path.join(self.exp_config.ANALYSIS_PATH, f"metrics_{self.num_training_epochs_completed}.csv"),
-                    index=False)
+            # df = None
+            # for i, metric in enumerate(self.metrics_to_compute):
+            #     column_name = f"train_{metric}"
+            #     if i == 0:
+            #         df = pd.DataFrame(self.metrics["train"][metric], columns=["epoch", column_name])
+            #     else:
+            #         df[column_name] = np.asarray(self.metrics["train"][metric])[:, 1]
+            #     df[f"val_{metric}"] = np.asarray(self.metrics["val"][metric])[:, 1]
+            #     df[f"test_{metric}"] = np.asarray(self.metrics["test"][metric])[:, 1]
+            #     max_value = df[f"test_{metric}"].max()
+            #     print(f"Max test {metric}", max_value)
+            # if df is not None:
+            #     df.to_csv(
+            #         os.path.join(self.exp_config.ANALYSIS_PATH, f"metrics_{self.start_epoch}.csv"),
+            #         index=False)
 
     def evaluate(self, data_iterator, dataset_type="train", num_batches_train=0, save_images=True):
         labels_predicted = None
