@@ -358,7 +358,6 @@ def get_model(dao: IDao,
                                          sess=sess,
                                          epoch=num_epochs,
                                          dao=dao,
-                                         train_val_data_iterator=train_val_data_iterator,
                                          test_data_iterator=test_data_iterator,
                                          check_point_epochs=check_point_epochs
                                          )
