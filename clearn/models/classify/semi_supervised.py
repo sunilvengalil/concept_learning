@@ -419,23 +419,30 @@ class SemiSupervisedClassifier(VAE):
                 batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
                 # update autoencoder and classifier parameters
-                _, summary_str, loss, nll_loss, nll_batch,  kl_loss, supervised_loss = self.sess.run([self.optim,
-                                                                                          self.merged_summary_op,
-                                                                                          self.loss,
-                                                                                          self.neg_loglikelihood,
-                                                                                          self.marginal_likelihood,
-                                                                                          self.KL_divergence,
-                                                                                          self.supervised_loss],
-                                                                                         feed_dict={
-                                                                                             self.inputs: batch_images,
-                                                                                             self.labels: manual_labels[:,:self.dao.num_classes],
-                                                                                             self.is_manual_annotated: manual_labels[:,self.dao.num_classes],
-                                                                                             self.standard_normal: batch_z}
-                                                                                         )
-                print(f"Epoch: {epoch}/{batch}, Nll_loss shape: {nll_loss.shape}, Nll_batch: {nll_batch.shape}")
+                _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss = self.sess.run([self.optim,
+                                                                                                     self.merged_summary_op,
+                                                                                                     self.loss,
+                                                                                                     self.neg_loglikelihood,
+                                                                                                     self.marginal_likelihood,
+                                                                                                     self.KL_divergence,
+                                                                                                     self.supervised_loss],
+                                                                                                    feed_dict={
+                                                                                                        self.inputs: batch_images,
+                                                                                                        self.labels: manual_labels[
+                                                                                                                     :,
+                                                                                                                     :self.dao.num_classes],
+                                                                                                        self.is_manual_annotated: manual_labels[
+                                                                                                                                  :,
+                                                                                                                                  self.dao.num_classes],
+                                                                                                        self.standard_normal: batch_z}
+                                                                                                    )
+                # print(f"Epoch: {epoch}/{batch}, Nll_loss shape: {nll_loss.shape}, Nll_batch: {nll_batch.shape}")
+                print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss}")
+
                 self.counter += 1
                 self.num_steps_completed = batch + 1
-                #self.writer.add_summary(summary_str, self.counter - 1)
+                # self.writer.add_summary(summary_str, self.counter - 1)
+            print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss}")
             self.num_training_epochs_completed = epoch + 1
             print(f"Completed {epoch} epochs")
             if self.exp_config.run_evaluation_during_training:
@@ -468,20 +475,36 @@ class SemiSupervisedClassifier(VAE):
                 print("Saving check point", self.exp_config.TRAINED_MODELS_PATH)
                 self.save(self.exp_config.TRAINED_MODELS_PATH, self.counter)
 
-            # save metrics
-            df = None
-            for i, metric in enumerate(self.metrics_to_compute):
-                column_name = f"train_{metric}"
-                if i == 0:
-                    df = pd.DataFrame(self.metrics["train"][metric], columns=["epoch", column_name])
-                else:
-                    df[column_name] = np.asarray(self.metrics["train"][metric])[:, 1]
-                df[f"val_{metric}"] = np.asarray(self.metrics["val"][metric])[:, 1]
-                df[f"test_{metric}"] = np.asarray(self.metrics["test"][metric])[:, 1]
-                max_value = df[f"test_{metric}"].max()
-                print(f"Max test {metric}", max_value)
-            if df is not None:
-                df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"metrics_{start_epoch}.csv"), index=False)
+        train_val_data_iterator.reset_counter("val")
+        train_val_data_iterator.reset_counter("train")
+        self.evaluate(data_iterator=train_val_data_iterator,
+                      dataset_type="val")
+        self.evaluate(data_iterator=train_val_data_iterator,
+                      dataset_type="train")
+        if self.test_data_iterator is not None:
+            self.test_data_iterator.reset_counter("test")
+            self.evaluate(self.test_data_iterator, dataset_type="test")
+            self.test_data_iterator.reset_counter("test")
+
+        for metric in self.metrics_to_compute:
+            print(f"Accuracy: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
+            print(f"Accuracy: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
+            print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
+
+        # save metrics
+        df = None
+        for i, metric in enumerate(self.metrics_to_compute):
+            column_name = f"train_{metric}"
+            if i == 0:
+                df = pd.DataFrame(self.metrics["train"][metric], columns=["epoch", column_name])
+            else:
+                df[column_name] = np.asarray(self.metrics["train"][metric])[:, 1]
+            df[f"val_{metric}"] = np.asarray(self.metrics["val"][metric])[:, 1]
+            df[f"test_{metric}"] = np.asarray(self.metrics["test"][metric])[:, 1]
+            max_value = df[f"test_{metric}"].max()
+            print(f"Max test {metric}", max_value)
+        if df is not None:
+            df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"metrics_{self.num_training_epochs_completed}.csv"), index=False)
 
     def evaluate(self,
                  data_iterator,
@@ -499,7 +522,6 @@ class SemiSupervisedClassifier(VAE):
             num_batches_train = self.exp_config.BATCH_SIZE
         print(
             f"Running evaluation after epoch:{self.num_training_epochs_completed} and step:{self.num_steps_completed} ")
-        reconstructed_images: DefaultDict[str, List] = defaultdict()
         labels_predicted = None
         z = None
         mu = None
@@ -509,6 +531,16 @@ class SemiSupervisedClassifier(VAE):
         data_iterator.reset_counter(dataset_type)
         reconstruction_losses = []
         retention_policies: List[RetentionPolicy] = list()
+        if save_images:
+            for policy in save_policies:
+                if dataset_type.upper() == policy.split("_")[0]:
+                    policy_type = policy.split("_")[1]
+                    if "reconstruction_loss" in metrics:
+                        rp = RetentionPolicy(dataset_type.upper(),
+                                             policy_type=policy_type,
+                                             N=int(policy.split("_")[2])
+                                             )
+                        retention_policies.append(rp)
         while data_iterator.has_next(dataset_type):
             batch_images, batch_labels, manual_labels = data_iterator.get_next_batch(dataset_type)
             # skip last batch
@@ -536,34 +568,32 @@ class SemiSupervisedClassifier(VAE):
                                               :,
                                               10],
                     self.standard_normal: batch_z})
-
-            print(f"Batch shape for nll {nll_batch.shape}")
-            reconstruction_losses.append(nll)
+            nll_batch = -nll_batch
             if len(nll_batch.shape) == 0:
                 data_iterator.reset_counter(dataset_type)
                 print(f"Skipping batch {batch_no}. Investigate and fix this issue later")
                 print(
-                    f"Length of batch_images: {batch_images.shape} Nll_batch: {nll_batch} Nll shape: {nll.shape} Nll:{nll} ")
+                    f"Length of batch_images: {batch_images.shape} Nll_batch shape: {nll_batch.shape} Nll shape: {nll.shape} Nll:{nll} ")
                 break
-            if len(nll_batch.shape) == 2:
-                num_pixels = self.dao.image_shape[0] * self.dao.image_shape[1]
-                mse = np.sum(nll_batch * num_pixels, axis=1) / num_pixels
-
-            labels_predicted_for_batch = np.argmax(softmax(y_pred), axis=1)
-            labels_for_batch = np.argmax(batch_labels, axis=1)
-            reconstruction_losses.append(nll)
-            accuracy_for_batch = accuracy_score(labels_for_batch, labels_predicted_for_batch)
+            if len(nll_batch.shape) != 2:
+                raise Exception(f"Shape of nll_batch {nll_batch.shape}")
 
             """
             Update priority queues for keeping top and bottom N samples for all the required metrics present save_policy
             """
             if save_images:
-                for policy in save_policies:
-                    policy_type = policy.split("_")[1]
-                    if "reconstruction_loss" in metrics:
-                        rp = RetentionPolicy(policy_type=policy_type, N=int(policy.split("_")[2]))
-                        rp.update_heap(mse, reconstructed_image)
-                        retention_policies.append(rp)
+                try:
+                    for rp in retention_policies:
+                        rp.update_heap(cost=nll_batch,
+                                       exp_config=self.exp_config,
+                                       data=[reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch])
+                except:
+                    print(f"Shape of mse is {nll_batch.shape}")
+                    traceback.print_exc()
+
+            labels_predicted_for_batch = np.argmax(softmax(y_pred), axis=1)
+            labels_for_batch = np.argmax(batch_labels, axis=1)
+            reconstruction_losses.append(nll)
 
             if labels_predicted is None:
                 labels_predicted = labels_predicted_for_batch
@@ -582,49 +612,20 @@ class SemiSupervisedClassifier(VAE):
                     sigma = np.vstack([sigma, sigma_for_batch])
                     z = np.vstack([z, z_for_batch])
             batch_no += 1
-
-            training_batch = self.num_training_epochs_completed * num_batches_train + self.num_steps_completed
-            # if dataset_type != "train" and save_images:
-            #     save_single_image(reconstructed_image,
-            #                       self.exp_config.reconstructed_images_path,
-            #                       self.num_training_epochs_completed,
-            #                       self.num_steps_completed,
-            #                       training_batch,
-            #                       batch_no,
-            #                       self.exp_config.BATCH_SIZE)
-            self.writer_v.add_summary(summary, self.counter)
-
-        for rp, policy in zip(retention_policies, save_policies):
-            reconstructed_images[policy] = retention_policies
-
+        print(f"Number of evaluation batches completed {batch_no}")
         print(f"epoch:{self.num_training_epochs_completed} step:{self.num_steps_completed}")
         if "reconstruction_loss" in self.metrics_to_compute:
             reconstruction_loss = mean(reconstruction_losses)
             self.metrics[dataset_type]["reconstruction_loss"].append(
                 [self.num_training_epochs_completed, reconstruction_loss])
+        if "accuracy" in self.metrics_to_compute:
+            accuracy = accuracy_score(labels, labels_predicted)
+            self.metrics[dataset_type]["accuracy"].append([self.num_training_epochs_completed, accuracy])
 
         if save_images:
-            reconstructed_dir = get_eval_result_dir(self.exp_config.PREDICTION_RESULTS_PATH,
-                                                    self.num_training_epochs_completed,
-                                                    self.num_steps_completed)
-            num_samples_per_image = 64
-            for rp, save_policy in zip(retention_policies, save_policies):
-                manifold_w = 4
-                manifold_h = num_samples_per_image // manifold_w
-                num_images = rp.N // num_samples_per_image
-                if dataset_type.upper() == save_policy.split("_")[0].upper():
-                    for image_no in range(num_images):
-                        file = f"{dataset_type}_{rp.policy_type}_{image_no}.png"
-                        samples_to_save = np.zeros((num_samples_per_image,
-                                                    self.dao.image_shape[0],
-                                                    self.dao.image_shape[1],
-                                                    self.dao.image_shape[2]))
-                        for sample_num, e in enumerate(rp.data_queue[image_no: image_no + num_samples_per_image]):
-                            samples_to_save[sample_num, :, :, :] = e[1]
-                        save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file)
+            self.save_sample_reconstructed_images(dataset_type, retention_policies)
 
         data_iterator.reset_counter(dataset_type)
-
         encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
                                   columns=["label", "label_predicted"])
 
