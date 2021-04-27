@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 import os
+import traceback
 from collections import defaultdict
 from typing import List, DefaultDict
 
@@ -44,7 +45,6 @@ class SemiSupervisedClassifier(VAE):
                          sess=sess,
                          epoch=epoch,
                          dao=dao,
-                         train_val_data_iterator=train_val_data_iterator,
                          test_data_iterator=test_data_iterator,
                          read_from_existing_checkpoint=read_from_existing_checkpoint,
                          check_point_epochs=check_point_epochs)
@@ -71,6 +71,255 @@ class SemiSupervisedClassifier(VAE):
     def _decoder(self, z, reuse=False):
         # Models the probability P(X/z)
         return deconv_4_layer(self, z, reuse)
+
+
+    def train(self, train_val_data_iterator):
+        start_batch_id = self.start_batch_id
+        start_epoch = self.start_epoch
+        self.num_batches_train = train_val_data_iterator.get_num_samples("train") // self.exp_config.BATCH_SIZE
+
+        for epoch in range(start_epoch, self.epoch):
+            # get batch data
+            for batch in range(start_batch_id, self.num_batches_train):
+                # first 10 elements of manual_labels is actual one hot encoded labels
+                # and next value is confidence
+                batch_images, _, manual_labels = train_val_data_iterator.get_next_batch("train")
+                if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
+                    break
+                batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
+
+                # update aut encoder and classifier parameters
+                _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss = self.sess.run([self.optim,
+                                                                                                     self.merged_summary_op,
+                                                                                                     self.loss,
+                                                                                                     self.neg_loglikelihood,
+                                                                                                     self.marginal_likelihood,
+                                                                                                     self.KL_divergence,
+                                                                                                     self.supervised_loss],
+                                                                                                    feed_dict={
+                                                                                                        self.inputs: batch_images,
+                                                                                                        self.labels: manual_labels[
+                                                                                                                     :,
+                                                                                                                     :self.dao.num_classes],
+                                                                                                        self.is_manual_annotated: manual_labels[
+                                                                                                                                  :,
+                                                                                                                                  self.dao.num_classes],
+                                                                                                        self.standard_normal: batch_z}
+                                                                                                    )
+                # print(f"Epoch: {epoch}/{batch}, Nll_loss shape: {nll_loss.shape}, Nll_batch: {nll_batch.shape}")
+                print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss}")
+
+                self.counter += 1
+                self.num_steps_completed = batch + 1
+                # self.writer.add_summary(summary_str, self.counter - 1)
+            print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss}")
+            self.num_training_epochs_completed = epoch + 1
+            print(f"Completed {epoch} epochs")
+            if self.exp_config.run_evaluation_during_training:
+                if np.mod(epoch, self.exp_config.eval_interval_in_epochs) == 0:
+                    train_val_data_iterator.reset_counter("val")
+                    train_val_data_iterator.reset_counter("train")
+                    self.evaluate(data_iterator=train_val_data_iterator,
+                                  dataset_type="val")
+                    self.evaluate(data_iterator=train_val_data_iterator,
+                                  dataset_type="train")
+                    if self.test_data_iterator is not None:
+                        self.test_data_iterator.reset_counter("test")
+                        self.evaluate(self.test_data_iterator, dataset_type="test")
+                        self.test_data_iterator.reset_counter("test")
+
+                    for metric in self.metrics_to_compute:
+                        print(f"Accuracy: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
+                        print(f"Accuracy: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
+                        print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
+
+            train_val_data_iterator.reset_counter("train")
+            train_val_data_iterator.reset_counter("val")
+
+            # After an epoch, start_batch_id is set to zero
+            # non-zero value is only for the first epoch after loading pre-trained model
+            start_batch_id = 0
+            # save model
+            train_val_data_iterator.reset_counter("train")
+            if np.mod(epoch, self.exp_config.model_save_interval) == 0:
+                print("Saving check point", self.exp_config.TRAINED_MODELS_PATH)
+                self.save(self.exp_config.TRAINED_MODELS_PATH, self.counter)
+
+        train_val_data_iterator.reset_counter("val")
+        train_val_data_iterator.reset_counter("train")
+        self.evaluate(data_iterator=train_val_data_iterator,
+                      dataset_type="val")
+        self.evaluate(data_iterator=train_val_data_iterator,
+                      dataset_type="train")
+        if self.test_data_iterator is not None:
+            self.test_data_iterator.reset_counter("test")
+            self.evaluate(self.test_data_iterator, dataset_type="test")
+            self.test_data_iterator.reset_counter("test")
+
+        for metric in self.metrics_to_compute:
+            print(f"Accuracy: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
+            print(f"Accuracy: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
+            print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
+
+        # save metrics
+        df = None
+        for i, metric in enumerate(self.metrics_to_compute):
+            column_name = f"train_{metric}"
+            if i == 0:
+                df = pd.DataFrame(self.metrics["train"][metric], columns=["epoch", column_name])
+            else:
+                df[column_name] = np.asarray(self.metrics["train"][metric])[:, 1]
+            df[f"val_{metric}"] = np.asarray(self.metrics["val"][metric])[:, 1]
+            df[f"test_{metric}"] = np.asarray(self.metrics["test"][metric])[:, 1]
+            max_value = df[f"test_{metric}"].max()
+            print(f"Max test {metric}", max_value)
+        if df is not None:
+            df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"metrics_{self.num_training_epochs_completed}.csv"), index=False)
+
+    def evaluate(self,
+                 data_iterator,
+                 dataset_type="train",
+                 num_batches_train=0,
+                 save_images=True,
+                 metrics=[],
+                 save_policies=("TEST_TOP_128", "TEST_BOTTOM_128",
+                                "TRAIN_TOP_128", "TRAIN_BOTTOM_128",
+                                "VAL_TOP_128", "VAL_BOTTOM_128")
+                 ):
+        if metrics is None or len(metrics) == 0:
+            metrics = self.metrics_to_compute
+        if num_batches_train == 0:
+            num_batches_train = self.exp_config.BATCH_SIZE
+        print(
+            f"Running evaluation after epoch:{self.num_training_epochs_completed} and step:{self.num_steps_completed} ")
+        labels_predicted = None
+        z = None
+        mu = None
+        sigma = None
+        labels = None
+        batch_no = 1
+        data_iterator.reset_counter(dataset_type)
+        reconstruction_losses = []
+        retention_policies: List[RetentionPolicy] = list()
+        if save_images:
+            for policy in save_policies:
+                if dataset_type.upper() == policy.split("_")[0]:
+                    policy_type = policy.split("_")[1]
+                    if "reconstruction_loss" in metrics:
+                        rp = RetentionPolicy(dataset_type.upper(),
+                                             policy_type=policy_type,
+                                             N=int(policy.split("_")[2])
+                                             )
+                        retention_policies.append(rp)
+        while data_iterator.has_next(dataset_type):
+            batch_images, batch_labels, manual_labels = data_iterator.get_next_batch(dataset_type)
+            # skip last batch
+            if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
+                data_iterator.reset_counter(dataset_type)
+                break
+            batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
+
+            reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, y_pred, nll, nll_batch = self.sess.run(
+                [self.out,
+                 self.merged_summary_op,
+                 self.mu,
+                 self.sigma,
+                 self.z,
+                 self.y_pred,
+                 self.neg_loglikelihood,
+                 self.marginal_likelihood
+                 ],
+                feed_dict={
+                    self.inputs: batch_images,
+                    self.labels: manual_labels[
+                                 :,
+                                 :10],
+                    self.is_manual_annotated: manual_labels[
+                                              :,
+                                              10],
+                    self.standard_normal: batch_z})
+            nll_batch = -nll_batch
+            if len(nll_batch.shape) == 0:
+                data_iterator.reset_counter(dataset_type)
+                print(f"Skipping batch {batch_no}. Investigate and fix this issue later")
+                print(
+                    f"Length of batch_images: {batch_images.shape} Nll_batch shape: {nll_batch.shape} Nll shape: {nll.shape} Nll:{nll} ")
+                break
+            if len(nll_batch.shape) != 2:
+                raise Exception(f"Shape of nll_batch {nll_batch.shape}")
+
+            """
+            Update priority queues for keeping top and bottom N samples for all the required metrics present save_policy
+            """
+            if save_images:
+                try:
+                    for rp in retention_policies:
+                        rp.update_heap(cost=nll_batch,
+                                       exp_config=self.exp_config,
+                                       data=[reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch])
+                except:
+                    print(f"Shape of mse is {nll_batch.shape}")
+                    traceback.print_exc()
+
+            labels_predicted_for_batch = np.argmax(softmax(y_pred), axis=1)
+            labels_for_batch = np.argmax(batch_labels, axis=1)
+            reconstruction_losses.append(nll)
+
+            if labels_predicted is None:
+                labels_predicted = labels_predicted_for_batch
+                labels = labels_for_batch
+            else:
+                labels_predicted = np.hstack([labels_predicted, labels_predicted_for_batch])
+                labels = np.hstack([labels, labels_for_batch])
+
+            if self.exp_config.return_latent_vector:
+                if z is None:
+                    mu = mu_for_batch
+                    sigma = sigma_for_batch
+                    z = z_for_batch
+                else:
+                    mu = np.vstack([mu, mu_for_batch])
+                    sigma = np.vstack([sigma, sigma_for_batch])
+                    z = np.vstack([z, z_for_batch])
+            batch_no += 1
+        print(f"Number of evaluation batches completed {batch_no}")
+        print(f"epoch:{self.num_training_epochs_completed} step:{self.num_steps_completed}")
+        if "reconstruction_loss" in self.metrics_to_compute:
+            reconstruction_loss = mean(reconstruction_losses)
+            self.metrics[dataset_type]["reconstruction_loss"].append(
+                [self.num_training_epochs_completed, reconstruction_loss])
+        if "accuracy" in self.metrics_to_compute:
+            accuracy = accuracy_score(labels, labels_predicted)
+            self.metrics[dataset_type]["accuracy"].append([self.num_training_epochs_completed, accuracy])
+
+        if save_images:
+            self.save_sample_reconstructed_images(dataset_type, retention_policies)
+
+        data_iterator.reset_counter(dataset_type)
+        encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
+                                  columns=["label", "label_predicted"])
+
+        if self.exp_config.return_latent_vector:
+            mean_col_names, sigma_col_names, z_col_names, l3_col_names = get_latent_vector_column(self.exp_config.Z_DIM)
+            # encoded_df[mean_col_names] = mu
+            for i, mean_col_name in enumerate(mean_col_names):
+                encoded_df[mean_col_name] = mu[:, i]
+
+            for i, sigma_col_name in enumerate(sigma_col_names):
+                encoded_df[sigma_col_name] = sigma[:, i]
+
+            for i, z_col_name in enumerate(z_col_names):
+                encoded_df[z_col_name] = z[:, i]
+
+        if self.exp_config.write_predictions:
+            output_csv_file = get_encoded_csv_file(self.exp_config,
+                                                   self.num_training_epochs_completed,
+                                                   dataset_type
+                                                   )
+            print("Saving evaluation results to ", self.exp_config.ANALYSIS_PATH)
+            encoded_df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, output_csv_file), index=False)
+
+        return encoded_df
 
     def get_decoder_weights_bias(self):
         # name_w_1 = "decoder/de_fc1/Matrix:0"
