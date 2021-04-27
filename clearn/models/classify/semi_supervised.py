@@ -107,7 +107,7 @@ class SemiSupervisedClassifier(VAE):
                                                                                                         self.standard_normal: batch_z}
                                                                                                     )
                 # print(f"Epoch: {epoch}/{batch}, Nll_loss shape: {nll_loss.shape}, Nll_batch: {nll_batch.shape}")
-                print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss}")
+                print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} NLL_batch_shape {nll_batch.shape}")
 
                 self.counter += 1
                 self.num_steps_completed = batch + 1
@@ -518,8 +518,6 @@ class SemiSupervisedClassifier(VAE):
                  ):
         if metrics is None or len(metrics) == 0:
             metrics = self.metrics_to_compute
-        if num_batches_train == 0:
-            num_batches_train = self.exp_config.BATCH_SIZE
         print(
             f"Running evaluation after epoch:{self.num_training_epochs_completed} and step:{self.num_steps_completed} ")
         labels_predicted = None
