@@ -35,21 +35,70 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
         return z
 
 
+def fcnn_n_layer(model, x, num_out_units, reuse=False):
+    # Encoder models the probability  P(z/X)
+    n_units = model.exp_config.num_units
+    layer_num = 0
+    with tf.compat.v1.variable_scope("encoder", reuse=reuse):
+        if model.exp_config.activation_hidden_layer == "RELU":
+            model.final_conv = lrelu(conv2d(x, n_units[layer_num], 3, 3, 2, 2, name='en_conv1'))
+            layer_num += 1
+            if len(n_units) > 2:
+                model.final_conv = lrelu((conv2d(model.final_conv, n_units[layer_num], 3, 3, 2, 2, name='en_conv2')))
+        else:
+            raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
+        z = lrelu((conv2d(model.final_conv, num_out_units, 2, 3, 3, 2, 2, name='output')))
+        return z
+
+
+def fully_deconv_n_layer(model, z, reuse=False):
+    n_units = model.exp_config.num_units
+    h, w = model.dao.image_shape[0], model.dao.image_shape[1]
+    re_scale_factor = get_rescale_factor(n_units)
+
+    with tf.compat.v1.variable_scope("decoder", reuse=reuse):
+        if model.exp_config.activation_hidden_layer == "RELU":
+            layer_num = 1
+            if len(n_units) > 2:
+                layer_num += 1
+                re_scale_factor = re_scale_factor//2
+                z = lrelu(deconv2d(z,
+                                   [model.exp_config.BATCH_SIZE, h//re_scale_factor, w//re_scale_factor, n_units[len(n_units) - layer_num]],
+                                   3,
+                                   3,
+                                   2,
+                                   2,
+                                   name='de_dc3')
+                          )
+            if model.exp_config.activation_output_layer == "SIGMOID":
+                out = tf.nn.sigmoid(
+                    deconv2d(z,
+                             [model.exp_config.BATCH_SIZE, h, w, 1],
+                             3,
+                             3,
+                             2,
+                             2,
+                             name='out'
+                             )
+                )
+            elif model.exp_config.activation_output_layer == "LINEAR":
+                out = deconv2d(z, [model.exp_config.BATCH_SIZE, h, w, 1], 3, 3, 2, 2, name='out')
+        return out
+
+
 def deconv_n_layer(model, z, reuse=False):
     n_units = model.exp_config.num_units
     h, w = model.dao.image_shape[0], model.dao.image_shape[1]
-    if len(n_units) > 2:
-        re_scale_factor = 4
-    else:
-        re_scale_factor = 2
+    re_scale_factor = get_rescale_factor(n_units)
+
     with tf.compat.v1.variable_scope("decoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
             layer_num = 1
             model.dense1_de = lrelu((linear(z, n_units[len(n_units) - layer_num], scope='de_fc1')))
             layer_num += 1
-
             model.dense2_de = lrelu((linear(model.dense1_de, n_units[ len(n_units) - layer_num ] * h//re_scale_factor * w//re_scale_factor)))
             model.reshaped_de = tf.reshape(model.dense2_de, [model.exp_config.BATCH_SIZE, h//re_scale_factor, w//re_scale_factor, n_units[len(n_units) - layer_num]])
+
             if len(n_units) > 2:
                 layer_num += 1
                 re_scale_factor = re_scale_factor//2
@@ -80,6 +129,14 @@ def deconv_n_layer(model, z, reuse=False):
             raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
         # out = lrelu(deconv2d(deconv1, [self.exp_config.BATCH_SIZE, 28, 28, 1], 3, 3, 2, 2, name='de_dc4'))
         return out
+
+
+def get_rescale_factor(n_units):
+    if len(n_units) > 2:
+        re_scale_factor = 4
+    else:
+        re_scale_factor = 2
+    return re_scale_factor
 
 
 def cnn_3_layer(model, x, num_out_units, reuse=False):
@@ -253,19 +310,23 @@ def deconv_4_layer(model, z, reuse=False):
             deconv2 = lrelu(deconv2d(model.deconv1,
                                      layer_3_size,
                                      3, 3, model.strides[2], model.strides[2], name='de_dc2'), 0)
-            model.deconv2 = lrelu(tf.compat.v1.layers.batch_normalization(deconv2))
+            deconv2 = lrelu(tf.compat.v1.layers.batch_normalization(deconv2))
+            model.deconv2 = drop_out(deconv2, 0.2)
 
             deconv3 = lrelu(deconv2d(model.deconv2,
                                      layer_4_size,
                                      3, 3, model.strides[3], model.strides[3], name='de_dc3'), 0)
             model.deconv3 = lrelu(tf.compat.v1.layers.batch_normalization(deconv3))
+            model.deconv3 = drop_out(deconv3, 0.2)
+
 
             if model.exp_config.activation_output_layer == "SIGMOID":
                 out = tf.nn.sigmoid(
                     deconv2d(model.deconv3, output_shape, 3, 3, model.strides[4], model.strides[4], name='de_dc4'))
             elif model.exp_config.activation_output_layer == "LINEAR":
-                out = lrelu(
-                    deconv2d(model.deconv3, output_shape, 3, 3, model.strides[4], model.strides[4], name='de_dc4'),
+                out = lrelu(deconv2d(model.deconv3,
+                                     output_shape,
+                                     3, 3, model.strides[4], model.strides[4], name='de_dc4'),
                     0
                     )
 
