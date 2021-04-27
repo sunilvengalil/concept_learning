@@ -435,7 +435,7 @@ class SemiSupervisedClassifier(VAE):
                 print(f"Epoch: {epoch}/{batch}, Nll_loss shape: {nll_loss.shape}, Nll_batch: {nll_batch.shape}")
                 self.counter += 1
                 self.num_steps_completed = batch + 1
-                self.writer.add_summary(summary_str, self.counter - 1)
+                #self.writer.add_summary(summary_str, self.counter - 1)
             self.num_training_epochs_completed = epoch + 1
             print(f"Completed {epoch} epochs")
             if self.exp_config.run_evaluation_during_training:
