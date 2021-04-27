@@ -573,7 +573,8 @@ class SemiSupervisedClassifier(VAE):
                 print(
                     f"Length of batch_images: {batch_images.shape} Nll_batch shape: {nll_batch.shape} Nll shape: {nll.shape} Nll:{nll} ")
                 break
-            if len(nll_batch.shape) != 2:
+
+            if len(nll_batch.shape) != 1:
                 raise Exception(f"Shape of nll_batch {nll_batch.shape}")
 
             """
