@@ -224,13 +224,13 @@ def cnn_4_layer(model, x, num_out_units, reuse=False):
             conv1 = tf.compat.v1.layers.batch_normalization(conv1)
             conv1 = lrelu(conv1, 0.0)
             model.conv1 = max_pool_2d(conv1,kernel_size=2, strides=2)
-            model.conv1 = drop_out(model.conv1, 0.2)
+            model.conv1 = drop_out(model.conv1, 0.3)
 
             conv2 = conv2d(model.conv1, n[1], 3, 3, 1, 1, name='en_conv2')
             conv2 = tf.compat.v1.layers.batch_normalization(conv2)
             conv2 = lrelu(conv2, 0.0)
             model.conv2 = max_pool_2d(conv2,kernel_size=2, strides=2)
-            model.conv2 = drop_out(model.conv2, 0.2)
+            model.conv2 = drop_out(model.conv2, 0.3)
 
             conv3 = conv2d(model.conv2, n[2], 3, 3, 1, 1, name='en_conv3')
             conv3 = tf.compat.v1.layers.batch_normalization(conv3)
@@ -311,13 +311,13 @@ def deconv_4_layer(model, z, reuse=False):
                                      layer_3_size,
                                      3, 3, model.strides[2], model.strides[2], name='de_dc2'), 0)
             deconv2 = lrelu(tf.compat.v1.layers.batch_normalization(deconv2))
-            model.deconv2 = drop_out(deconv2, 0.2)
+            model.deconv2 = drop_out(deconv2, 0.3)
 
             deconv3 = lrelu(deconv2d(model.deconv2,
                                      layer_4_size,
                                      3, 3, model.strides[3], model.strides[3], name='de_dc3'), 0)
             model.deconv3 = lrelu(tf.compat.v1.layers.batch_normalization(deconv3))
-            model.deconv3 = drop_out(deconv3, 0.2)
+            model.deconv3 = drop_out(deconv3, 0.3)
 
 
             if model.exp_config.activation_output_layer == "SIGMOID":
