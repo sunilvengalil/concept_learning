@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 
-# import logging
+import logging
 import os
 import traceback
 from collections import defaultdict
@@ -439,8 +439,8 @@ class SemiSupervisedClassifier(VAE):
                                                                                                         self.standard_normal: batch_z}
                                                                                                     )
                 # print(f"Epoch: {epoch}/{batch}, Nll_loss shape: {nll_loss.shape}, Nll_batch: {nll_batch.shape}")
-                # if self.exp_config.log_level == logging.DEBUG:
-                #     print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Nll Batch shape {nll_batch.shape}")
+                if self.exp_config.log_level == logging.DEBUG:
+                    print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Nll Batch shape {nll_batch.shape}")
 
                 self.counter += 1
                 self.num_steps_completed = batch + 1
@@ -475,7 +475,7 @@ class SemiSupervisedClassifier(VAE):
             # save model
             train_val_data_iterator.reset_counter("train")
             if np.mod(epoch, self.exp_config.model_save_interval) == 0:
-                print("Saving check point", self.exp_config.TRAINED_MODELS_PATH)
+                print(f"Saving check point {self.counter} {self.exp_config.TRAINED_MODELS_PATH}")
                 self.save(self.exp_config.TRAINED_MODELS_PATH, self.counter)
 
         train_val_data_iterator.reset_counter("val")
