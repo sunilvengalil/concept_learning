@@ -218,7 +218,7 @@ class SemiSupervisedSegmenterMnist(VAE):
                                                                                               }
                                                                                    )
                 # print(f"Epoch: {epoch}/{batch}, Nll_loss shape: {nll_loss.shape}, Nll_batch: {nll_batch.shape}")
-                #print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss}")
+                print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss} ")
 
                 self.counter += 1
                 self.num_steps_completed = batch + 1
