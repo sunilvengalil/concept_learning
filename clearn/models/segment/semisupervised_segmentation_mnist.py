@@ -153,6 +153,7 @@ class SemiSupervisedSegmenterMnist(VAE):
         """ Training """
         # optimizers
         t_vars = tf.compat.v1.trainable_variables()
+        print(t_vars)
         with tf.control_dependencies(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
             self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate,
                                                           beta1=self.exp_config.beta1_adam) \
@@ -218,7 +219,7 @@ class SemiSupervisedSegmenterMnist(VAE):
                                                                                               }
                                                                                    )
                 # print(f"Epoch: {epoch}/{batch}, Nll_loss shape: {nll_loss.shape}, Nll_batch: {nll_batch.shape}")
-                print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss} ")
+                print(f"Epoch: {epoch}/{batch},  Loss: {loss}  Nll_loss : {nll_loss} KLD:{kl_loss} ")
 
                 self.counter += 1
                 self.num_steps_completed = batch + 1
