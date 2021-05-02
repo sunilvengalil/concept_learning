@@ -33,16 +33,21 @@ def get_base_path(exp_config,
     """
 
     num_units = exp_config.num_units
-    if len(exp_config.num_units)  >= 3:
+    if len(exp_config.num_units) >= 3:
         units_ = str(exp_config.num_units[-1])
         for i in exp_config.num_units[2:-1][::-1]:
             units_ += "_" + str(i)
     else:
-        units_ = "0"
+        if len(num_units) == 2:
+            units_ = "0"
+        else:
+            units_ = "0_0"
     if exp_config.num_cluster_config is None:
-        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{units_}_{num_units[1]}_{num_units[0]}_{exp_config.Z_DIM}_{run_id}/")
+        return os.path.join(os.path.join(exp_config.root_path, exp_config.name),
+                            f"Exp_{units_}_{num_units[0]}_{exp_config.Z_DIM}_{run_id}/")
     else:
-        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{units_}_{num_units[1]}_{num_units[0]}_{exp_config.Z_DIM}_{exp_config.num_cluster_config}_{run_id}/")
+        return os.path.join(os.path.join(exp_config.root_path, exp_config.name),
+                            f"Exp_{units_}_{num_units[0]}_{exp_config.Z_DIM}_{exp_config.num_cluster_config}_{run_id}/")
 
 
 class ExperimentConfig:
@@ -103,7 +108,7 @@ class ExperimentConfig:
         # if ExperimentConfig._instance is not None:
         #     raise Exception("ExperimentConfig is singleton class. Use class method get_exp_config() instead")
         self.root_path = root_path
-        if len(num_units) < 2 or len(num_units) > 5 :
+        if len(num_units) < 1 or len(num_units) > 5 :
             print(num_units)
             raise ValueError("Length of num_units should be 2 or 3")
 

@@ -38,14 +38,17 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
 def fcnn_n_layer(model, x, num_out_units, reuse=False):
     # Encoder models the probability  P(z/X)
     n_units = model.exp_config.num_units
-    layer_num = 0
+    model.encoder_dict = {}
     with tf.compat.v1.variable_scope("encoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
-            if len(n_units) > 2:
-                model.final_conv = lrelu((conv2d(x, n_units[layer_num], 3, 3, 2, 2, name='en_conv2')))
+            model.encoder_dict[f"layer_{0}"] = lrelu((conv2d(x, n_units[0], 3, 3, 2, 2, name=f"layer_{0}")))
+            for layer_num in range(1, len(n_units)):
+                model.encoder_dict[f"layer_{layer_num}"] = lrelu((conv2d(model.encoder_dict[f"layer_{layer_num- 1}"], n_units[layer_num], 3, 3, 2, 2, name=f"layer_{layer_num}")))
         else:
             raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
-        z = lrelu((conv2d(model.final_conv, num_out_units, 3, 3, 2, 2, name='output')))
+        print("encoder final hidden layer",model.encoder_dict[f"layer_{len(n_units) - 1}"].shape)
+        z = lrelu((conv2d(model.encoder_dict[f"layer_{len(n_units) - 1}"], num_out_units, 3, 3, 2, 2, name='output')))
+        print(z.shape)
         z = tf.reshape(z, [model.exp_config.BATCH_SIZE, -1])
         return z
 
@@ -55,40 +58,51 @@ def fully_deconv_n_layer(model, z, reuse=False):
 
     n_units = model.exp_config.num_units
     h, w = model.dao.image_shape[0], model.dao.image_shape[1]
-    re_scale_factor = get_rescale_factor(n_units)
+    re_scale_factor = get_rescale_factor_fcnn(n_units)
     z = tf.reshape(z,
                     [model.exp_config.BATCH_SIZE, h // re_scale_factor, w // re_scale_factor,
                                     1])
-    print("Shape of z",z.shape)
-
+    model.decoder_dict = {}
     with tf.compat.v1.variable_scope("decoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
-            layer_num = 1
-            if len(n_units) > 2:
-                layer_num += 1
+            re_scale_factor = re_scale_factor // 2
+            model.decoder_dict[f"layer_{0}"] = lrelu(deconv2d(z,
+                                                              [model.exp_config.BATCH_SIZE,
+                                                               h//re_scale_factor,
+                                                               w//re_scale_factor,
+                                                               n_units[len(n_units) - 1] ],
+                                                              3,
+                                                              3,
+                                                              2,
+                                                              2,
+                                                              name=f"layer_{0}"
+                                                              )
+                                                     )
+            for layer_num in range(1, len(n_units)):
                 re_scale_factor = re_scale_factor//2
-                z = lrelu(deconv2d(z,
-                                   [model.exp_config.BATCH_SIZE, h//re_scale_factor, w//re_scale_factor, n_units[len(n_units) - layer_num]],
-                                   3,
-                                   3,
-                                   2,
-                                   2,
-                                   name='de_dc3')
-                          )
-            print("output of de_dc3", z.shape)
+                model.decoder_dict[f"layer_{layer_num}"] = lrelu(deconv2d(model.decoder_dict[f"layer_{layer_num - 1}"],
+                                                                          [model.exp_config.BATCH_SIZE,
+                                                                           h//re_scale_factor,
+                                                                           w//re_scale_factor,
+                                                                           n_units[len(n_units) - layer_num - 1]],
+                                                                          3,
+                                                                          3,
+                                                                          2,
+                                                                          2,
+                                                                          name=f"layer_{layer_num}"
+                                                                          )
+                                                                 )
+            out = tf.nn.sigmoid(deconv2d(model.decoder_dict[f"layer_{len(n_units) - 1}"],
+                                         [model.exp_config.BATCH_SIZE, h, w, 1],
+                                         3,
+                                         3,
+                                         2,
+                                         2,
+                                         name='out'
+                                         )
+                                )
             if model.exp_config.activation_output_layer == "SIGMOID":
-                out = tf.nn.sigmoid(
-                    deconv2d(z,
-                             [model.exp_config.BATCH_SIZE, h, w, 1],
-                             3,
-                             3,
-                             2,
-                             2,
-                             name='out'
-                             )
-                )
-            elif model.exp_config.activation_output_layer == "LINEAR":
-                out = deconv2d(z, [model.exp_config.BATCH_SIZE, h, w, 1], 3, 3, 2, 2, name='out')
+                out = tf.nn.sigmoid(out)
         return out
 
 
@@ -143,6 +157,9 @@ def get_rescale_factor(n_units):
     else:
         re_scale_factor = 2
     return re_scale_factor
+
+def get_rescale_factor_fcnn(n_units):
+    return 2 ** (len(n_units) + 1)
 
 
 def cnn_3_layer(model, x, num_out_units, reuse=False):

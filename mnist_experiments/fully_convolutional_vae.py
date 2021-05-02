@@ -3,7 +3,7 @@ from clearn.experiments.experiment import initialize_model_train_and_get_feature
 
 experiment_name = "Experiment_6"
 root_path = "C:/concept_learning_exp/"
-z_dim = 5
+z_dim = 49
 learning_rate = 0.001
 num_epochs = 2
 create_split = False
@@ -17,7 +17,8 @@ initialize_model_train_and_get_features(experiment_name=experiment_name,
                                         root_path=root_path,
                                         learning_rate=learning_rate,
                                         run_evaluation_during_training=True,
-                                        eval_interval_in_epochs=0.25,
+                                        eval_interval_in_epochs=1,
+                                        num_units=[128],
                                         model_type=VAE_FCNN
                                         )
 tf.reset_default_graph()

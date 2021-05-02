@@ -67,29 +67,21 @@ class SemiSupervisedSegmenterMnist(VAE):
             self.metrics[SemiSupervisedSegmenterMnist.dataset_type_test][metric] = []
 
     def _encoder(self, x, reuse=False):
-        if len(self.exp_config.num_units) in (2, 3):
-            gaussian_params = fcnn_n_layer(self, x, 2, reuse)
-        else:
-            raise Exception("Invalid configuration. Length of num_units should be 2 or 3")
-
+        gaussian_params = fcnn_n_layer(self, x, 2, reuse)
         # The mu parameter is unconstrained
         # mu = gaussian_params[:, :, :, 0]
-        mu = gaussian_params[:, :49]
+        mu = gaussian_params[:, :self.exp_config.Z_DIM]
 
         # The standard deviation must be positive. Parametrize with a softplus and
         # add a small epsilon for numerical stability
         #stddev = 1e-6 + tf.nn.softplus(gaussian_params[:, :, :, 1])
-        stddev = 1e-6 + tf.nn.softplus(gaussian_params[:, 49:])
+        stddev = 1e-6 + tf.nn.softplus(gaussian_params[:, self.exp_config.Z_DIM:])
         print("mu.shape", mu.shape)
         print("std.shape", stddev.shape)
         return mu, stddev
 
     def _decoder(self, z, reuse=False):
-        print("decoder shape of z", z.shape)
-        if len(self.exp_config.num_units) in (2, 3):
-            return fully_deconv_n_layer(self, z, reuse)
-        else:
-            raise Exception("Invalid configuration. Length of num_units should be 2 or 3")
+        return fully_deconv_n_layer(self, z, reuse)
 
     def get_decoder_weights_bias(self):
         name_w_1 = "decoder/de_fc1/Matrix:0"
@@ -444,7 +436,7 @@ class SemiSupervisedSegmenterMnist(VAE):
     def encode(self, images):
         mu, sigma, z, y_pred = self.sess.run([self.mu, self.sigma, self.z, self.y_pred],
                                              feed_dict={self.inputs: images})
-        return mu, sigma, z, y_pred
+        return mu, sigma, z,  y_pred
 
     def classify(self, images):
         logits = self.sess.run([self.y_pred],
