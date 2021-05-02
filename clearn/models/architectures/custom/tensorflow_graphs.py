@@ -105,15 +105,14 @@ def fully_deconv_n_layer(model, z, reuse=False):
                                                                           name=f"layer_{layer_num}"
                                                                           )
                                                                  )
-            out = tf.nn.sigmoid(deconv2d(model.decoder_dict[f"layer_{len(n_units) - 1}"],
-                                         [model.exp_config.BATCH_SIZE, h, w, 1],
-                                         3,
-                                         3,
-                                         strides[0],
-                                         strides[0],
-                                         name='out'
-                                         )
-                                )
+            out = deconv2d(model.decoder_dict[f"layer_{len(n_units) - 1}"],
+                           [model.exp_config.BATCH_SIZE, h, w, 1],
+                           3,
+                           3,
+                           strides[0],
+                           strides[0],
+                           name='out'
+                           )
             if model.exp_config.activation_output_layer == "SIGMOID":
                 out = tf.nn.sigmoid(out)
         return out
