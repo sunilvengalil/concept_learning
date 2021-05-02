@@ -1,3 +1,5 @@
+import logging
+
 import tensorflow as tf
 from clearn.analysis.encode_images import encode_images, encode_images_and_get_features
 import json
@@ -8,6 +10,7 @@ from clearn.models.classify.cifar_10_classifier import Cifar10Classifier, Cifar1
 from clearn.models.classify.cifar_10_vae import Cifar10Vae
 from clearn.models.classify.semi_supervised import SemiSupervisedClassifier
 from clearn.models.classify.semi_supervised_mnist import SemiSupervisedClassifierMnist
+from clearn.models.segment.semisupervised_segmentation_mnist import SemiSupervisedSegmenterMnist
 from clearn.models.vae import VAE
 from clearn.models.classify.supervised_classifier import SupervisedClassifierModel
 from clearn.dao.dao_factory import get_dao
@@ -26,6 +29,7 @@ VAAL_ARCHITECTURE_FOR_CIFAR = "ACTIVE_LEARNING_VAAL_CIFAR"
 CIFAR_VGG = "CIFAR_VGG"
 CIFAR10_F = "CIFAR10_F"
 MODEL_TYPE_VAE_SEMI_SUPERVISED_CIFAR10 = "VAE_SEMI_SUPERVISED_CIFAR10"
+VAE_FCNN = "VAE_FCNN"
 
 model_types = [MODEL_TYPE_VAE_UNSUPERVISED,
                MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10,
@@ -33,7 +37,8 @@ model_types = [MODEL_TYPE_VAE_UNSUPERVISED,
                VAAL_ARCHITECTURE_FOR_CIFAR,
                CIFAR_VGG,
                CIFAR10_F,
-               MODEL_TYPE_VAE_SEMI_SUPERVISED_CIFAR10]
+               MODEL_TYPE_VAE_SEMI_SUPERVISED_CIFAR10,
+               VAE_FCNN]
 
 
 class Experiment:
@@ -200,7 +205,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             clustering_alg=ExperimentConfig.CLUSTERING_K_MEANS,
                                             confidence_decay_function=ExperimentConfig.CONFIDENCE_DECAY_FUNCTION_EXPONENTIAL,
                                             batch_size=64,
-                                            return_latent_vector=True
+                                            return_latent_vector=True,
+                                            log_level=logging.INFO
                                             ):
     if dao is None:
         dao = get_dao(dataset_name, split_name, num_val_samples)
@@ -237,7 +243,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                   confidence_decay_function=confidence_decay_function,
                                   distance_metric=distance_metric,
                                   clustering_alg=clustering_alg,
-                                  return_latent_vector=return_latent_vector
+                                  return_latent_vector=return_latent_vector,
+                                  log_level=log_level
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)
@@ -355,6 +362,14 @@ def get_model(dao: IDao,
                            )
     elif model_type == MODEL_TYPE_VAE_SEMI_SUPERVISED_CIFAR10:
         model = SemiSupervisedClassifier(exp_config=exp_config,
+                                         sess=sess,
+                                         epoch=num_epochs,
+                                         dao=dao,
+                                         test_data_iterator=test_data_iterator,
+                                         check_point_epochs=check_point_epochs
+                                         )
+    elif model_type == VAE_FCNN:
+        model = SemiSupervisedSegmenterMnist(exp_config=exp_config,
                                          sess=sess,
                                          epoch=num_epochs,
                                          dao=dao,

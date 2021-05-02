@@ -41,20 +41,25 @@ def fcnn_n_layer(model, x, num_out_units, reuse=False):
     layer_num = 0
     with tf.compat.v1.variable_scope("encoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
-            model.final_conv = lrelu(conv2d(x, n_units[layer_num], 3, 3, 2, 2, name='en_conv1'))
-            layer_num += 1
             if len(n_units) > 2:
-                model.final_conv = lrelu((conv2d(model.final_conv, n_units[layer_num], 3, 3, 2, 2, name='en_conv2')))
+                model.final_conv = lrelu((conv2d(x, n_units[layer_num], 3, 3, 2, 2, name='en_conv2')))
         else:
             raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
-        z = lrelu((conv2d(model.final_conv, num_out_units, 2, 3, 3, 2, 2, name='output')))
+        z = lrelu((conv2d(model.final_conv, num_out_units, 3, 3, 2, 2, name='output')))
+        z = tf.reshape(z, [model.exp_config.BATCH_SIZE, -1])
         return z
 
 
 def fully_deconv_n_layer(model, z, reuse=False):
+    print("Shape of z",z.shape)
+
     n_units = model.exp_config.num_units
     h, w = model.dao.image_shape[0], model.dao.image_shape[1]
     re_scale_factor = get_rescale_factor(n_units)
+    z = tf.reshape(z,
+                    [model.exp_config.BATCH_SIZE, h // re_scale_factor, w // re_scale_factor,
+                                    1])
+    print("Shape of z",z.shape)
 
     with tf.compat.v1.variable_scope("decoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
@@ -70,6 +75,7 @@ def fully_deconv_n_layer(model, z, reuse=False):
                                    2,
                                    name='de_dc3')
                           )
+            print("output of de_dc3", z.shape)
             if model.exp_config.activation_output_layer == "SIGMOID":
                 out = tf.nn.sigmoid(
                     deconv2d(z,
