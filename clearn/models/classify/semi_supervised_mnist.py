@@ -308,12 +308,17 @@ class SemiSupervisedClassifierMnist(VAE):
                                              )
                         retention_policies.append(rp)
         while data_iterator.has_next(dataset_type):
-            batch_images, batch_labels, manual_labels = data_iterator.get_next_batch(dataset_type)
+            batch_images, batch_labels, manual_labels, manual_labels_concepts = data_iterator.get_next_batch(dataset_type)
             # skip last batch
             if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                 data_iterator.reset_counter(dataset_type)
                 break
             batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
+
+            concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.num_concepts],
+                                        (self.exp_config.BATCH_SIZE, 4, 4, self.exp_config.num_concepts))
+            is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts],
+                                               (self.exp_config.BATCH_SIZE, 4, 4))
 
             reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, y_pred, nll, nll_batch = self.sess.run(
                 [self.out,
@@ -327,12 +332,10 @@ class SemiSupervisedClassifierMnist(VAE):
                  ],
                 feed_dict={
                     self.inputs: batch_images,
-                    self.labels: manual_labels[
-                                 :,
-                                 :10],
-                    self.is_manual_annotated: manual_labels[
-                                              :,
-                                              10],
+                    self.labels: manual_labels[:, :10],
+                    self.is_manual_annotated: manual_labels[:, 10],
+                    self.concepts_labels: concepts_label,
+                    self.is_concepts_annotated: is_concepts_annotated,
                     self.standard_normal: batch_z})
             nll_batch = -nll_batch
             if len(nll_batch.shape) == 0:
