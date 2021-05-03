@@ -35,7 +35,7 @@ def get_base_path(exp_config,
     num_units = exp_config.num_units
     if len(exp_config.num_units) >= 3:
         units_ = str(exp_config.num_units[-1])
-        for i in exp_config.num_units[2:-1][::-1]:
+        for i in exp_config.num_units[1:-1][::-1]:
             units_ += "_" + str(i)
     else:
         if len(num_units) == 2:
