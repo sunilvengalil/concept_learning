@@ -96,7 +96,8 @@ class ExperimentConfig:
                  distance_metric=DISTANCE_EUCLIDEAN,
                  clustering_alg=CLUSTERING_K_MEANS,
                  confidence_decay_function=CONFIDENCE_DECAY_FUNCTION_EXPONENTIAL,
-                 log_level=logging.INFO
+                 log_level=logging.INFO,
+                 fully_convolutional=False
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -152,6 +153,7 @@ class ExperimentConfig:
         self.confidence_decay_function = confidence_decay_function
         self.distance_metric = distance_metric
         self.log_level = log_level
+        self.fully_convolutional = fully_convolutional
 
     def as_json(self):
         config_json = dict()
@@ -188,6 +190,7 @@ class ExperimentConfig:
         config_json["CONFIDENCE_DECAY_FUNCTION"] = self.confidence_decay_function
         config_json["DISTANCE_METRIC"] = self.distance_metric
         config_json["LOG_LEVEL"] = self.log_level
+        config_json["FULLY_CONVOLUTIONAL"] = self.fully_convolutional
 
         return config_json
 
@@ -309,6 +312,7 @@ class ExperimentConfig:
         self.distance_metric = exp_config_dict["DISTANCE_METRIC"]
         self.clustering_alg = exp_config_dict["CLUSTERING_ALG"]
         self.log_level = exp_config_dict["LOG_LEVEL"]
+        self.fully_convolutional = exp_config_dict["FULLY_CONVOLUTIONAL"]
 
 
 if __name__ == "__main__":

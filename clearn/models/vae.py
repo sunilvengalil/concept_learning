@@ -12,7 +12,8 @@ import pandas as pd
 from clearn.config import ExperimentConfig
 from clearn.config.common_path import get_encoded_csv_file
 from clearn.dao.idao import IDao
-from clearn.models.architectures.custom.tensorflow_graphs import cnn_n_layer, deconv_n_layer
+from clearn.models.architectures.custom.tensorflow_graphs import cnn_n_layer, deconv_n_layer, fcnn_n_layer, \
+    fully_deconv_n_layer
 from clearn.models.generative_model import GenerativeModel
 from clearn.utils import prior_factory as prior
 from clearn.utils.retention_policy.policy import RetentionPolicy
@@ -65,7 +66,10 @@ class VAE(GenerativeModel):
 
     #   Gaussian Encoder
     def _encoder(self, x, reuse=False):
-        gaussian_params = cnn_n_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
+        if self.exp_config.fully_convolutional:
+            gaussian_params = fcnn_n_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
+        else:
+            gaussian_params = cnn_n_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
         # The mean parameter is unconstrained
         mean = gaussian_params[:, :self.exp_config.Z_DIM]
         # The standard deviation must be positive. Parametrize with a softplus and
@@ -75,7 +79,10 @@ class VAE(GenerativeModel):
 
     # Bernoulli decoder
     def _decoder(self, z, reuse=False):
-        out = deconv_n_layer(self, z, reuse)
+        if self.exp_config.fully_convolutional:
+            out = fully_deconv_n_layer(self, z, reuse)
+        else:
+            out = deconv_n_layer(self, z, reuse)
         return out
 
     def inference(self):

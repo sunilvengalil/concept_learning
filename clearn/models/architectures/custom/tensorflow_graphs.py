@@ -34,89 +34,86 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
                                              with_w=True)
         return z
 
-
 def fcnn_n_layer(model, x, num_out_units, reuse=False):
     # Encoder models the probability  P(z/X)
     n_units = model.exp_config.num_units
-    model.encoder_dict = {}
-    strides = [2, 2, 1, 1]
+    layer_num = 0
+    strides = [2, 2, 1, 1, 1]
+    model.encoder_dict ={}
     with tf.compat.v1.variable_scope("encoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
-            model.encoder_dict[f"layer_{0}"] = lrelu((conv2d(x, n_units[0], 3, 3, strides[0], strides[0], name=f"layer_{0}")))
+            model.encoder_dict[f"layer_{layer_num}"] = lrelu(conv2d(x, n_units[layer_num],
+                                                                      3, 3,
+                                                                      strides[layer_num],
+                                                                      strides[layer_num],
+                                                                      name=f"layer_{layer_num}"))
             for layer_num in range(1, len(n_units)):
-                model.encoder_dict[f"layer_{layer_num}"] = lrelu((conv2d(model.encoder_dict[f"layer_{layer_num- 1}"],
-                                                                         n_units[layer_num],
-                                                                         3, 3,
-                                                                         strides[layer_num],
-                                                                         strides[layer_num],
-                                                                         name=f"layer_{layer_num}")))
+                model.encoder_dict[f"layer_{layer_num}"] = lrelu((conv2d(model.encoder_dict[f"layer_{layer_num - 1}"],
+                                                                           n_units[layer_num],
+                                                                           3, 3,
+                                                                           strides[layer_num],
+                                                                           strides[layer_num],
+                                                                           name=f"layer_{layer_num}")))
         else:
             raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
-        print("encoder final hidden layer",model.encoder_dict[f"layer_{len(n_units) - 1}"].shape)
         z = lrelu((conv2d(model.encoder_dict[f"layer_{len(n_units) - 1}"],
-                          num_out_units,
-                          3, 3,
-                          strides[len(n_units)],
-                          strides[len(n_units)],
-                          name='output'
-                          )
-                   )
-                  )
-        print(z.shape)
+                                    2,
+                                    3, 3,
+                                    strides[len(n_units)],
+                                    strides[len(n_units)],
+                                    name='out')))
+
         z = tf.reshape(z, [model.exp_config.BATCH_SIZE, -1])
         return z
-
 
 def fully_deconv_n_layer(model, z, reuse=False):
     n_units = model.exp_config.num_units
     h, w = model.dao.image_shape[0], model.dao.image_shape[1]
-    strides = [2, 2, 1, 1]
+    strides = [2, 2, 1, 1, 1]
     re_scale_factor = get_rescale_factor_fcnn(strides)
-    z = tf.reshape(z,
-                    [model.exp_config.BATCH_SIZE, h // re_scale_factor, w // re_scale_factor,
-                                    1])
-    model.decoder_dict = {}
+    model.decoder_dict ={}
     with tf.compat.v1.variable_scope("decoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
+            layer_num = 0
+            model.reshaped_de = tf.reshape(z,
+                                           [model.exp_config.BATCH_SIZE,
+                                            h//re_scale_factor,
+                                            w//re_scale_factor,
+                                            1
+                                            ]
+                                           )
             re_scale_factor = re_scale_factor // strides[len(n_units)]
-            model.decoder_dict[f"layer_{0}"] = lrelu(deconv2d(z,
-                                                              [model.exp_config.BATCH_SIZE,
-                                                               h//re_scale_factor,
-                                                               w//re_scale_factor,
-                                                               n_units[len(n_units) - 1] ],
-                                                              3,
-                                                              3,
-                                                              strides[len(n_units)],
-                                                              strides[len(n_units)],
-                                                              name=f"layer_{0}"
-                                                              )
-                                                     )
+            model.decoder_dict[f"de_conv_{layer_num}"] = lrelu(deconv2d(model.reshaped_de,
+                                                                        [model.exp_config.BATCH_SIZE,
+                                                                         h // re_scale_factor,
+                                                                         w // re_scale_factor,
+                                                                         n_units[len(n_units) - 1]],
+                                                                        3, 3,
+                                                                        strides[len(n_units)],
+                                                                        strides[len(n_units)],
+                                                                        name=f"de_conv_{layer_num}"))
+
             for layer_num in range(1, len(n_units)):
                 re_scale_factor = re_scale_factor// strides[len(n_units) - layer_num]
-                model.decoder_dict[f"layer_{layer_num}"] = lrelu(deconv2d(model.decoder_dict[f"layer_{layer_num - 1}"],
-                                                                          [model.exp_config.BATCH_SIZE,
-                                                                           h//re_scale_factor,
-                                                                           w//re_scale_factor,
-                                                                           n_units[len(n_units) - layer_num - 1]],
-                                                                          3,
-                                                                          3,
-                                                                          strides[len(n_units) - layer_num],
-                                                                          strides[len(n_units) - layer_num],
-                                                                          name=f"layer_{layer_num}"
-                                                                          )
-                                                                 )
-            out = deconv2d(model.decoder_dict[f"layer_{len(n_units) - 1}"],
-                           [model.exp_config.BATCH_SIZE, h, w, 1],
-                           3,
-                           3,
-                           strides[0],
-                           strides[0],
-                           name='out'
-                           )
+                model.decoder_dict[f"de_conv_{layer_num}"] = lrelu(deconv2d(model.decoder_dict[f"de_conv_{layer_num - 1}"],
+                                                                            [model.exp_config.BATCH_SIZE,
+                                                                            h//re_scale_factor,
+                                                                            w//re_scale_factor,
+                                                                            n_units[len(n_units) - layer_num - 1]],
+                                                                            3, 3,
+                                                                            strides[len(n_units) - layer_num],
+                                                                            strides[len(n_units) - layer_num],
+                                                                            name=f"de_conv_{layer_num}"
+                                                                            )
+                                                                   )
             if model.exp_config.activation_output_layer == "SIGMOID":
-                out = tf.nn.sigmoid(out)
+                out = tf.nn.sigmoid(
+                    deconv2d(model.decoder_dict[f"de_conv_{len(n_units) - 1}"], [model.exp_config.BATCH_SIZE, h, w, 1], 3, 3, strides[0], strides[0], name='de_out'))
+            elif model.exp_config.activation_output_layer == "LINEAR":
+                out = deconv2d(model.decoder_dict[f"de_conv_{len(n_units) - 1}"], [model.exp_config.BATCH_SIZE, h, w, 1], 3, 3, strides[0], strides[0], name='de_out')
+        else:
+            raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
         return out
-
 
 def deconv_n_layer(model, z, reuse=False):
     n_units = model.exp_config.num_units
@@ -141,22 +138,6 @@ def deconv_n_layer(model, z, reuse=False):
                     deconv2d(model.reshaped_de, [model.exp_config.BATCH_SIZE, h, w, 1], 3, 3, 2, 2, name='de_dc3'))
             elif model.exp_config.activation_output_layer == "LINEAR":
                 out = deconv2d(model.reshaped_de, [model.exp_config.BATCH_SIZE, h, w, 1], 3, 3, 2, 2, name='de_dc3')
-        elif model.exp_config.activation_hidden_layer == "LINEAR":
-            layer_num = 2
-            model.dense1_de = linear(z, n_units[layer_num], scope='de_fc1')
-            layer_num -= 1
-            model.dense2_de = linear(model.dense1_de, n_units[layer_num] * h//re_scale_factor * w//re_scale_factor)
-            model.reshaped_de = tf.reshape(model.dense2_de, [model.exp_config.BATCH_SIZE, h//re_scale_factor, w//re_scale_factor, n_units[1]])
-            if len(n_units) > 2:
-                layer_num -= 1
-                re_scale_factor = re_scale_factor//2
-                model.deconv1_de = deconv2d(model.reshaped_de, [model.exp_config.BATCH_SIZE, h//re_scale_factor * w//re_scale_factor, n_units[layer_num]], 3, 3, 2, 2,
-                                            name='de_dc3')
-            if model.exp_config.activation_output_layer == "SIGMOID":
-                out = tf.nn.sigmoid(
-                    deconv2d(model.reshaped_de, [model.exp_config.BATCH_SIZE, h, w, 1], 3, 3, 2, 2, name='de_dc4'))
-            elif model.exp_config.activation_output_layer == "LINEAR":
-                out = deconv2d(model.reshaped_de, [model.exp_config.BATCH_SIZE, h, w, 1], 3, 3, 2, 2, name='de_dc4')
         else:
             raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
         # out = lrelu(deconv2d(deconv1, [self.exp_config.BATCH_SIZE, 28, 28, 1], 3, 3, 2, 2, name='de_dc4'))

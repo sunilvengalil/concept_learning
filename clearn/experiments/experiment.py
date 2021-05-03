@@ -206,7 +206,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             confidence_decay_function=ExperimentConfig.CONFIDENCE_DECAY_FUNCTION_EXPONENTIAL,
                                             batch_size=64,
                                             return_latent_vector=True,
-                                            log_level=logging.INFO
+                                            log_level=logging.INFO,
+                                            fully_convolutional = False
                                             ):
     if dao is None:
         dao = get_dao(dataset_name, split_name, num_val_samples)
@@ -244,7 +245,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                   distance_metric=distance_metric,
                                   clustering_alg=clustering_alg,
                                   return_latent_vector=return_latent_vector,
-                                  log_level=log_level
+                                  log_level=log_level,
+                                  fully_convolutional=fully_convolutional
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)
