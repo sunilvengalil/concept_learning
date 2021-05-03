@@ -124,25 +124,23 @@ class SemiSupervisedClassifierMnist(VAE):
                                             1
                                             ]
                                            )
-            self.y_pred = conv2d(z_reshaped, self.exp_config.num_concepts, k_h=2, k_w=2, d_h=2, d_w=2, stddev=0.02, name="predict_concepts")
-        else:
-            self.y_pred = linear(self.z, self.dao.num_classes)
-
+            self.concepts_pred = conv2d(z_reshaped, self.exp_config.num_concepts, k_h=2, k_w=2, d_h=2, d_w=2, stddev=0.02, name="predict_concepts")
+        self.y_pred = linear(self.z, self.dao.num_classes)
         if self.exp_config.fully_convolutional:
-            self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.concepts_labels,
+            self.supervised_loss_concepts = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.concepts_labels,
                                                                              logits=self.y_pred,
                                                                              weights=self.is_concepts_annotated
                                                                              )
 
-        else:
-            self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
-                                                                             logits=self.y_pred,
-                                                                             weights=self.is_manual_annotated
-                                                                             )
+        self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
+                                                                         logits=self.y_pred,
+                                                                         weights=self.is_manual_annotated
+                                                                         )
 
         self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
                     self.exp_config.beta * self.KL_divergence + \
-                    self.exp_config.supervise_weight * self.supervised_loss
+                    self.exp_config.supervise_weight * self.supervised_loss + \
+                    self.exp_config.supervise_weight_concepts * self.supervised_loss_concepts
 
         """ Training """
         # optimizers
@@ -184,13 +182,14 @@ class SemiSupervisedClassifierMnist(VAE):
 
                 # update autoencoder and classifier parameters
                 if self.exp_config.fully_convolutional:
-                    _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss = self.sess.run([self.optim,
+                    _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts = self.sess.run([self.optim,
                                                                                                          self.merged_summary_op,
                                                                                                          self.loss,
                                                                                                          self.neg_loglikelihood,
                                                                                                          self.marginal_likelihood,
                                                                                                          self.KL_divergence,
-                                                                                                         self.supervised_loss],
+                                                                                                         self.supervised_loss,
+                                                                                                                              self.supervised_loss_concepts     ],
                                                                                                         feed_dict={
                                                                                                             self.inputs: batch_images,
                                                                                                             self.labels: manual_labels[
@@ -204,13 +203,14 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                             self.standard_normal: batch_z}
                                                                                                         )
                 else:
-                    _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss = self.sess.run([self.optim,
+                    _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts = self.sess.run([self.optim,
                                                                                                          self.merged_summary_op,
                                                                                                          self.loss,
                                                                                                          self.neg_loglikelihood,
                                                                                                          self.marginal_likelihood,
                                                                                                          self.KL_divergence,
-                                                                                                         self.supervised_loss],
+                                                                                                         self.supervised_loss,
+                                                                                                         self.supervised_loss_concepts],
                                                                                                         feed_dict={
                                                                                                             self.inputs: batch_images,
                                                                                                             self.labels: manual_labels[:, :self.dao.num_classes],
@@ -218,7 +218,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                             self.standard_normal: batch_z}
                                                                                                         )
 
-                print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss}")
+                print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}")
 
                 self.counter += 1
                 self.num_steps_completed = batch + 1

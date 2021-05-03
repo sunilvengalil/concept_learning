@@ -98,7 +98,8 @@ class ExperimentConfig:
                  confidence_decay_function=CONFIDENCE_DECAY_FUNCTION_EXPONENTIAL,
                  log_level=logging.INFO,
                  fully_convolutional=False,
-                 num_concepts=10
+                 num_concepts=10,
+                 supervise_weight_concepts=1
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -156,6 +157,7 @@ class ExperimentConfig:
         self.log_level = log_level
         self.fully_convolutional = fully_convolutional
         self.num_concepts = num_concepts
+        self.supervise_weight_concepts = supervise_weight_concepts
 
     def as_json(self):
         config_json = dict()
@@ -194,6 +196,7 @@ class ExperimentConfig:
         config_json["LOG_LEVEL"] = self.log_level
         config_json["FULLY_CONVOLUTIONAL"] = self.fully_convolutional
         config_json["NUM_CONCEPTS"] = self.num_concepts
+        config_json["SUPERVISE_WEIGHT_CONCEPTS"] = self.supervise_weight_concepts
 
         return config_json
 
@@ -317,7 +320,7 @@ class ExperimentConfig:
         self.log_level = exp_config_dict["LOG_LEVEL"]
         self.fully_convolutional = exp_config_dict["FULLY_CONVOLUTIONAL"]
         self.num_concepts = exp_config_dict["NUM_CONCEPTS"]
-
+        self.supervise_weight_concepts = exp_config_dict["SUPERVISE_WEIGHT_CONCEPTS"]
 
 if __name__ == "__main__":
     _root_path = "/Users/sunilv/concept_learning_exp"

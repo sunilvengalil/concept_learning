@@ -208,7 +208,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             return_latent_vector=True,
                                             log_level=logging.INFO,
                                             fully_convolutional = False,
-                                            num_concepts=10
+                                            num_concepts=10,
+                                            supervise_weight_concepts=1
                                             ):
     if dao is None:
         dao = get_dao(dataset_name, split_name, num_val_samples)
@@ -248,7 +249,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                   return_latent_vector=return_latent_vector,
                                   log_level=log_level,
                                   fully_convolutional=fully_convolutional,
-                                  num_concepts=num_concepts
+                                  num_concepts=num_concepts,
+                                  supervise_weight_concepts=supervise_weight_concepts
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)
