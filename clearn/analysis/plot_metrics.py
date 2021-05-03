@@ -373,7 +373,8 @@ def plot_hidden_units_accuracy_layerwise(root_path: str,
                                          cumulative_function="max",
                                          fig_size=(20,8),
                                          fname=None,
-                                         accuracies:Dict[int, List]=None
+                                         accuracies:Dict[int, List]=None,
+                                         legend_lc="best"
                                          ):
     if cumulative_function == "max":
         function_to_cumulate = np.max
@@ -460,7 +461,7 @@ def plot_hidden_units_accuracy_layerwise(root_path: str,
             print(f"Saving plot in file {fname}")
             plt.savefig(fname, bbox="tight")
 
-    plt.legend(loc='lower right', shadow=True, fontsize='x-large')
+    plt.legend(loc=legend_lc, shadow=True, fontsize='x-large')
     plt.grid()
     return accuracies
 
