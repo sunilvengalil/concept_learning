@@ -242,6 +242,8 @@ class VAE(GenerativeModel):
                           index=False)
                 max_value = df[f"test_{metric}_mean"].max()
                 print(f"Max test {metric}", max_value)
+                min_value = df[f"test_{metric}_mean"].min()
+                print(f"Min test {metric}", min_value)
 
     def evaluate(self, data_iterator, dataset_type="train", num_batches_train=0, save_images=True,
                  metrics=[],
