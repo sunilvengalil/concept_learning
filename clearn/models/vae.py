@@ -3,8 +3,7 @@ from __future__ import division
 
 import json
 import traceback
-from typing import DefaultDict, List
-from collections import defaultdict
+from typing import List
 import os
 import numpy as np
 import pandas as pd
@@ -17,7 +16,7 @@ from clearn.models.architectures.custom.tensorflow_graphs import cnn_n_layer, de
 from clearn.models.generative_model import GenerativeModel
 from clearn.utils import prior_factory as prior
 from clearn.utils.retention_policy.policy import RetentionPolicy
-from clearn.utils.utils import save_image, save_single_image, get_latent_vector_column
+from clearn.utils.utils import save_image, get_latent_vector_column
 from clearn.utils.dir_utils import get_eval_result_dir
 
 import tensorflow as tf
@@ -97,7 +96,7 @@ class VAE(GenerativeModel):
 
         """ Graph Input """
         # images
-        self.inputs = tf.compat.v1.placeholder(tf.float32, [bs] + image_dims, name='real_images')
+        self.inputs = tf.compat.v1.placeholder(tf.float32, [bs] + list(image_dims), name='real_images')
 
         # random vectors with  multi-variate gaussian distribution
         # 0 mean and covariance matrix as Identity
@@ -166,11 +165,9 @@ class VAE(GenerativeModel):
         start_batch_id = self.start_batch_id
         start_epoch = self.start_epoch
         self.num_batches_train = train_val_data_iterator.get_num_samples("train") // self.exp_config.BATCH_SIZE
-
         for epoch in range(start_epoch, self.epoch):
             # get batch data
             mean_nll = 0
-            variance_nll = 0
             num_samples_processed = 0
             for batch in range(start_batch_id, self.num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
@@ -220,11 +217,11 @@ class VAE(GenerativeModel):
             train_val_data_iterator.reset_counter("train")
             train_val_data_iterator.reset_counter("val")
 
+            if self.num_batches_train > start_batch_id:
+                print(f"Epoch:{epoch}   loss={loss} nll={nll_loss} kl_loss={kl_loss}")
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model
             start_batch_id = 0
-            # save model
-            print(f"Epoch:{epoch}   loss={loss} nll={nll_loss} kl_loss={kl_loss}")
 
             train_val_data_iterator.reset_counter("train")
             if np.mod(epoch, self.exp_config.model_save_interval) == 0:
