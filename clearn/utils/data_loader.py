@@ -493,6 +493,8 @@ class DataIterator:
         self.manual_annotation = np.zeros((len(self.x), 11), dtype=np.float16)
         self.manual_annotation[:, 0:10] = self.y
         self.manual_annotation[:, 10] = 1  # set manual annotation confidence as 1
+        self.manual_annotation_concepts = np.zeros(
+            (len(self.x), TrainValDataIterator.num_concepts_per_iage, TrainValDataIterator.num_concepts + 1), dtype=np.float)
         self.idx = 0
 
 
@@ -509,8 +511,10 @@ class DataIterator:
         x = self.x[self.idx * self.batch_size:(self.idx + 1) * self.batch_size]
         y = self.y[self.idx * self.batch_size:(self.idx + 1) * self.batch_size]
         label = self.manual_annotation[self.idx * self.batch_size:(self.idx + 1) * self.batch_size]
+        label_concepts = self.manual_annotation_concepts[self.idx * self.batch_size:(self.idx + 1) * self.batch_size]
+
         self.idx += 1
-        return x, y, label
+        return x, y, label, label_concepts
 
     def get_num_samples(self, dataset_type):
         return len(self.x)
