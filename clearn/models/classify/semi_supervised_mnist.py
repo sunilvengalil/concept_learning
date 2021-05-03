@@ -183,26 +183,41 @@ class SemiSupervisedClassifierMnist(VAE):
                 is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts], (self.exp_config.BATCH_SIZE, 4, 4))
 
                 # update autoencoder and classifier parameters
-                _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss = self.sess.run([self.optim,
-                                                                                                     self.merged_summary_op,
-                                                                                                     self.loss,
-                                                                                                     self.neg_loglikelihood,
-                                                                                                     self.marginal_likelihood,
-                                                                                                     self.KL_divergence,
-                                                                                                     self.supervised_loss],
-                                                                                                    feed_dict={
-                                                                                                        self.inputs: batch_images,
-                                                                                                        self.labels: manual_labels[
-                                                                                                                     :,
-                                                                                                                     :self.dao.num_classes],
-                                                                                                        self.is_manual_annotated: manual_labels[
-                                                                                                                                  :,
-                                                                                                                                  self.dao.num_classes],
-                                                                                                        self.concepts_labels: concepts_label,
-                                                                                                        self.is_concepts_annotated: is_concepts_annotated,
-                                                                                                        self.standard_normal: batch_z}
-                                                                                                    )
-                # print(f"Epoch: {epoch}/{batch}, Nll_loss shape: {nll_loss.shape}, Nll_batch: {nll_batch.shape}")
+                if self.exp_config.fully_convolutional:
+                    _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss = self.sess.run([self.optim,
+                                                                                                         self.merged_summary_op,
+                                                                                                         self.loss,
+                                                                                                         self.neg_loglikelihood,
+                                                                                                         self.marginal_likelihood,
+                                                                                                         self.KL_divergence,
+                                                                                                         self.supervised_loss],
+                                                                                                        feed_dict={
+                                                                                                            self.inputs: batch_images,
+                                                                                                            self.labels: manual_labels[
+                                                                                                                         :,
+                                                                                                                         :self.dao.num_classes],
+                                                                                                            self.is_manual_annotated: manual_labels[
+                                                                                                                                      :,
+                                                                                                                                      self.dao.num_classes],
+                                                                                                            self.concepts_labels: concepts_label,
+                                                                                                            self.is_concepts_annotated: is_concepts_annotated,
+                                                                                                            self.standard_normal: batch_z}
+                                                                                                        )
+                else:
+                    _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss = self.sess.run([self.optim,
+                                                                                                         self.merged_summary_op,
+                                                                                                         self.loss,
+                                                                                                         self.neg_loglikelihood,
+                                                                                                         self.marginal_likelihood,
+                                                                                                         self.KL_divergence,
+                                                                                                         self.supervised_loss],
+                                                                                                        feed_dict={
+                                                                                                            self.inputs: batch_images,
+                                                                                                            self.labels: manual_labels[:, :self.dao.num_classes],
+                                                                                                            self.is_manual_annotated: manual_labels[:, self.dao.num_classes],
+                                                                                                            self.standard_normal: batch_z}
+                                                                                                        )
+
                 print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss}")
 
                 self.counter += 1
@@ -319,24 +334,38 @@ class SemiSupervisedClassifierMnist(VAE):
                                         (self.exp_config.BATCH_SIZE, 4, 4, self.exp_config.num_concepts))
             is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts],
                                                (self.exp_config.BATCH_SIZE, 4, 4))
-
-            reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, y_pred, nll, nll_batch = self.sess.run(
-                [self.out,
-                 self.merged_summary_op,
-                 self.mu,
-                 self.sigma,
-                 self.z,
-                 self.y_pred,
-                 self.neg_loglikelihood,
-                 self.marginal_likelihood
-                 ],
-                feed_dict={
-                    self.inputs: batch_images,
-                    self.labels: manual_labels[:, :10],
-                    self.is_manual_annotated: manual_labels[:, 10],
-                    self.concepts_labels: concepts_label,
-                    self.is_concepts_annotated: is_concepts_annotated,
-                    self.standard_normal: batch_z})
+            if self.exp_config.fully_convolutional:
+                reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, y_pred, nll, nll_batch = self.sess.run([self.out,
+                                                                                                                                  self.merged_summary_op,
+                                                                                                                                  self.mu,
+                                                                                                                                  self.sigma,
+                                                                                                                                  self.z,
+                                                                                                                                  self.y_pred,
+                                                                                                                                  self.neg_loglikelihood,
+                                                                                                                                  self.marginal_likelihood],
+                                                                                                                                 feed_dict={
+                                                                                                                                     self.inputs: batch_images,
+                                                                                                                                     self.labels: manual_labels[:, :10],
+                                                                                                                                     self.is_manual_annotated: manual_labels[:, 10],
+                                                                                                                                     self.concepts_labels: concepts_label,
+                                                                                                                                     self.is_concepts_annotated: is_concepts_annotated,
+                                                                                                                                     self.standard_normal: batch_z
+                                                                                                                                 }
+                                                                                                                                 )
+            else:
+                reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, y_pred, nll, nll_batch = self.sess.run([self.out,
+                                                                                                                                  self.merged_summary_op,
+                                                                                                                                  self.mu,
+                                                                                                                                  self.sigma,
+                                                                                                                                  self.z,
+                                                                                                                                  self.y_pred,
+                                                                                                                                  self.neg_loglikelihood,
+                                                                                                                                  self.marginal_likelihood],
+                                                                                                                                 feed_dict={
+                                                                                                                                     self.inputs: batch_images,
+                                                                                                                                     self.labels: manual_labels[:, :10],
+                                                                                                                                     self.is_manual_annotated: manual_labels[:, 10],
+                                                                                                                                     self.standard_normal: batch_z})
             nll_batch = -nll_batch
             if len(nll_batch.shape) == 0:
                 data_iterator.reset_counter(dataset_type)
