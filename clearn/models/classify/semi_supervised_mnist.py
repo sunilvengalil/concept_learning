@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 
-import json
 import traceback
 import os
-from collections import defaultdict
-from typing import List, DefaultDict
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -13,19 +11,18 @@ from statistics import mean
 
 from clearn.config.common_path import get_encoded_csv_file
 from clearn.dao.idao import IDao
-from clearn.models.architectures.custom.tensorflow_graphs import cnn_3_layer, deconv_3_layer, cnn_n_layer, deconv_n_layer
+from clearn.models.architectures.custom.tensorflow_graphs import get_rescale_factor_fcnn
 from clearn.models.classify.classifier import ClassifierModel
 from clearn.models.vae import VAE
 from clearn.utils import prior_factory as prior
 from clearn.utils.retention_policy.policy import RetentionPolicy
-from clearn.utils.utils import save_image, get_latent_vector_column
-from clearn.utils.dir_utils import get_eval_result_dir
+from clearn.utils.utils import get_latent_vector_column
 from scipy.special import softmax
 from sklearn.metrics import accuracy_score
 
 import tensorflow as tf
 from tensorflow.compat.v1 import placeholder
-from clearn.utils.tensorflow_wrappers import linear
+from clearn.utils.tensorflow_wrappers import linear, conv2d
 
 
 class SemiSupervisedClassifierMnist(VAE):
@@ -42,7 +39,12 @@ class SemiSupervisedClassifierMnist(VAE):
                  ):
         # Whether the sample was manually annotated.
         self.is_manual_annotated = placeholder(tf.float32, [exp_config.BATCH_SIZE], name="is_manual_annotated")
+        self.is_concepts_annotated = placeholder(tf.float32, [exp_config.BATCH_SIZE, 4, 4], name="is_concepts_annotated")
+
         self.labels = placeholder(tf.float32, [exp_config.BATCH_SIZE, dao.num_classes], name='manual_label')
+        self.concepts_labels = placeholder(tf.float32,
+                                           [exp_config.BATCH_SIZE, 4, 4, exp_config.num_concepts], name='manual_label_concepts')
+
         super().__init__(exp_config=exp_config,
                          sess=sess,
                          epoch=epoch,
@@ -60,31 +62,6 @@ class SemiSupervisedClassifierMnist(VAE):
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_train][metric] = []
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_val][metric] = []
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_test][metric] = []
-
-    def _encoder(self, x, reuse=False):
-        if len(self.exp_config.num_units) == 3 :
-            gaussian_params = cnn_3_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
-        elif len(self.exp_config.num_units) == 2:
-            gaussian_params = cnn_n_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
-        else:
-            raise Exception("Invalid configuration. Length of num_units should be 2 or 3")
-
-        # The mu parameter is unconstrained
-        mu = gaussian_params[:, :self.exp_config.Z_DIM]
-        # The standard deviation must be positive. Parametrize with a softplus and
-        # add a small epsilon for numerical stability
-        stddev = 1e-6 + tf.nn.softplus(gaussian_params[:, self.exp_config.Z_DIM:])
-        return mu, stddev
-
-    def _decoder(self, z, reuse=False):
-        if len(self.exp_config.num_units) == 3 :
-            return deconv_3_layer(self, z, reuse)
-        elif len(self.exp_config.num_units) == 2:
-            return deconv_n_layer(self, z, reuse)
-        else:
-            raise Exception("Invalid configuration. Length of num_units should be 2 or 3")
-
-        # Models the probability P(X/z)
 
     def get_decoder_weights_bias(self):
         name_w_1 = "decoder/de_fc1/Matrix:0"
@@ -138,16 +115,34 @@ class SemiSupervisedClassifierMnist(VAE):
         return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
 
     def compute_and_optimize_loss(self):
-        self.y_pred = linear(self.z, 10)
-        self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
-                                                                         logits=self.y_pred,
-                                                                         weights=self.is_manual_annotated
-                                                                         )
+        if self.exp_config.fully_convolutional:
+            h, w = self.dao.image_shape[0], self.dao.image_shape[1]
+            re_scale_factor = get_rescale_factor_fcnn(self.strides)
+            z_reshaped = tf.reshape(self.z, [self.exp_config.BATCH_SIZE,
+                                            h//re_scale_factor,
+                                            w//re_scale_factor,
+                                            1
+                                            ]
+                                           )
+            self.y_pred = conv2d(z_reshaped, self.exp_config.num_concepts, k_h=2, k_w=2, d_h=2, d_w=2, stddev=0.02, name="predict_concepts")
+        else:
+            self.y_pred = linear(self.z, self.dao.num_classes)
+
+        if self.exp_config.fully_convolutional:
+            self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.concepts_labels,
+                                                                             logits=self.y_pred,
+                                                                             weights=self.is_concepts_annotated
+                                                                             )
+
+        else:
+            self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
+                                                                             logits=self.y_pred,
+                                                                             weights=self.is_manual_annotated
+                                                                             )
 
         self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
                     self.exp_config.beta * self.KL_divergence + \
                     self.exp_config.supervise_weight * self.supervised_loss
-        # self.loss = -evidence_lower_bound + self.exp_config.supervise_weight * self.supervised_loss
 
         """ Training """
         # optimizers
@@ -180,10 +175,12 @@ class SemiSupervisedClassifierMnist(VAE):
             for batch in range(start_batch_id, self.num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
-                batch_images, _, manual_labels = train_val_data_iterator.get_next_batch("train")
+                batch_images, _, manual_labels, manual_labels_concepts = train_val_data_iterator.get_next_batch("train")
                 if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                     break
                 batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
+                concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.num_concepts], (self.exp_config.BATCH_SIZE, 4, 4, self.exp_config.num_concepts))
+                is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts], (self.exp_config.BATCH_SIZE, 4, 4))
 
                 # update autoencoder and classifier parameters
                 _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss = self.sess.run([self.optim,
@@ -201,6 +198,8 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                         self.is_manual_annotated: manual_labels[
                                                                                                                                   :,
                                                                                                                                   self.dao.num_classes],
+                                                                                                        self.concepts_labels: concepts_label,
+                                                                                                        self.is_concepts_annotated: is_concepts_annotated,
                                                                                                         self.standard_normal: batch_z}
                                                                                                     )
                 # print(f"Epoch: {epoch}/{batch}, Nll_loss shape: {nll_loss.shape}, Nll_batch: {nll_batch.shape}")

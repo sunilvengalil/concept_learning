@@ -34,6 +34,7 @@ class VAE(GenerativeModel):
                  read_from_existing_checkpoint=True,
                  check_point_epochs=None,
                  ):
+        self.strides = [2, 2, 1, 1, 1]
         super().__init__(exp_config, sess, epoch, dao=dao, test_data_iterator=test_data_iterator)
         self.metrics_to_compute = ["reconstruction_loss"]
         self.metrics = dict()
@@ -92,7 +93,6 @@ class VAE(GenerativeModel):
         # some parameters
         image_dims = self.dao.image_shape
         bs = self.exp_config.BATCH_SIZE
-        self.strides = [2, 2, 2, 2, 2]
 
         """ Graph Input """
         # images

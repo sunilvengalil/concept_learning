@@ -38,7 +38,8 @@ def fcnn_n_layer(model, x, num_out_units, reuse=False):
     # Encoder models the probability  P(z/X)
     n_units = model.exp_config.num_units
     layer_num = 0
-    strides = [2, 2, 1, 1, 1]
+    strides = model.strides
+    print(strides)
     model.encoder_dict ={}
     with tf.compat.v1.variable_scope("encoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
@@ -64,12 +65,13 @@ def fcnn_n_layer(model, x, num_out_units, reuse=False):
                                     name='out')))
 
         z = tf.reshape(z, [model.exp_config.BATCH_SIZE, -1])
+        print("z shape", z.shape)
         return z
 
 def fully_deconv_n_layer(model, z, reuse=False):
     n_units = model.exp_config.num_units
     h, w = model.dao.image_shape[0], model.dao.image_shape[1]
-    strides = [2, 2, 1, 1, 1]
+    strides = model.strides
     re_scale_factor = get_rescale_factor_fcnn(strides)
     model.decoder_dict ={}
     with tf.compat.v1.variable_scope("decoder", reuse=reuse):
