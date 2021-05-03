@@ -238,9 +238,9 @@ class SemiSupervisedClassifierMnist(VAE):
                         self.test_data_iterator.reset_counter("test")
 
                     for metric in self.metrics_to_compute:
-                        print(f"Accuracy: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
-                        print(f"Accuracy: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
-                        print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
+                        print(f"{metric}: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
+                        print(f"{metric}: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
+                        print(f"{metric}: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
 
             train_val_data_iterator.reset_counter("train")
             train_val_data_iterator.reset_counter("val")
