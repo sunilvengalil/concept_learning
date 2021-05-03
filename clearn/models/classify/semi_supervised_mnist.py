@@ -128,15 +128,13 @@ class SemiSupervisedClassifierMnist(VAE):
         self.y_pred = linear(self.z, self.dao.num_classes)
         if self.exp_config.fully_convolutional:
             self.supervised_loss_concepts = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.concepts_labels,
-                                                                             logits=self.y_pred,
+                                                                             logits=self.concepts_pred,
                                                                              weights=self.is_concepts_annotated
                                                                              )
-
         self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
                                                                          logits=self.y_pred,
                                                                          weights=self.is_manual_annotated
                                                                          )
-
         self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
                     self.exp_config.beta * self.KL_divergence + \
                     self.exp_config.supervise_weight * self.supervised_loss + \
