@@ -22,7 +22,7 @@ def load_images(_config, train_val_data_iterator, dataset_type="train"):
     manual_annotations = np.zeros([num_images, dao.num_classes + 1])
     train_val_data_iterator.reset_counter(dataset_type)
     while train_val_data_iterator.has_next(dataset_type):
-        batch_images, batch_labels, batch_annotations = train_val_data_iterator.get_next_batch(dataset_type)
+        batch_images, batch_labels, batch_annotations, _ = train_val_data_iterator.get_next_batch(dataset_type)
         if batch_images.shape[0] < _config.BATCH_SIZE:
             break
         train_images[i * _config.BATCH_SIZE:(i + 1) * _config.BATCH_SIZE, :] = batch_images
