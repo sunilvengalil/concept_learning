@@ -55,7 +55,6 @@ class SemiSupervisedClassifierMnist(VAE):
             self.num_concpets_per_col = latent_image_dim[1] // self.concepts_stride
         else:
             self.num_concpets_per_col = (latent_image_dim[1] // self.concepts_stride) + 1
-        print("Number of concepts per image", self.num_concpets_per_row, self.num_concpets_per_col)
 
         self.is_concepts_annotated = placeholder(tf.float32,
                                                  [exp_config.BATCH_SIZE,

@@ -300,7 +300,6 @@ def get_num_concepts_per_image(exp_config, strides, dao):
         w = latent_image_dim[1] // concepts_stride
     else:
         w = (latent_image_dim[1] // concepts_stride) + 1
-    print("Number of concepts per image", h, w)
     return h, w
 
 def get_train_val_iterator(create_split: bool,
