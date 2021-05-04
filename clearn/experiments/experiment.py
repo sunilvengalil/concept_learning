@@ -269,10 +269,14 @@ def initialize_model_train_and_get_features(experiment_name,
 
     if test_data_iterator is None:
         test_data_location = exp_config.DATASET_ROOT_PATH + "/test/"
+        num_concepts_per_row, num_concepts_per_col = get_num_concepts_per_image(exp_config, exp_config.strides, dao)
         if not os.path.isfile(test_data_location + "test.json"):
             test_data_iterator = DataIterator(dataset_path=exp_config.DATASET_ROOT_PATH,
                                               batch_size=exp_config.BATCH_SIZE,
-                                              dao=dao)
+                                              dao=dao,
+                                              num_concepts_per_image_row=num_concepts_per_row,
+                                              num_concepts_per_image_col=num_concepts_per_col
+                                              )
         else:
             raise Exception("Test data file does not exists")
     with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as sess:
