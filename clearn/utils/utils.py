@@ -2,6 +2,9 @@
 Most codes from https://github.com/carpedm20/DCGAN-tensorflow
 """
 from __future__ import division
+
+from typing import List, Tuple
+
 import pandas as pd
 import scipy.misc
 from skimage import img_as_ubyte
@@ -19,6 +22,39 @@ from sklearn.cluster import KMeans
 from yellowbrick.cluster import KElbowVisualizer
 
 SIGNIFICANT_THRESHOLD = 0.15
+
+
+def get_padding_info(strides: List[int], image_shape: Tuple[int]):
+    image_sizes = []
+    padding_added_row = []
+    padding_added_col = []
+    print("Image shape", image_shape)
+    height = image_shape[0]
+    width = image_shape[1]
+    image_sizes.append((height, width))
+    for layer_num, stride in enumerate(strides):
+        if height % stride != 0:
+            num_pads = stride - height % stride
+            pad_left = num_pads // 2
+            pad_right = num_pads - pad_left
+            padding_added_row.append((pad_left, pad_right))
+            height = (height // stride) + 1
+        else:
+            padding_added_row.append((0, 0))
+            height = height // stride
+
+        if width % stride != 0:
+            num_pads = stride - width % stride
+            pad_left = num_pads // 2
+            pad_right = num_pads - pad_left
+            padding_added_col.append((pad_left, pad_right))
+            width = (width // stride) + 1
+        else:
+            padding_added_col.append((0, 0))
+            width = width // stride
+        image_sizes.append((height, width))
+
+    return padding_added_row, padding_added_col, image_sizes
 
 
 def check_and_create_folder(log_dir):

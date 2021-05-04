@@ -18,7 +18,7 @@ from clearn.models.model import Model
 
 from clearn.utils.data_loader import TrainValDataIterator, DataIterator
 from clearn.config import ExperimentConfig
-from clearn.utils.utils import show_all_variables
+from clearn.utils.utils import show_all_variables, get_padding_info
 
 MODEL_TYPE_VAE_UNSUPERVISED = "VAE"
 MODEL_TYPE_VAE_SEMI_SUPERVISED_MNIST = "VAE_SEMI_SUPERVISED_MNIST"
@@ -209,7 +209,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             log_level=logging.INFO,
                                             fully_convolutional = False,
                                             num_concepts=10,
-                                            supervise_weight_concepts=1
+                                            supervise_weight_concepts=1,
+                                            strides=[2, 2, 1, 1]
                                             ):
     if dao is None:
         dao = get_dao(dataset_name, split_name, num_val_samples)
@@ -250,7 +251,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                   log_level=log_level,
                                   fully_convolutional=fully_convolutional,
                                   num_concepts=num_concepts,
-                                  supervise_weight_concepts=supervise_weight_concepts
+                                  supervise_weight_concepts=supervise_weight_concepts,
+                                  strides=strides
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)
@@ -281,6 +283,21 @@ def initialize_model_train_and_get_features(experiment_name,
         train_val_data_iterator.reset_counter("val")
         return train_val_data_iterator, exp_config, model
 
+def get_num_concepts_per_image(exp_config, strides, dao):
+    _, _, image_sizes = get_padding_info(strides, dao.image_shape)
+    latent_image_dim = image_sizes[len(exp_config.num_units)]
+    concepts_stride = 2
+
+    if latent_image_dim[0] % concepts_stride == 0:
+        h = latent_image_dim[0] //concepts_stride
+    else:
+        h = (latent_image_dim[0] // concepts_stride) + 1
+    if latent_image_dim[1] % concepts_stride == 0:
+        w = latent_image_dim[1] // concepts_stride
+    else:
+        w = (latent_image_dim[1] // concepts_stride) + 1
+    print("Number of concepts per image", h, w)
+    return h, w
 
 def get_train_val_iterator(create_split: bool,
                            dao: IDao,
@@ -293,6 +310,7 @@ def get_train_val_iterator(create_split: bool,
     manual_annotation_file = os.path.join(exp_config.ANALYSIS_PATH,
                                           manual_annotation_file_name
                                           )
+    num_concepts_per_row, num_concepts_per_col = get_num_concepts_per_image(exp_config, exp_config.strides, dao)
     if os.path.isfile(split_filename):
         if manual_annotation_file is not None:
             train_val_data_iterator = TrainValDataIterator.from_existing_split(dao=dao,
@@ -301,7 +319,9 @@ def get_train_val_iterator(create_split: bool,
                                                                                batch_size=exp_config.BATCH_SIZE,
                                                                                manual_labels_config=exp_config.manual_labels_config,
                                                                                manual_annotation_file=manual_annotation_file,
-                                                                               budget=exp_config.budget
+                                                                               budget=exp_config.budget,
+                                                                               num_concepts_per_image_row=num_concepts_per_row,
+                                                                               num_concepts_per_image_col=num_concepts_per_col
                                                                                )
     elif create_split:
         train_val_data_iterator = TrainValDataIterator(dataset_path=exp_config.DATASET_ROOT_PATH,
@@ -315,7 +335,9 @@ def get_train_val_iterator(create_split: bool,
                                                        manual_labels_config=exp_config.manual_labels_config,
                                                        manual_annotation_file=manual_annotation_file,
                                                        seed=exp_config.seed,
-                                                       budget=exp_config.budget
+                                                       budget=exp_config.budget,
+                                                       num_concepts_per_image_row=num_concepts_per_row,
+                                                       num_concepts_per_image_col=num_concepts_per_col
                                                        )
     else:
         raise Exception(f"File does not exists {split_filename}")

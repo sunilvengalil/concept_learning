@@ -39,7 +39,8 @@ class TrainValDataIterator:
     TRAIN_Y = "train_y"
     TRAIN_X = "train_x"
     num_concepts = 20
-    num_concepts_per_iage = 16
+    num_concepts_per_image_row:int
+    num_concepts_per_image_col:int
 
     @classmethod
     def load_manual_annotation(cls, manual_annotation_file):
@@ -103,7 +104,9 @@ class TrainValDataIterator:
                             manual_labels_config = ExperimentConfig.USE_CLUSTER_CENTER,
                             manual_annotation_file: str = None,
                             budget=1,
-                            manual_annotation_file_concepts=None
+                            manual_annotation_file_concepts=None,
+                            num_concepts_per_image_row = 7,
+                            num_concepts_per_image_col = 7
                             ):
         """
         Creates and initialize an instance of TrainValDataIterator
@@ -113,6 +116,9 @@ class TrainValDataIterator:
         @param: manual_labels_config:
         """
         instance = cls(batch_size=batch_size, dao=dao)
+        TrainValDataIterator.num_concepts_per_image_row = num_concepts_per_image_row
+        TrainValDataIterator.num_concepts_per_image_col = num_concepts_per_image_col
+
         instance.concepts_gt = None
         # TODO convert this to lazy loading/use generator
         instance.dataset_dict = dao.load_train_val_existing_split(split_name, split_location)
@@ -155,7 +161,7 @@ class TrainValDataIterator:
                 # with uniform probability distribution for each label. i.e in case of MNIST each row will be set as one of the symbol
                 # {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
                 _manual_annotation_concepts = np.random.choice(TrainValDataIterator.num_concepts,
-                                                               size=(len(instance.train_x), TrainValDataIterator.num_concepts_per_iage)
+                                                               size=(len(instance.train_x), TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col)
                                                                )
 
         instance.manual_annotation = instance.get_manual_annotation(manual_annotation_file,
@@ -176,20 +182,20 @@ class TrainValDataIterator:
 
     def get_manual_annotation_concepts(self, manual_annotation_file, _manual_annotation, num_labels, actual_labels):
         if self.manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
-            manual_annotation = np.zeros((len(_manual_annotation), TrainValDataIterator.num_concepts_per_iage,  num_labels + 1), dtype=np.float)
+            manual_annotation = np.zeros((len(_manual_annotation), TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col, num_labels + 1), dtype=np.float)
             if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
                 for i in range(len(_manual_annotation)):
-                    for j in range(TrainValDataIterator.num_concepts_per_iage):
+                    for j in range(TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col):
                         manual_annotation[i, j, int(_manual_annotation[i, j])] = 1.0
-                        manual_annotation[i, j, num_labels] = _manual_annotation[i, TrainValDataIterator.num_concepts_per_iage + j]
+                        manual_annotation[i, j, num_labels] = _manual_annotation[i, TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col + j]
             else:
                 for i, label in enumerate(_manual_annotation):
-                    for j in range(TrainValDataIterator.num_concepts_per_iage):
+                    for j in range(TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col):
                         manual_annotation[i, j, _manual_annotation[i, j]] = 1.0
                         manual_annotation[i, j, num_labels] = 0  # set manual annotation confidence as 0
         elif self.manual_labels_config == ExperimentConfig.USE_ACTUAL:
             if actual_labels is not None and actual_labels.shape[0] == len(self.train_x):
-                manual_annotation = np.zeros((len(self.train_x), TrainValDataIterator.num_concepts_per_iage,  num_labels + 1), dtype=np.float)
+                manual_annotation = np.zeros((len(self.train_x), TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col, num_labels + 1), dtype=np.float)
                 manual_annotation[:, :, 0:num_labels] = actual_labels
                 manual_annotation[:, :, num_labels] = 1  # set manual annotation confidence as 1
             else:
@@ -237,8 +243,12 @@ class TrainValDataIterator:
                  manual_annotation_file=None,
                  budget=1,
                  seed=547,
-                 manual_annotation_file_concepts=None
+                 manual_annotation_file_concepts=None,
+                 num_concepts_per_image_row=7,
+                 num_concepts_per_image_col=7
                  ):
+        TrainValDataIterator.num_concepts_per_image_row = num_concepts_per_image_row
+        TrainValDataIterator.num_concepts_per_image_col = num_concepts_per_image_col
         self.budget = budget
         self.train_idx = 0
         self.val_idx = 0
@@ -284,7 +294,7 @@ class TrainValDataIterator:
                     """
                     _manual_annotation_concepts = np.random.choice(TrainValDataIterator.num_concepts,
                                                                    size=(len(self.train_x),
-                                                                         TrainValDataIterator.num_concepts_per_iage)
+                                                                         TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col)
                                                                    )
 
             _manual_annotation_concepts = None
@@ -472,12 +482,18 @@ class DataIterator:
     Y_RAW = "test_y"
     Y_ONE_HOT = "test_y_one_hot"
     X = "test_x"
+    num_concepts = 20
 
     def __init__(self,
                  dao: IDao,
                  dataset_path=None,
-                 batch_size=None
+                 batch_size=None,
+                 num_concepts_per_image_row=7,
+                 num_concepts_per_image_col=7
                  ):
+        DataIterator.num_concepts_per_image_row = num_concepts_per_image_row
+        DataIterator.num_concepts_per_image_col = num_concepts_per_image_col
+
         self.idx = 0
         self.dataset_path = dataset_path
         self.batch_size = batch_size
@@ -493,8 +509,10 @@ class DataIterator:
         self.manual_annotation = np.zeros((len(self.x), 11), dtype=np.float16)
         self.manual_annotation[:, 0:10] = self.y
         self.manual_annotation[:, 10] = 1  # set manual annotation confidence as 1
-        self.manual_annotation_concepts = np.zeros(
-            (len(self.x), TrainValDataIterator.num_concepts_per_iage, TrainValDataIterator.num_concepts + 1), dtype=np.float)
+        self.manual_annotation_concepts = np.zeros((len(self.x),
+                                                    DataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col,
+                                                    DataIterator.num_concepts + 1),
+                                                   dtype=np.float)
         self.idx = 0
 
 

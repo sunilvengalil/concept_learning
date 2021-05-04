@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import tensorflow as tf
 from clearn.utils.tensorflow_wrappers.layers import max_pool_2d, avgpool, flatten
 
@@ -38,17 +40,25 @@ def fcnn_n_layer(model, x, num_out_units, reuse=False):
     # Encoder models the probability  P(z/X)
     n_units = model.exp_config.num_units
     layer_num = 0
-    strides = model.strides
+    strides = model.exp_config.strides
     print(strides)
     model.encoder_dict ={}
     with tf.compat.v1.variable_scope("encoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
-            model.encoder_dict[f"layer_{layer_num}"] = lrelu(conv2d(x, n_units[layer_num],
-                                                                      3, 3,
-                                                                      strides[layer_num],
-                                                                      strides[layer_num],
-                                                                      name=f"layer_{layer_num}"))
+            x = add_zero_padding(x, model.padding_added_row[layer_num], model.padding_added_col[layer_num] )
+
+            model.encoder_dict[f"layer_{layer_num}"] = lrelu(conv2d(x,
+                                                                    n_units[layer_num],
+                                                                    3, 3,
+                                                                    strides[layer_num],
+                                                                    strides[layer_num],
+                                                                    name=f"layer_{layer_num}")
+                                                             )
             for layer_num in range(1, len(n_units)):
+                model.encoder_dict[f"layer_{layer_num - 1}"] = add_zero_padding(model.encoder_dict[f"layer_{layer_num-1}"],
+                                                                                model.padding_added_row[layer_num],
+                                                                                model.padding_added_col[layer_num]
+                                                                                )
                 model.encoder_dict[f"layer_{layer_num}"] = lrelu((conv2d(model.encoder_dict[f"layer_{layer_num - 1}"],
                                                                            n_units[layer_num],
                                                                            3, 3,
@@ -65,42 +75,66 @@ def fcnn_n_layer(model, x, num_out_units, reuse=False):
                                     name='out')))
 
         z = tf.reshape(z, [model.exp_config.BATCH_SIZE, -1])
-        print("z shape", z.shape)
+        print("fcnn output shape", z.shape)
         return z
+
+
+def add_zero_padding(x:tf.Tensor, row_padding:Tuple[int], col_padding:Tuple[int]):
+    if row_padding[0] != 0 or row_padding[1] != 0:
+        x = tf.compat.v1.pad(x, [[0, 0], row_padding, [0, 0], [0, 0]])
+    if col_padding[0] != 0 or col_padding[1] != 0:
+        x = tf.compat.v1.pad(x, [[0, 0], [0, 0], col_padding, [0, 0]])
+    return x
+
+
+def remove_padding(x, row_padding, col_padding):
+    print(row_padding, col_padding, x.shape)
+    x = x[:, row_padding[0]: x.shape[1] - row_padding[1], col_padding[0]: x.shape[2] - col_padding[1], :]
+    return x
+
 
 def fully_deconv_n_layer(model, z, reuse=False):
     n_units = model.exp_config.num_units
     h, w = model.dao.image_shape[0], model.dao.image_shape[1]
-    strides = model.strides
+    strides = model.exp_config.strides
     re_scale_factor = get_rescale_factor_fcnn(strides)
+    image_sizes = model.image_sizes
+    print(f"Decoding later vector os size {z.shape} Rescale factor: {re_scale_factor}")
+
     model.decoder_dict ={}
     with tf.compat.v1.variable_scope("decoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
             layer_num = 0
+            stride = strides[len(n_units)]
+            print(image_sizes[layer_num])
             model.reshaped_de = tf.reshape(z,
                                            [model.exp_config.BATCH_SIZE,
-                                            h//re_scale_factor,
-                                            w//re_scale_factor,
+                                            image_sizes[len(n_units)][0],
+                                            image_sizes[len(n_units)][1],
                                             1
                                             ]
                                            )
-            re_scale_factor = re_scale_factor // strides[len(n_units)]
-            model.decoder_dict[f"de_conv_{layer_num}"] = lrelu(deconv2d(model.reshaped_de,
+
+            re_scale_factor = re_scale_factor // stride
+            print(model.reshaped_de.shape)
+            de_convolved = lrelu(deconv2d(model.reshaped_de,
                                                                         [model.exp_config.BATCH_SIZE,
-                                                                         h // re_scale_factor,
-                                                                         w // re_scale_factor,
+                                                                         image_sizes[len(n_units)][0],
+                                                                         image_sizes[len(n_units)][0],
                                                                          n_units[len(n_units) - 1]],
                                                                         3, 3,
-                                                                        strides[len(n_units)],
-                                                                        strides[len(n_units)],
+                                                                        stride,
+                                                                        stride,
                                                                         name=f"de_conv_{layer_num}"))
-
+            print(layer_num, de_convolved.shape)
+            # padding_removed = remove_padding(de_convolved, model.padding_added_row[layer_num], model.padding_added_col[layer_num])
+            model.decoder_dict[f"de_conv_{layer_num}"] = de_convolved
             for layer_num in range(1, len(n_units)):
                 re_scale_factor = re_scale_factor// strides[len(n_units) - layer_num]
-                model.decoder_dict[f"de_conv_{layer_num}"] = lrelu(deconv2d(model.decoder_dict[f"de_conv_{layer_num - 1}"],
+                de_convolved = lrelu(deconv2d(model.decoder_dict[f"de_conv_{layer_num - 1}"],
                                                                             [model.exp_config.BATCH_SIZE,
-                                                                            h//re_scale_factor,
-                                                                            w//re_scale_factor,
+                                                                            image_sizes[len(n_units) - layer_num][0],
+                                                                            image_sizes[len(n_units) - layer_num][0],
                                                                             n_units[len(n_units) - layer_num - 1]],
                                                                             3, 3,
                                                                             strides[len(n_units) - layer_num],
@@ -108,6 +142,9 @@ def fully_deconv_n_layer(model, z, reuse=False):
                                                                             name=f"de_conv_{layer_num}"
                                                                             )
                                                                    )
+                print(layer_num)
+                # padding_removed = remove_padding(de_convolved, model.padding_added_row[layer_num], model.padding_added_col[layer_num])
+                model.decoder_dict[f"de_conv_{layer_num}"] = de_convolved
             if model.exp_config.activation_output_layer == "SIGMOID":
                 out = tf.nn.sigmoid(
                     deconv2d(model.decoder_dict[f"de_conv_{len(n_units) - 1}"], [model.exp_config.BATCH_SIZE, h, w, 1], 3, 3, strides[0], strides[0], name='de_out'))
@@ -301,20 +338,20 @@ def deconv_4_layer(model, z, reuse=False):
     output_shape = [model.exp_config.BATCH_SIZE, model.dao.image_shape[0], model.dao.image_shape[1],
                     model.dao.image_shape[2]]
     layer_4_size = [model.exp_config.BATCH_SIZE,
-                    output_shape[1] // model.strides[0],
-                    output_shape[2] // model.strides[0],
+                    output_shape[1] // model.exp_config.strides[0],
+                    output_shape[2] // model.exp_config.strides[0],
                     n[0]]
     layer_3_size = [model.exp_config.BATCH_SIZE,
-                    layer_4_size[1] // model.strides[1],
-                    layer_4_size[2] // model.strides[1],
+                    layer_4_size[1] // model.exp_config.strides[1],
+                    layer_4_size[2] // model.exp_config.strides[1],
                     n[1]]
     layer_2_size = [model.exp_config.BATCH_SIZE,
-                    layer_3_size[1] // model.strides[2],
-                    layer_3_size[2] // model.strides[2],
+                    layer_3_size[1] // model.exp_config.strides[2],
+                    layer_3_size[2] // model.exp_config.strides[2],
                     n[2]]
     layer_1_size = [model.exp_config.BATCH_SIZE,
-                    layer_2_size[1] // model.strides[3],
-                    layer_2_size[2] // model.strides[3],
+                    layer_2_size[1] // model.exp_config.strides[3],
+                    layer_2_size[2] // model.exp_config.strides[3],
                     n[3]]
 
     with tf.compat.v1.variable_scope("decoder", reuse=reuse):
@@ -325,29 +362,29 @@ def deconv_4_layer(model, z, reuse=False):
             model.reshaped_de = tf.reshape(model.dense1_de, layer_1_size)
             deconv1 = lrelu(deconv2d(model.reshaped_de,
                                      layer_2_size,
-                                     3, 3, model.strides[1], model.strides[1], name='de_dc1'), 0)
+                                     3, 3, model.exp_config.strides[1], model.exp_config.strides[1], name='de_dc1'), 0)
             model.deconv1 = lrelu(tf.compat.v1.layers.batch_normalization(deconv1))
 
             deconv2 = lrelu(deconv2d(model.deconv1,
                                      layer_3_size,
-                                     3, 3, model.strides[2], model.strides[2], name='de_dc2'), 0)
+                                     3, 3, model.exp_config.strides[2], model.exp_config.strides[2], name='de_dc2'), 0)
             deconv2 = lrelu(tf.compat.v1.layers.batch_normalization(deconv2))
             model.deconv2 = drop_out(deconv2, 0.3)
 
             deconv3 = lrelu(deconv2d(model.deconv2,
                                      layer_4_size,
-                                     3, 3, model.strides[3], model.strides[3], name='de_dc3'), 0)
+                                     3, 3, model.exp_config.strides[3], model.exp_config.strides[3], name='de_dc3'), 0)
             model.deconv3 = lrelu(tf.compat.v1.layers.batch_normalization(deconv3))
             model.deconv3 = drop_out(deconv3, 0.3)
 
 
             if model.exp_config.activation_output_layer == "SIGMOID":
                 out = tf.nn.sigmoid(
-                    deconv2d(model.deconv3, output_shape, 3, 3, model.strides[4], model.strides[4], name='de_dc4'))
+                    deconv2d(model.deconv3, output_shape, 3, 3, model.exp_config.strides[4], model.exp_config.strides[4], name='de_dc4'))
             elif model.exp_config.activation_output_layer == "LINEAR":
                 out = lrelu(deconv2d(model.deconv3,
                                      output_shape,
-                                     3, 3, model.strides[4], model.strides[4], name='de_dc4'),
+                                     3, 3, model.exp_config.strides[4], model.exp_config.strides[4], name='de_dc4'),
                     0
                     )
 

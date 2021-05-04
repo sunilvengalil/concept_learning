@@ -16,7 +16,7 @@ from clearn.models.classify.classifier import ClassifierModel
 from clearn.models.vae import VAE
 from clearn.utils import prior_factory as prior
 from clearn.utils.retention_policy.policy import RetentionPolicy
-from clearn.utils.utils import get_latent_vector_column
+from clearn.utils.utils import get_latent_vector_column, get_padding_info
 from scipy.special import softmax
 from sklearn.metrics import accuracy_score
 
@@ -39,11 +39,35 @@ class SemiSupervisedClassifierMnist(VAE):
                  ):
         # Whether the sample was manually annotated.
         self.is_manual_annotated = placeholder(tf.float32, [exp_config.BATCH_SIZE], name="is_manual_annotated")
-        self.is_concepts_annotated = placeholder(tf.float32, [exp_config.BATCH_SIZE, 4, 4], name="is_concepts_annotated")
 
         self.labels = placeholder(tf.float32, [exp_config.BATCH_SIZE, dao.num_classes], name='manual_label')
+        self.padding_added_row, self.padding_added_col, self.image_sizes = get_padding_info(exp_config.strides,
+                                                                                                 dao.image_shape)
+
+        latent_image_dim = self.image_sizes[len(exp_config.num_units)]
+        self.concepts_stride = 2
+
+        if latent_image_dim[0] % self.concepts_stride == 0:
+            self.num_concpets_per_row = latent_image_dim[0] // self.concepts_stride
+        else:
+            self.num_concpets_per_row = (latent_image_dim[0] // self.concepts_stride) + 1
+        if latent_image_dim[1] % self.concepts_stride == 0:
+            self.num_concpets_per_col = latent_image_dim[1] // self.concepts_stride
+        else:
+            self.num_concpets_per_col = (latent_image_dim[1] // self.concepts_stride) + 1
+        print("Number of concepts per image", self.num_concpets_per_row, self.num_concpets_per_col)
+
+        self.is_concepts_annotated = placeholder(tf.float32,
+                                                 [exp_config.BATCH_SIZE,
+                                                  self.num_concpets_per_row,
+                                                  self.num_concpets_per_col],
+                                                 name="is_concepts_annotated")
         self.concepts_labels = placeholder(tf.float32,
-                                           [exp_config.BATCH_SIZE, 4, 4, exp_config.num_concepts], name='manual_label_concepts')
+                                           [exp_config.BATCH_SIZE,
+                                            self.num_concpets_per_row,
+                                            self.num_concpets_per_col,
+                                            exp_config.num_concepts],
+                                           name='manual_label_concepts')
 
         super().__init__(exp_config=exp_config,
                          sess=sess,
@@ -116,11 +140,9 @@ class SemiSupervisedClassifierMnist(VAE):
 
     def compute_and_optimize_loss(self):
         if self.exp_config.fully_convolutional:
-            h, w = self.dao.image_shape[0], self.dao.image_shape[1]
-            re_scale_factor = get_rescale_factor_fcnn(self.strides)
             z_reshaped = tf.reshape(self.z, [self.exp_config.BATCH_SIZE,
-                                            h//re_scale_factor,
-                                            w//re_scale_factor,
+                                            self.image_sizes[len(self.exp_config.num_units)][0],
+                                            self.image_sizes[len(self.exp_config.num_units)][0],
                                             1
                                             ]
                                            )
@@ -175,8 +197,17 @@ class SemiSupervisedClassifierMnist(VAE):
                 if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                     break
                 batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
-                concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.num_concepts], (self.exp_config.BATCH_SIZE, 4, 4, self.exp_config.num_concepts))
-                is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts], (self.exp_config.BATCH_SIZE, 4, 4))
+                concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.num_concepts],
+                                            (self.exp_config.BATCH_SIZE,
+                                             self.num_concpets_per_row,
+                                             self.num_concpets_per_col,
+                                             self.exp_config.num_concepts)
+                                            )
+                is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts],
+                                                   (self.exp_config.BATCH_SIZE,
+                                                    self.num_concpets_per_row,
+                                                    self.num_concpets_per_col)
+                                                   )
 
                 # update autoencoder and classifier parameters
                 if self.exp_config.fully_convolutional:

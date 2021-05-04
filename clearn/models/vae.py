@@ -3,7 +3,7 @@ from __future__ import division
 
 import json
 import traceback
-from typing import List
+from typing import List, Tuple
 import os
 import numpy as np
 import pandas as pd
@@ -16,7 +16,7 @@ from clearn.models.architectures.custom.tensorflow_graphs import cnn_n_layer, de
 from clearn.models.generative_model import GenerativeModel
 from clearn.utils import prior_factory as prior
 from clearn.utils.retention_policy.policy import RetentionPolicy
-from clearn.utils.utils import save_image, get_latent_vector_column
+from clearn.utils.utils import save_image, get_latent_vector_column, get_padding_info
 from clearn.utils.dir_utils import get_eval_result_dir
 
 import tensorflow as tf
@@ -34,8 +34,9 @@ class VAE(GenerativeModel):
                  read_from_existing_checkpoint=True,
                  check_point_epochs=None,
                  ):
-        self.strides = [2, 2, 1, 1, 1]
         super().__init__(exp_config, sess, epoch, dao=dao, test_data_iterator=test_data_iterator)
+        self.padding_added_row, self.padding_added_col, self.image_sizes = get_padding_info(exp_config.strides,
+                                                                                            dao.image_shape)
         self.metrics_to_compute = ["reconstruction_loss"]
         self.metrics = dict()
         self.metrics[VAE.dataset_type_train] = dict()
