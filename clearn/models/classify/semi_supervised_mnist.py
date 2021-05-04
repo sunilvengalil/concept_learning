@@ -353,6 +353,7 @@ class SemiSupervisedClassifierMnist(VAE):
                         retention_policies.append(rp)
         while data_iterator.has_next(dataset_type):
             batch_images, batch_labels, manual_labels, manual_labels_concepts = data_iterator.get_next_batch(dataset_type)
+
             # skip last batch
             if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                 data_iterator.reset_counter(dataset_type)
@@ -360,9 +361,17 @@ class SemiSupervisedClassifierMnist(VAE):
             batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
             concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.num_concepts],
-                                        (self.exp_config.BATCH_SIZE, 4, 4, self.exp_config.num_concepts))
+                                        (self.exp_config.BATCH_SIZE,
+                                         self.num_concpets_per_row,
+                                         self.num_concpets_per_col,
+                                         self.exp_config.num_concepts)
+                                        )
             is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts],
-                                               (self.exp_config.BATCH_SIZE, 4, 4))
+                                               (self.exp_config.BATCH_SIZE,
+                                                self.num_concpets_per_row,
+                                                self.num_concpets_per_col)
+                                               )
+
             if self.exp_config.fully_convolutional:
                 reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, y_pred, nll, nll_batch = self.sess.run([self.out,
                                                                                                                                   self.merged_summary_op,
