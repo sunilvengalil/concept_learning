@@ -90,7 +90,7 @@ def remove_padding(x, row_padding, col_padding):
     return x
 
 
-def fully_deconv_n_layer(model, z, reuse=False):
+def fully_deconv_n_layer(model, z, out_channels, reuse=False):
     n_units = model.exp_config.num_units
     h, w = model.dao.image_shape[0], model.dao.image_shape[1]
     strides = model.exp_config.strides
@@ -139,9 +139,19 @@ def fully_deconv_n_layer(model, z, reuse=False):
                 model.decoder_dict[f"de_conv_{layer_num}"] = de_convolved
             if model.exp_config.activation_output_layer == "SIGMOID":
                 out = tf.nn.sigmoid(
-                    deconv2d(model.decoder_dict[f"de_conv_{len(n_units) - 1}"], [model.exp_config.BATCH_SIZE, h, w, 1], 3, 3, strides[0], strides[0], name='de_out'))
+                    deconv2d(model.decoder_dict[f"de_conv_{len(n_units) - 1}"],
+                             [model.exp_config.BATCH_SIZE, h, w, out_channels],
+                             3, 3,
+                             strides[0],
+                             strides[0],
+                             name='de_out'))
             elif model.exp_config.activation_output_layer == "LINEAR":
-                out = deconv2d(model.decoder_dict[f"de_conv_{len(n_units) - 1}"], [model.exp_config.BATCH_SIZE, h, w, 1], 3, 3, strides[0], strides[0], name='de_out')
+                out = deconv2d(model.decoder_dict[f"de_conv_{len(n_units) - 1}"],
+                               [model.exp_config.BATCH_SIZE, h, w, out_channels],
+                               3, 3,
+                               strides[0],
+                               strides[0],
+                               name='de_out')
         else:
             raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
         return out

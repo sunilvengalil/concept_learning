@@ -295,14 +295,18 @@ class VAE(GenerativeModel):
                     self.inputs: batch_images,
                     self.standard_normal: batch_z})
             nll_batch = -nll_batch
+            # print(f"nll_batch:{nll_batch.shape} nll: {nll.shape}")
+
+            # print(f"nll_batch:{nll_batch.shape} nll: {nll.shape}")
+
             if len(nll_batch.shape) == 0:
                 data_iterator.reset_counter(dataset_type)
                 print(f"Skipping batch {batch_no}. Investigate and fix this issue later")
                 print(
                     f"Length of batch_images: {batch_images.shape} Nll_batch shape: {nll_batch.shape} Nll shape: {nll.shape} Nll:{nll} ")
                 break
-            if len(nll_batch.shape) != 2:
-                raise Exception(f"Shape of nll_batch {nll_batch.shape}")
+            # if len(nll_batch.shape) != 1:
+            #     raise Exception(f"Shape of nll_batch {nll_batch.shape}")
 
             """
             Update priority queues for keeping top and bottom N samples for all the required metrics present save_policy
@@ -319,8 +323,9 @@ class VAE(GenerativeModel):
             if reconstruction_losses is None:
                 reconstruction_losses = nll_batch
             else:
-                reconstruction_losses = np.vstack([reconstruction_losses, nll_batch])
+                reconstruction_losses = np.hstack([reconstruction_losses, nll_batch])
 
+            # print(reconstruction_losses.shape)
             if self.exp_config.return_latent_vector:
                 if z is None:
                     mu = mu_for_batch

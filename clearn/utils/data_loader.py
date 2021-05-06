@@ -292,10 +292,8 @@ class TrainValDataIterator:
                     Create a numpy array of dimension (num_training_samples, num_unique_labels) and  set the one-hot encoded label with uniform probability distribution for each label.
                     In case of MNIST each row will be set as one of the symbol {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
                     """
-                    _manual_annotation_concepts = np.random.choice(TrainValDataIterator.num_concepts,
-                                                                   size=(len(self.train_x),
-                                                                         TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col)
-                                                                   )
+                    _manual_annotation = np.random.choice(self.unique_labels,
+                                      len(self.train_x))
 
             _manual_annotation_concepts = None
             if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
@@ -312,8 +310,9 @@ class TrainValDataIterator:
                     Create a numpy array of dimension (num_training_samples, num_unique_labels) and  set the one-hot encoded label with uniform probability distribution for each label.
                     In case of MNIST each row will be set as one of the symbol {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
                     """
-                    _manual_annotation_concepts = np.random.choice(list(range(TrainValDataIterator.num_concepts)), len(self.train_x))
-
+                    _manual_annotation_concepts = np.random.choice(dao.num_classes, size=(len(self.train_x),
+                                                      TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col)
+                                                )
 
             self.manual_annotation = self.get_manual_annotation(manual_annotation_file,
                                                                 _manual_annotation,
