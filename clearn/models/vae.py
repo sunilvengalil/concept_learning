@@ -328,7 +328,7 @@ class VAE(GenerativeModel):
                     z = z_for_batch
                 else:
                     mu = np.vstack([mu, mu_for_batch])
-                    sigma = np.vstack([sigma, sigma_for_batch])
+                    sigma = np.hstack([sigma, sigma_for_batch])
                     z = np.vstack([z, z_for_batch])
 
         if "reconstruction_loss" in self.metrics_to_compute:
