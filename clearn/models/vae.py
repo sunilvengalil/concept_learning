@@ -319,8 +319,7 @@ class VAE(GenerativeModel):
             if reconstruction_losses is None:
                 reconstruction_losses = nll_batch
             else:
-                reconstruction_losses = np.vstack([reconstruction_losses, nll_batch])
-
+                reconstruction_losses = np.hstack([reconstruction_losses, nll_batch])
             if self.exp_config.return_latent_vector:
                 if z is None:
                     mu = mu_for_batch
