@@ -176,6 +176,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             create_split,
                                             num_epochs,
                                             model_type,
+                                            strides,
+                                            num_dense_layers,
                                             num_cluster_config=None,
                                             manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                                             supervise_weight=150,
@@ -209,8 +211,7 @@ def initialize_model_train_and_get_features(experiment_name,
                                             log_level=logging.INFO,
                                             fully_convolutional = False,
                                             num_concepts=10,
-                                            supervise_weight_concepts=1,
-                                            strides=[2, 2, 1, 1]
+                                            supervise_weight_concepts=1
                                             ):
     if dao is None:
         dao = get_dao(dataset_name, split_name, num_val_samples)
@@ -221,6 +222,7 @@ def initialize_model_train_and_get_features(experiment_name,
                                   num_decoder_layer=num_decoder_layer,
                                   z_dim=z_dim,
                                   num_units=num_units,
+                                  num_dense_layers=num_dense_layers,
                                   num_cluster_config=num_cluster_config,
                                   confidence_decay_factor=confidence_decay_factor,
                                   beta=beta,
@@ -288,6 +290,7 @@ def initialize_model_train_and_get_features(experiment_name,
         return train_val_data_iterator, exp_config, model
 
 def get_num_concepts_per_image(exp_config, strides, dao):
+
     _, _, image_sizes = get_padding_info(strides, dao.image_shape)
     latent_image_dim = image_sizes[len(exp_config.num_units)]
     concepts_stride = 2

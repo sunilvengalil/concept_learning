@@ -68,6 +68,8 @@ class ExperimentConfig:
                  z_dim,
                  num_units,
                  num_cluster_config,
+                 strides,
+                 num_dense_layers,
                  confidence_decay_factor=2,
                  beta=5,
                  supervise_weight=0,
@@ -100,7 +102,6 @@ class ExperimentConfig:
                  fully_convolutional=False,
                  num_concepts=10,
                  supervise_weight_concepts=1,
-                 strides=[2,2,1,1]
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -160,6 +161,7 @@ class ExperimentConfig:
         self.num_concepts = num_concepts
         self.supervise_weight_concepts = supervise_weight_concepts
         self.strides = strides
+        self.num_dense_layers = num_dense_layers
 
     def as_json(self):
         config_json = dict()
@@ -200,6 +202,7 @@ class ExperimentConfig:
         config_json["NUM_CONCEPTS"] = self.num_concepts
         config_json["SUPERVISE_WEIGHT_CONCEPTS"] = self.supervise_weight_concepts
         config_json["STRIDES"] = self.strides
+        config_json["NUM_DENSE_LAYER"] = self.num_dense_layers
 
         return config_json
 
@@ -324,7 +327,8 @@ class ExperimentConfig:
         self.fully_convolutional = exp_config_dict["FULLY_CONVOLUTIONAL"]
         self.num_concepts = exp_config_dict["NUM_CONCEPTS"]
         self.supervise_weight_concepts = exp_config_dict["SUPERVISE_WEIGHT_CONCEPTS"]
-        self.strides = exp_config_dict["STRIDES"]
+        self.strides = exp_config_dict["STRIDES"],
+        self.num_dense_layers = exp_config_dict["NUM_DENSE_LAYERS"]
 
 if __name__ == "__main__":
     _root_path = "/Users/sunilv/concept_learning_exp"

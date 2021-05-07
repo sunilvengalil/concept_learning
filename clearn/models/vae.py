@@ -68,10 +68,11 @@ class VAE(GenerativeModel):
     #   Gaussian Encoder
     def _encoder(self, x, reuse=False):
         if self.exp_config.fully_convolutional:
-            gaussian_params = fcnn_n_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
+            gaussian_params = fcnn_n_layer(self, x, self.exp_config.num_units, 2, reuse)
         else:
             gaussian_params = cnn_n_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
         # The mean parameter is unconstrained
+
         mean = gaussian_params[:, :self.exp_config.Z_DIM]
         # The standard deviation must be positive. Parametrize with a softplus and
         # add a small epsilon for numerical stability
@@ -81,9 +82,9 @@ class VAE(GenerativeModel):
     # Bernoulli decoder
     def _decoder(self, z, reuse=False):
         if self.exp_config.fully_convolutional:
-            out = fully_deconv_n_layer(self, z, self.dao.image_shape[2], reuse)
+            out = fully_deconv_n_layer(self, z, self.exp_config.num_units, self.dao.image_shape[2], reuse)
         else:
-            out = deconv_n_layer(self, z, reuse)
+            out = deconv_n_layer(self, z, self.dao.image_shape[2], reuse)
         return out
 
     def inference(self):
