@@ -122,7 +122,7 @@ def read_accuracy_from_file(file_prefix):
         if df is None:
             df = temp_df
         else:
-            pd.concat([df, temp_df], axis=1)
+            df = pd.concat([df, temp_df], axis=0)
     return df
 
 

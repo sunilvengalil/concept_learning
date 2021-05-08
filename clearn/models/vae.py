@@ -231,6 +231,8 @@ class VAE(GenerativeModel):
                 self.save(self.exp_config.TRAINED_MODELS_PATH, self.counter)
             # save metrics
             for metric in self.metrics_to_compute:
+                if len(self.metrics["train"][metric]) == 0:
+                    continue
                 df = pd.DataFrame(np.asarray(self.metrics["train"][metric])[:, 0], columns=["epoch"])
                 df[f"train_{metric}_mean"] = np.asarray(self.metrics["train"][metric])[:, 1]
                 df[f"val_{metric}_mean"] = np.asarray(self.metrics["val"][metric])[:, 1]
