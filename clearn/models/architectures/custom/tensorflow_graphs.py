@@ -164,12 +164,12 @@ def deconv_n_layer(model, z,  out_channels, reuse=False):
                 model.decoder_dense_dict = dict()
                 layer_num = 0
                 layer_key = f"layer_{layer_num}"
-                model.decoder_dense_dict[layer_key] = lrelu( linear(z, n_units[-1], scope= layer_key))
+                num_features_index = len(n_units) - (layer_num + 1)
+                num_features = n_units[num_features_index]
+                model.decoder_dense_dict[layer_key] = lrelu( linear(z, num_features, scope= layer_key))
                 for layer_num in range(1, model.exp_config.num_dense_layers):
                     layer_key = f"layer_{layer_num}"
                     previous_layer_key = f"layer_{layer_num-1}"
-                    num_features_index = len(n_units) - (layer_num + 1)
-                    num_features = n_units[num_features_index]
                     model.decoder_dense_dict[layer_key] = lrelu(linear(model.decoder_dense_dict[previous_layer_key],
                                                                        num_features,
                                                                        scope=layer_key)

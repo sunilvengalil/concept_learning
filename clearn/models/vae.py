@@ -35,8 +35,9 @@ class VAE(GenerativeModel):
                  check_point_epochs=None,
                  ):
         super().__init__(exp_config, sess, epoch, dao=dao, test_data_iterator=test_data_iterator)
-        self.padding_added_row, self.padding_added_col, self.image_sizes = get_padding_info(exp_config.strides,
-                                                                                            dao.image_shape)
+        self.padding_added_row, self.padding_added_col, self.image_sizes = get_padding_info(exp_config,
+                                                                                            dao.image_shape
+                                                                                            )
         self.metrics_to_compute = ["reconstruction_loss"]
         self.metrics = dict()
         self.metrics[VAE.dataset_type_train] = dict()
