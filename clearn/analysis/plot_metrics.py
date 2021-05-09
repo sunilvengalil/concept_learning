@@ -23,6 +23,8 @@ def plot_z_dim_vs_accuracy(root_path: str,
                            run_id: int,
                            split_name: str,
                            num_val_samples: int,
+                           strides:List[int],
+                           num_dense_layers:int,
                            activation_output_layer="SIGMOID",
                            dataset_name="mnist",
                            batch_size=64,
@@ -53,7 +55,9 @@ def plot_z_dim_vs_accuracy(root_path: str,
                                       manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                                       reconstruction_weight=1,
                                       activation_hidden_layer="RELU",
-                                      activation_output_layer=activation_output_layer
+                                      activation_output_layer=activation_output_layer,
+                                      strides=strides,
+                                      num_dense_layers=num_dense_layers
                                       )
         exp_config.check_and_create_directories(run_id, False)
         file_prefix = f"/train_{metric}_*.csv"
@@ -118,7 +122,7 @@ def read_accuracy_from_file(file_prefix):
         if df is None:
             df = temp_df
         else:
-            pd.concat([df, temp_df], axis=1)
+            df = pd.concat([df, temp_df], axis=0)
     return df
 
 
@@ -303,6 +307,8 @@ def plot_epoch_vs_accuracy(root_path: str,
                            num_cluster_config: str,
                            z_dim: int,
                            run_id: int,
+                           strides:List[int],
+                           num_dense_layers:int,
                            dataset_types: List[str] = ["train", "test"],
                            activation_output_layer="SIGMOID",
                            dataset_name="mnist",
@@ -332,7 +338,9 @@ def plot_epoch_vs_accuracy(root_path: str,
                                   manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                                   reconstruction_weight=1,
                                   activation_hidden_layer="RELU",
-                                  activation_output_layer=activation_output_layer
+                                  activation_output_layer=activation_output_layer,
+                                  strides=strides,
+                                  num_dense_layers=num_dense_layers
                                   )
 
     if not exp_config.check_and_create_directories(run_id, False):
@@ -361,6 +369,8 @@ def plot_hidden_units_accuracy_layerwise(root_path: str,
                                          num_cluster_config: str,
                                          z_dim: int,
                                          run_id: int,
+                                         strides:List[int],
+                                         num_dense_layers:int,
                                          dataset_types: List[str] = ["train", "test"],
                                          dataset_name="mnist",
                                          split_name="Split_1",
@@ -420,7 +430,9 @@ def plot_hidden_units_accuracy_layerwise(root_path: str,
                                           total_training_samples=dao.number_of_training_samples,
                                           manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                                           reconstruction_weight=1,
-                                          activation_hidden_layer="RELU"
+                                          activation_hidden_layer="RELU",
+                                          strides=strides,
+                                          num_dense_layers=num_dense_layers
                                           )
             exp_config.check_and_create_directories(run_id, False)
 
