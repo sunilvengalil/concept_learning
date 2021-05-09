@@ -45,17 +45,18 @@ def get_padding_info(exp_config:ExperimentConfig,
     print("Image shape", image_shape)
     height = image_shape[0]
     width = image_shape[1]
-    image_sizes.append((height, width))
+    channels =  image_shape[2]
+    image_sizes.append((height, width, channels))
     layer_num = 0
     for layer_num, stride in enumerate(strides[:-1]):
         if not is_convolutional_layer(layer_num, num_units, num_dense_layers):
             image_sizes.append(num_units[layer_num])
             continue
         height, width = get_image_size(height, padding_added_col, padding_added_row, stride, width)
-        image_sizes.append((height, width))
+        image_sizes.append((height, width, num_units[layer_num]))
     if is_convolutional_layer(layer_num + 1, num_units, num_dense_layers):
         height, width = get_image_size(height, padding_added_col, padding_added_row, strides[-1], width)
-        image_sizes.append((height, width))
+        image_sizes.append((height, width, num_units[layer_num + 1]))
     else:
         image_sizes.append(exp_config.Z_DIM)
     print(image_sizes)
