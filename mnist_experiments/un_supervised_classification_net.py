@@ -24,15 +24,36 @@ num_units_list_5layer = [[512, 256, 256, 128, 128],
                          [512, 256, 128, 128, 64]
                       ]
 
-strides=[2, 2, 2, 1, 1, 1]
+# Test  cases
+## Passed ###
+num_units = [512, 256, 128, 64, 32]
+strides = [2, 2, 2, 1, 1, 1]
+num_dense_layers = 2
 
-#already tested
-num_units = [512, 256, 128, 64, 32],
+# num_units = [512, 256, 128, 64]
+# strides = [2, 2, 2, 1, 1]
+# num_dense_layers = 2
+
+num_units = [512, 256, 128, 64]
+strides = [2, 2, 2, 1, 1]
+num_dense_layers = 1
+#
+#
+
+## Passed ###
+num_units = [512, 256, 128, 64]
+strides = [2, 2, 1, 1, 1]
+num_dense_layers = 2
+#
+num_units = [512, 256, 128, 64]
+strides = [2, 2, 1, 1, 1]
+num_dense_layers = 1
+
 
 initialize_model_train_and_get_features(experiment_name=experiment_name,
                                         z_dim=z_dim,
                                         run_id=run_id,
-                                        num_units=num_units_list_5layer[0],
+                                        num_units=num_units,
                                         create_split=create_split,
                                         num_epochs=num_epochs,
                                         root_path=root_path,
@@ -40,9 +61,9 @@ initialize_model_train_and_get_features(experiment_name=experiment_name,
                                         run_evaluation_during_training=True,
                                         eval_interval_in_epochs=1,
                                         model_type="VAE",
-                                        strides=[2,2,2,1,1,1],
+                                        strides=strides,
                                         fully_convolutional=False,
-                                        num_dense_layers=2,
+                                        num_dense_layers=num_dense_layers,
                                         batch_size=4,
                                         dataset_name="cifar_10",
                                         split_name="split_1"
