@@ -271,7 +271,10 @@ def initialize_model_train_and_get_features(experiment_name,
 
     if test_data_iterator is None:
         test_data_location = exp_config.DATASET_ROOT_PATH + "/test/"
-        num_concepts_per_row, num_concepts_per_col = get_num_concepts_per_image(exp_config, exp_config.strides, dao)
+        if exp_config.fully_convolutional:
+            num_concepts_per_row, num_concepts_per_col = get_num_concepts_per_image(exp_config, dao)
+        else:
+            num_concepts_per_row, num_concepts_per_col = 1, 1
         if not os.path.isfile(test_data_location + "test.json"):
             test_data_iterator = DataIterator(dataset_path=exp_config.DATASET_ROOT_PATH,
                                               batch_size=exp_config.BATCH_SIZE,
@@ -289,9 +292,10 @@ def initialize_model_train_and_get_features(experiment_name,
         train_val_data_iterator.reset_counter("val")
         return train_val_data_iterator, exp_config, model
 
-def get_num_concepts_per_image(exp_config, strides, dao):
 
-    _, _, image_sizes = get_padding_info(strides, dao.image_shape)
+def get_num_concepts_per_image(exp_config, dao):
+
+    _,  _, image_sizes = get_padding_info(exp_config, dao.image_shape)
     latent_image_dim = image_sizes[len(exp_config.num_units)]
     concepts_stride = 2
 
@@ -305,6 +309,7 @@ def get_num_concepts_per_image(exp_config, strides, dao):
         w = (latent_image_dim[1] // concepts_stride) + 1
     return h, w
 
+
 def get_train_val_iterator(create_split: bool,
                            dao: IDao,
                            exp_config: ExperimentConfig,
@@ -316,7 +321,10 @@ def get_train_val_iterator(create_split: bool,
     manual_annotation_file = os.path.join(exp_config.ANALYSIS_PATH,
                                           manual_annotation_file_name
                                           )
-    num_concepts_per_row, num_concepts_per_col = get_num_concepts_per_image(exp_config, exp_config.strides, dao)
+    if exp_config.fully_convolutional:
+        num_concepts_per_row, num_concepts_per_col = get_num_concepts_per_image(exp_config, dao)
+    else:
+        num_concepts_per_row, num_concepts_per_col = 1, 1
     if os.path.isfile(split_filename):
         if manual_annotation_file is not None:
             train_val_data_iterator = TrainValDataIterator.from_existing_split(dao=dao,

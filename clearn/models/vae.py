@@ -35,8 +35,9 @@ class VAE(GenerativeModel):
                  check_point_epochs=None,
                  ):
         super().__init__(exp_config, sess, epoch, dao=dao, test_data_iterator=test_data_iterator)
-        self.padding_added_row, self.padding_added_col, self.image_sizes = get_padding_info(exp_config.strides,
-                                                                                            dao.image_shape)
+        self.padding_added_row, self.padding_added_col, self.image_sizes = get_padding_info(exp_config,
+                                                                                            dao.image_shape
+                                                                                            )
         self.metrics_to_compute = ["reconstruction_loss"]
         self.metrics = dict()
         self.metrics[VAE.dataset_type_train] = dict()
@@ -67,6 +68,7 @@ class VAE(GenerativeModel):
 
     #   Gaussian Encoder
     def _encoder(self, x, reuse=False):
+        print("Encoding")
         if self.exp_config.fully_convolutional:
             gaussian_params = fcnn_n_layer(self, x, self.exp_config.num_units, 2, reuse)
         else:
@@ -81,6 +83,7 @@ class VAE(GenerativeModel):
 
     # Bernoulli decoder
     def _decoder(self, z, reuse=False):
+        print("Decoding")
         if self.exp_config.fully_convolutional:
             out = fully_deconv_n_layer(self, z, self.exp_config.num_units, self.dao.image_shape[2], reuse)
         else:
