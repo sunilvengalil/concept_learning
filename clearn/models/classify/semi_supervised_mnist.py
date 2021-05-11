@@ -44,7 +44,7 @@ class SemiSupervisedClassifierMnist(VAE):
         self.padding_added_row, self.padding_added_col, self.image_sizes = get_padding_info(exp_config,
                                                                                                  dao.image_shape)
 
-        if self.exp_config.fully_convolutional:
+        if exp_config.fully_convolutional:
             latent_image_dim = self.image_sizes[len(exp_config.num_units)]
             self.concepts_stride = 2
 
