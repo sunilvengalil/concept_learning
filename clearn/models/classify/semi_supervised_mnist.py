@@ -44,29 +44,30 @@ class SemiSupervisedClassifierMnist(VAE):
         self.padding_added_row, self.padding_added_col, self.image_sizes = get_padding_info(exp_config,
                                                                                                  dao.image_shape)
 
-        latent_image_dim = self.image_sizes[len(exp_config.num_units)]
-        self.concepts_stride = 2
+        if self.exp_config.fully_convolutional:
+            latent_image_dim = self.image_sizes[len(exp_config.num_units)]
+            self.concepts_stride = 2
 
-        if latent_image_dim[0] % self.concepts_stride == 0:
-            self.num_concpets_per_row = latent_image_dim[0] // self.concepts_stride
-        else:
-            self.num_concpets_per_row = (latent_image_dim[0] // self.concepts_stride) + 1
-        if latent_image_dim[1] % self.concepts_stride == 0:
-            self.num_concpets_per_col = latent_image_dim[1] // self.concepts_stride
-        else:
-            self.num_concpets_per_col = (latent_image_dim[1] // self.concepts_stride) + 1
+            if latent_image_dim[0] % self.concepts_stride == 0:
+                self.num_concpets_per_row = latent_image_dim[0] // self.concepts_stride
+            else:
+                self.num_concpets_per_row = (latent_image_dim[0] // self.concepts_stride) + 1
+            if latent_image_dim[1] % self.concepts_stride == 0:
+                self.num_concpets_per_col = latent_image_dim[1] // self.concepts_stride
+            else:
+                self.num_concpets_per_col = (latent_image_dim[1] // self.concepts_stride) + 1
 
-        self.is_concepts_annotated = placeholder(tf.float32,
-                                                 [exp_config.BATCH_SIZE,
-                                                  self.num_concpets_per_row,
-                                                  self.num_concpets_per_col],
-                                                 name="is_concepts_annotated")
-        self.concepts_labels = placeholder(tf.float32,
-                                           [exp_config.BATCH_SIZE,
-                                            self.num_concpets_per_row,
-                                            self.num_concpets_per_col,
-                                            exp_config.num_concepts],
-                                           name='manual_label_concepts')
+            self.is_concepts_annotated = placeholder(tf.float32,
+                                                     [exp_config.BATCH_SIZE,
+                                                      self.num_concpets_per_row,
+                                                      self.num_concpets_per_col],
+                                                     name="is_concepts_annotated")
+            self.concepts_labels = placeholder(tf.float32,
+                                               [exp_config.BATCH_SIZE,
+                                                self.num_concpets_per_row,
+                                                self.num_concpets_per_col,
+                                                exp_config.num_concepts],
+                                               name='manual_label_concepts')
 
         super().__init__(exp_config=exp_config,
                          sess=sess,
