@@ -11,7 +11,6 @@ from statistics import mean
 
 from clearn.config.common_path import get_encoded_csv_file
 from clearn.dao.idao import IDao
-from clearn.models.architectures.custom.tensorflow_graphs import get_rescale_factor_fcnn
 from clearn.models.classify.classifier import ClassifierModel
 from clearn.models.vae import VAE
 from clearn.utils import prior_factory as prior
@@ -157,10 +156,15 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                          logits=self.y_pred,
                                                                          weights=self.is_manual_annotated
                                                                          )
-        self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
-                    self.exp_config.beta * self.KL_divergence + \
-                    self.exp_config.supervise_weight * self.supervised_loss + \
-                    self.exp_config.supervise_weight_concepts * self.supervised_loss_concepts
+        if self.exp_config.fully_convolutional:
+            self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
+                        self.exp_config.beta * self.KL_divergence + \
+                        self.exp_config.supervise_weight * self.supervised_loss + \
+                        self.exp_config.supervise_weight_concepts * self.supervised_loss_concepts
+        else:
+            self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
+              self.exp_config.beta * self.KL_divergence + \
+              self.exp_config.supervise_weight * self.supervised_loss
 
         """ Training """
         # optimizers
@@ -197,17 +201,18 @@ class SemiSupervisedClassifierMnist(VAE):
                 if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                     break
                 batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
-                concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.num_concepts],
-                                            (self.exp_config.BATCH_SIZE,
-                                             self.num_concpets_per_row,
-                                             self.num_concpets_per_col,
-                                             self.exp_config.num_concepts)
-                                            )
-                is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts],
-                                                   (self.exp_config.BATCH_SIZE,
-                                                    self.num_concpets_per_row,
-                                                    self.num_concpets_per_col)
-                                                   )
+                if self.exp_config.fully_convolutional:
+                    concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.num_concepts],
+                                                (self.exp_config.BATCH_SIZE,
+                                                self.num_concpets_per_row,
+                                                self.num_concpets_per_col,
+                                                self.exp_config.num_concepts)
+                                                )
+                    is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts],
+                                                      (self.exp_config.BATCH_SIZE,
+                                                        self.num_concpets_per_row,
+                                                        self.num_concpets_per_col)
+                                                      )
 
                 # update autoencoder and classifier parameters
                 if self.exp_config.fully_convolutional:
@@ -232,22 +237,23 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                             self.standard_normal: batch_z}
                                                                                                         )
                 else:
-                    _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts = self.sess.run([self.optim,
+                    _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss = self.sess.run([self.optim,
                                                                                                          self.merged_summary_op,
                                                                                                          self.loss,
                                                                                                          self.neg_loglikelihood,
                                                                                                          self.marginal_likelihood,
                                                                                                          self.KL_divergence,
-                                                                                                         self.supervised_loss,
-                                                                                                         self.supervised_loss_concepts],
+                                                                                                         self.supervised_loss],
                                                                                                         feed_dict={
                                                                                                             self.inputs: batch_images,
                                                                                                             self.labels: manual_labels[:, :self.dao.num_classes],
                                                                                                             self.is_manual_annotated: manual_labels[:, self.dao.num_classes],
                                                                                                             self.standard_normal: batch_z}
                                                                                                         )
-
-                print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}")
+                if self.exp_config.fully_convolutional:
+                    print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}")
+                else:
+                    print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} ")
 
                 self.counter += 1
                 self.num_steps_completed = batch + 1
@@ -359,18 +365,18 @@ class SemiSupervisedClassifierMnist(VAE):
                 data_iterator.reset_counter(dataset_type)
                 break
             batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
-
-            concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.num_concepts],
-                                        (self.exp_config.BATCH_SIZE,
-                                         self.num_concpets_per_row,
-                                         self.num_concpets_per_col,
-                                         self.exp_config.num_concepts)
-                                        )
-            is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts],
-                                               (self.exp_config.BATCH_SIZE,
-                                                self.num_concpets_per_row,
-                                                self.num_concpets_per_col)
-                                               )
+            if self.exp_config.fully_convolutional:
+                concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.num_concepts],
+                                            (self.exp_config.BATCH_SIZE,
+                                            self.num_concpets_per_row,
+                                            self.num_concpets_per_col,
+                                            self.exp_config.num_concepts)
+                                            )
+                is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts],
+                                                  (self.exp_config.BATCH_SIZE,
+                                                    self.num_concpets_per_row,
+                                                    self.num_concpets_per_col)
+                                                  )
 
             if self.exp_config.fully_convolutional:
                 reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, y_pred, nll, nll_batch = self.sess.run([self.out,
