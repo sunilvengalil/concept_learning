@@ -52,38 +52,48 @@ def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False):
     strides = model.exp_config.strides
     model.encoder_dict ={}
     with tf.compat.v1.variable_scope("encoder", reuse=reuse):
-        if model.exp_config.activation_hidden_layer == "RELU":
-            x = add_zero_padding(x, model.padding_added_row[layer_num], model.padding_added_col[layer_num] )
-
-            model.encoder_dict[f"layer_{layer_num}"] = lrelu(conv2d(x,
-                                                                    n_units[layer_num],
-                                                                    3, 3,
-                                                                    strides[layer_num],
-                                                                    strides[layer_num],
-                                                                    name=f"layer_{layer_num}")
-                                                             )
-            print(layer_num, model.encoder_dict[f"layer_{layer_num}"].shape)
-            for layer_num in range(1, len(n_units)):
-                model.encoder_dict[f"layer_{layer_num - 1}"] = add_zero_padding(model.encoder_dict[f"layer_{layer_num-1}"],
-                                                                                model.padding_added_row[layer_num],
-                                                                                model.padding_added_col[layer_num]
-                                                                                )
-                model.encoder_dict[f"layer_{layer_num}"] = lrelu((conv2d(model.encoder_dict[f"layer_{layer_num - 1}"],
-                                                                           n_units[layer_num],
-                                                                           3, 3,
-                                                                           strides[layer_num],
-                                                                           strides[layer_num],
-                                                                           name=f"layer_{layer_num}")))
+        if len(n_units) > 0:
+            x = add_zero_padding(x, model.padding_added_row[layer_num], model.padding_added_col[layer_num])
+            if model.exp_config.activation_hidden_layer == "RELU":
+                model.encoder_dict[f"layer_{layer_num}"] = lrelu(conv2d(x,
+                                                                        n_units[layer_num],
+                                                                        3, 3,
+                                                                        strides[layer_num],
+                                                                        strides[layer_num],
+                                                                        name=f"layer_{layer_num}")
+                                                                 )
                 print(layer_num, model.encoder_dict[f"layer_{layer_num}"].shape)
+                for layer_num in range(1, len(n_units)):
+                    model.encoder_dict[f"layer_{layer_num - 1}"] = add_zero_padding(model.encoder_dict[f"layer_{layer_num-1}"],
+                                                                                    model.padding_added_row[layer_num],
+                                                                                    model.padding_added_col[layer_num]
+                                                                                    )
+                    model.encoder_dict[f"layer_{layer_num}"] = lrelu((conv2d(model.encoder_dict[f"layer_{layer_num - 1}"],
+                                                                               n_units[layer_num],
+                                                                               3, 3,
+                                                                               strides[layer_num],
+                                                                               strides[layer_num],
+                                                                               name=f"layer_{layer_num}")))
+                    print(layer_num, model.encoder_dict[f"layer_{layer_num}"].shape)
+            else:
+                raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
+
+            z = lrelu((conv2d(model.encoder_dict[f"layer_{len(n_units) - 1}"],
+                                        num_out_units,
+                                        3, 3,
+                                        strides[len(n_units)],
+                                        strides[len(n_units)],
+                                        name='out'))
+                      )
         else:
-            raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
-        z = lrelu((conv2d(model.encoder_dict[f"layer_{len(n_units) - 1}"],
-                                    num_out_units,
-                                    3, 3,
-                                    strides[len(n_units)],
-                                    strides[len(n_units)],
-                                    name='out'))
-                  )
+            z = lrelu((conv2d(x,
+                              num_out_units,
+                              3, 3,
+                              strides[len(n_units)],
+                              strides[len(n_units)],
+                              name='out'))
+                      )
+
         print("z", z.shape)
 
         z = tf.reshape(z, [model.exp_config.BATCH_SIZE, -1])
