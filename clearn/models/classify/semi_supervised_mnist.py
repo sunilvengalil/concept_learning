@@ -41,7 +41,7 @@ class SemiSupervisedClassifierMnist(VAE):
         self.is_manual_annotated = placeholder(tf.float32, [exp_config.BATCH_SIZE], name="is_manual_annotated")
 
         self.labels = placeholder(tf.float32, [exp_config.BATCH_SIZE, dao.num_classes], name='manual_label')
-        self.padding_added_row, self.padding_added_col, self.image_sizes = get_padding_info(exp_config.strides,
+        self.padding_added_row, self.padding_added_col, self.image_sizes = get_padding_info(exp_config,
                                                                                                  dao.image_shape)
 
         latent_image_dim = self.image_sizes[len(exp_config.num_units)]
