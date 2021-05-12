@@ -34,7 +34,10 @@ class SemiSupervisedClassifierMnist(VAE):
                  dao: IDao,
                  test_data_iterator=None,
                  read_from_existing_checkpoint=True,
-                 check_point_epochs=None
+                 check_point_epochs=None,
+                 num_individual_samples_annotated=0,
+                 num_samples_wrongly_annotated=0,
+                 total_confidence_of_wrong_annotation=0,
                  ):
         # Whether the sample was manually annotated.
         self.is_manual_annotated = placeholder(tf.float32, [exp_config.BATCH_SIZE], name="is_manual_annotated")
@@ -42,6 +45,9 @@ class SemiSupervisedClassifierMnist(VAE):
         self.labels = placeholder(tf.float32, [exp_config.BATCH_SIZE, dao.num_classes], name='manual_label')
         self.padding_added_row, self.padding_added_col, self.image_sizes = get_padding_info(exp_config,
                                                                                                  dao.image_shape)
+        self.num_individual_samples_annotated = num_individual_samples_annotated
+        self.num_samples_wrongly_annotated = num_samples_wrongly_annotated
+        self.total_confidence_of_wrong_annotation = total_confidence_of_wrong_annotation
 
         if exp_config.fully_convolutional:
             latent_image_dim = self.image_sizes[len(exp_config.num_units)]
@@ -191,9 +197,10 @@ class SemiSupervisedClassifierMnist(VAE):
         start_batch_id = self.start_batch_id
         start_epoch = self.start_epoch
         self.num_batches_train = train_val_data_iterator.get_num_samples("train") // self.exp_config.BATCH_SIZE
-
+        metrics_saved = False
         for epoch in range(start_epoch, self.epoch):
             # get batch data
+            metrics_saved = False
             for batch in range(start_batch_id, self.num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
@@ -278,6 +285,8 @@ class SemiSupervisedClassifierMnist(VAE):
                         print(f"{metric}: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
                         print(f"{metric}: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
                         print(f"{metric}: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
+                    self.save_metrics()
+                    metrics_saved = True
 
             train_val_data_iterator.reset_counter("train")
             train_val_data_iterator.reset_counter("val")
@@ -293,20 +302,25 @@ class SemiSupervisedClassifierMnist(VAE):
 
         train_val_data_iterator.reset_counter("val")
         train_val_data_iterator.reset_counter("train")
-        self.evaluate(data_iterator=train_val_data_iterator,
-                      dataset_type="val")
-        self.evaluate(data_iterator=train_val_data_iterator,
-                      dataset_type="train")
-        if self.test_data_iterator is not None:
-            self.test_data_iterator.reset_counter("test")
-            self.evaluate(self.test_data_iterator, dataset_type="test")
-            self.test_data_iterator.reset_counter("test")
 
-        for metric in self.metrics_to_compute:
-            print(f"Accuracy: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
-            print(f"Accuracy: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
-            print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
+        if not metrics_saved:
+            self.evaluate(data_iterator=train_val_data_iterator,
+                          dataset_type="val")
+            self.evaluate(data_iterator=train_val_data_iterator,
+                          dataset_type="train")
+            if self.test_data_iterator is not None:
+                self.test_data_iterator.reset_counter("test")
+                self.evaluate(self.test_data_iterator, dataset_type="test")
+                self.test_data_iterator.reset_counter("test")
 
+            for metric in self.metrics_to_compute:
+                print(f"Accuracy: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
+                print(f"Accuracy: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
+                print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
+
+            self.save_merics()
+
+    def save_merics(self):
         # save metrics
         df = None
         for i, metric in enumerate(self.metrics_to_compute):
@@ -317,10 +331,17 @@ class SemiSupervisedClassifierMnist(VAE):
                 df[column_name] = np.asarray(self.metrics["train"][metric])[:, 1]
             df[f"val_{metric}"] = np.asarray(self.metrics["val"][metric])[:, 1]
             df[f"test_{metric}"] = np.asarray(self.metrics["test"][metric])[:, 1]
+            df["num_individual_samples_annotated"] = self.num_individual_samples_annotated
+            df["num_samples_wrongly_annotated"] = self.num_samples_wrongly_annotated
+            df["total_confidence_of_wrong_annotation"]= self.total_confidence_of_wrong_annotation
             max_value = df[f"test_{metric}"].max()
             print(f"Max test {metric}", max_value)
+            min_value = df[f"test_{metric}"].min()
+            print(f"Minimum test {metric}", min_value)
+
         if df is not None:
-            df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"metrics_{self.num_training_epochs_completed}.csv"), index=False)
+            df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"metrics_{self.num_training_epochs_completed}.csv"),
+                      index=False)
 
     def evaluate(self,
                  data_iterator,
@@ -343,6 +364,7 @@ class SemiSupervisedClassifierMnist(VAE):
         mu = None
         sigma = None
         labels = None
+        labels_predicted_proba = None
         batch_no = 1
         data_iterator.reset_counter(dataset_type)
         reconstruction_losses = []
@@ -433,15 +455,18 @@ class SemiSupervisedClassifierMnist(VAE):
                     print(f"Shape of mse is {nll_batch.shape}")
                     traceback.print_exc()
 
-            labels_predicted_for_batch = np.argmax(softmax(y_pred), axis=1)
+            predicted_proba_batch = softmax(y_pred)
+            labels_predicted_for_batch = np.argmax(predicted_proba_batch, axis=1)
             labels_for_batch = np.argmax(batch_labels, axis=1)
             reconstruction_losses.append(nll)
 
             if labels_predicted is None:
                 labels_predicted = labels_predicted_for_batch
+                labels_predicted_proba = predicted_proba_batch
                 labels = labels_for_batch
             else:
                 labels_predicted = np.hstack([labels_predicted, labels_predicted_for_batch])
+                labels_predicted_proba = np.vstack([labels_predicted_proba, predicted_proba_batch])
                 labels = np.hstack([labels, labels_for_batch])
 
             if self.exp_config.return_latent_vector:
@@ -471,8 +496,9 @@ class SemiSupervisedClassifierMnist(VAE):
         encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
                                   columns=["label", "label_predicted"])
 
+
         if self.exp_config.return_latent_vector:
-            mean_col_names, sigma_col_names, z_col_names, l3_col_names = get_latent_vector_column(self.exp_config.Z_DIM)
+            mean_col_names, sigma_col_names, z_col_names, l3_col_names, predicted_proba_col_names = get_latent_vector_column(self.exp_config.Z_DIM, True)
             # encoded_df[mean_col_names] = mu
             for i, mean_col_name in enumerate(mean_col_names):
                 encoded_df[mean_col_name] = mu[:, i]
@@ -482,6 +508,9 @@ class SemiSupervisedClassifierMnist(VAE):
 
             for i, z_col_name in enumerate(z_col_names):
                 encoded_df[z_col_name] = z[:, i]
+
+            for i, predicted_proba_col_name in enumerate(predicted_proba_col_names):
+                encoded_df[predicted_proba_col_name] = labels_predicted_proba[:, i]
 
         if self.exp_config.write_predictions:
             output_csv_file = get_encoded_csv_file(self.exp_config,
