@@ -325,7 +325,8 @@ class SemiSupervisedClassifierMnist(VAE):
                 continue
             column_name = f"train_{metric}_mean"
             if i == 0:
-                df = pd.DataFrame(self.metrics["train"][metric][0:2], columns=["epoch", column_name])
+                train_metric = np.asarray(self.metrics["train"][metric])[:, 0:2]
+                df = pd.DataFrame(train_metric, columns=["epoch", column_name])
             else:
                 df[column_name] = np.asarray(self.metrics["train"][metric])[:, 1]
 
