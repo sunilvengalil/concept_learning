@@ -132,6 +132,8 @@ def plot_epoch_vs_metric(root_path: str,
                          num_cluster_config: str,
                          z_dim: int,
                          run_id: int,
+                         strides,
+                         num_dense_layers,
                          dataset_types: List[str] = ["train", "test"],
                          activation_output_layer="SIGMOID",
                          dataset_name="mnist",
@@ -163,7 +165,9 @@ def plot_epoch_vs_metric(root_path: str,
                                   manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                                   reconstruction_weight=1,
                                   activation_hidden_layer="RELU",
-                                  activation_output_layer=activation_output_layer
+                                  activation_output_layer=activation_output_layer,
+                                  strides=strides,
+                                  num_dense_layers=num_dense_layers
                                   )
     exp_config.check_and_create_directories(run_id, False)
     file_prefix = "/metrics_*.csv"
@@ -180,13 +184,20 @@ def plot_epoch_vs_metric(root_path: str,
             ax[i] = main_axis.twinx()
 
         for dataset_type in dataset_types:
+
+            if f"{dataset_type}_{metric}_mean" in df.columns:
+                metric_values = df[f"{dataset_type}_{metric}_mean"].values
+            else:
+                metric_values = df[f"{dataset_type}_{metric}"].values
+
             plots[plot_number], = ax[i].plot(df["epoch"],
-                                             df[f"{dataset_type}_{metric}"],
+                                             metric_values,
                                              colors[plot_number],
                                              label=f"{dataset_type}_{metric}")
             plot_number += 1
         plt.ylabel(metric.title())
         plt.xlabel("Epochs")
+
     if show_sample_images:
         im_ax = plt.subplot(1, 2, 2)
         _num_epochs_trained = df["epoch"].max()

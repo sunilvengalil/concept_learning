@@ -170,6 +170,7 @@ class VAE(GenerativeModel):
         start_batch_id = self.start_batch_id
         start_epoch = self.start_epoch
         self.num_batches_train = train_val_data_iterator.get_num_samples("train") // self.exp_config.BATCH_SIZE
+        evaluation_run_for_last_epoch = False
         for epoch in range(start_epoch, self.epoch):
             # get batch data
             mean_nll = 0
@@ -211,13 +212,14 @@ class VAE(GenerativeModel):
                     train_val_data_iterator.reset_counter("val")
                     self.evaluate(train_val_data_iterator, "train")
                     self.evaluate(train_val_data_iterator, "val")
+                    if self.test_data_iterator is not None:
+                        self.evaluate(self.test_data_iterator, dataset_type="test")
+                        self.test_data_iterator.reset_counter("test")
+                        print(f"{metric}: test: {self.metrics[VAE.dataset_type_test][metric][-1]}")
                     for metric in self.metrics_to_compute:
                         print(f"{metric}: train: {self.metrics[VAE.dataset_type_train][metric][-1]}")
                         print(f"{metric}: val: {self.metrics[VAE.dataset_type_val][metric][-1]}")
-                        if self.test_data_iterator is not None:
-                            self.evaluate(self.test_data_iterator, dataset_type="test")
-                            self.test_data_iterator.reset_counter("test")
-                            print(f"{metric}: test: {self.metrics[VAE.dataset_type_test][metric][-1]}")
+                    evaluation_run_for_last_epoch = True
 
             train_val_data_iterator.reset_counter("train")
             train_val_data_iterator.reset_counter("val")
@@ -232,25 +234,42 @@ class VAE(GenerativeModel):
             if np.mod(epoch, self.exp_config.model_save_interval) == 0:
                 print("Saving check point", self.exp_config.TRAINED_MODELS_PATH)
                 self.save(self.exp_config.TRAINED_MODELS_PATH, self.counter)
-            # save metrics
-            for metric in self.metrics_to_compute:
-                if len(self.metrics["train"][metric]) == 0:
-                    continue
-                df = pd.DataFrame(np.asarray(self.metrics["train"][metric])[:, 0], columns=["epoch"])
-                df[f"train_{metric}_mean"] = np.asarray(self.metrics["train"][metric])[:, 1]
-                df[f"val_{metric}_mean"] = np.asarray(self.metrics["val"][metric])[:, 1]
-                df[f"test_{metric}_mean"] = np.asarray(self.metrics["test"][metric])[:, 1]
-                if np.asarray(self.metrics["val"][metric]).shape[1] == 3:
-                    df[f"train_{metric}_std"] = np.asarray(self.metrics["train"][metric])[:, 2]
-                    df[f"val_{metric}_std"] = np.asarray(self.metrics["val"][metric])[:, 2]
-                    df[f"test_{metric}_std"] = np.asarray(self.metrics["test"][metric])[:, 2]
+        train_val_data_iterator.reset_counter("val")
+        train_val_data_iterator.reset_counter("train")
+        if not evaluation_run_for_last_epoch:
+            self.evaluate(data_iterator=train_val_data_iterator,
+                          dataset_type="val")
+            self.evaluate(data_iterator=train_val_data_iterator,
+                          dataset_type="train")
+            if self.test_data_iterator is not None:
+                self.test_data_iterator.reset_counter("test")
+                self.evaluate(self.test_data_iterator, dataset_type="test")
+                self.test_data_iterator.reset_counter("test")
 
-                df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"{metric}_{start_epoch}.csv"),
-                          index=False)
-                max_value = df[f"test_{metric}_mean"].max()
-                print(f"Max test {metric}", max_value)
-                min_value = df[f"test_{metric}_mean"].min()
-                print(f"Min test {metric}", min_value)
+
+        # save metrics
+        self.save_metrics()
+
+    def save_metrics(self):
+        df = None
+        for metric in self.metrics_to_compute:
+            if len(self.metrics["train"][metric]) == 0:
+                continue
+            df = pd.DataFrame(np.asarray(self.metrics["train"][metric])[:, 0], columns=["epoch"])
+            df[f"train_{metric}_mean"] = np.asarray(self.metrics["train"][metric])[:, 1]
+            df[f"val_{metric}_mean"] = np.asarray(self.metrics["val"][metric])[:, 1]
+            df[f"test_{metric}_mean"] = np.asarray(self.metrics["test"][metric])[:, 1]
+            if np.asarray(self.metrics["val"][metric]).shape[1] == 3:
+                df[f"train_{metric}_std"] = np.asarray(self.metrics["train"][metric])[:, 2]
+                df[f"val_{metric}_std"] = np.asarray(self.metrics["val"][metric])[:, 2]
+                df[f"test_{metric}_std"] = np.asarray(self.metrics["test"][metric])[:, 2]
+
+            df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"{metric}_{self.num_training_epochs_completed}.csv"),
+                      index=False)
+            max_value = df[f"test_{metric}_mean"].max()
+            print(f"Max test {metric}", max_value)
+            min_value = df[f"test_{metric}_mean"].min()
+            print(f"Min test {metric}", min_value)
 
     def evaluate(self, data_iterator, dataset_type="train", num_batches_train=0, save_images=True,
                  metrics=[],

@@ -321,20 +321,30 @@ class SemiSupervisedClassifierMnist(VAE):
         # save metrics
         df = None
         for i, metric in enumerate(self.metrics_to_compute):
-            column_name = f"train_{metric}"
+            if len(self.metrics["train"][metric]) == 0:
+                continue
+            column_name = f"train_{metric}_mean"
             if i == 0:
-                df = pd.DataFrame(self.metrics["train"][metric], columns=["epoch", column_name])
+                df = pd.DataFrame(self.metrics["train"][metric][0:2], columns=["epoch", column_name])
             else:
                 df[column_name] = np.asarray(self.metrics["train"][metric])[:, 1]
-            df[f"val_{metric}"] = np.asarray(self.metrics["val"][metric])[:, 1]
-            df[f"test_{metric}"] = np.asarray(self.metrics["test"][metric])[:, 1]
-            df["num_individual_samples_annotated"] = self.num_individual_samples_annotated
-            df["num_samples_wrongly_annotated"] = self.num_samples_wrongly_annotated
-            df["total_confidence_of_wrong_annotation"]= self.total_confidence_of_wrong_annotation
-            max_value = df[f"test_{metric}"].max()
-            print(f"Max test {metric}", max_value)
-            min_value = df[f"test_{metric}"].min()
-            print(f"Minimum test {metric}", min_value)
+
+            df[f"val_{metric}_mean"] = np.asarray(self.metrics["val"][metric])[:, 1]
+            df[f"test_{metric}_mean"] = np.asarray(self.metrics["test"][metric])[:, 1]
+
+            if np.asarray(self.metrics["val"][metric]).shape[1] == 3:
+                df[f"train_{metric}_std"] = np.asarray(self.metrics["train"][metric])[:, 2]
+                df[f"val_{metric}_std"] = np.asarray(self.metrics["val"][metric])[:, 2]
+                df[f"test_{metric}_std"] = np.asarray(self.metrics["test"][metric])[:, 2]
+
+            max_value = df[f"test_{metric}_mean"].max()
+            print(f"Max test {metric}_mean", max_value)
+            min_value = df[f"test_{metric}_mean"].min()
+            print(f"Minimum test {metric}_mean", min_value)
+
+        df["num_individual_samples_annotated"] = self.num_individual_samples_annotated
+        df["num_samples_wrongly_annotated"] = self.num_samples_wrongly_annotated
+        df["total_confidence_of_wrong_annotation"] = self.total_confidence_of_wrong_annotation
 
         if df is not None:
             df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"metrics_{self.num_training_epochs_completed}.csv"),
@@ -481,7 +491,7 @@ class SemiSupervisedClassifierMnist(VAE):
         if "reconstruction_loss" in self.metrics_to_compute:
             reconstruction_loss = mean(reconstruction_losses)
             self.metrics[dataset_type]["reconstruction_loss"].append(
-                [self.num_training_epochs_completed, reconstruction_loss])
+                [self.num_training_epochs_completed, reconstruction_loss, np.std(reconstruction_losses)])
         if "accuracy" in self.metrics_to_compute:
             accuracy = accuracy_score(labels, labels_predicted)
             self.metrics[dataset_type]["accuracy"].append([self.num_training_epochs_completed, accuracy])
