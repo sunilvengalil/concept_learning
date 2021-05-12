@@ -317,31 +317,33 @@ def plot_epoch_vs_accuracy(root_path: str,
                            num_val_samples=128,
                            num_decoder_layer=4,
                            metric="accuracy",
-                           legend_loc="best"
+                           legend_loc="best",
+                           exp_config=None
                            ):
     dao = get_dao(dataset_name, split_name, num_val_samples)
-    exp_config = ExperimentConfig(root_path=root_path,
-                                  num_decoder_layer=num_decoder_layer,
-                                  z_dim=z_dim,
-                                  num_units=num_units,
-                                  num_cluster_config=num_cluster_config,
-                                  confidence_decay_factor=5,
-                                  beta=5,
-                                  supervise_weight=1,
-                                  dataset_name=dataset_name,
-                                  split_name=split_name,
-                                  model_name="VAE",
-                                  batch_size=batch_size,
-                                  name=experiment_name,
-                                  num_val_samples=num_val_samples,
-                                  total_training_samples=dao.number_of_training_samples,
-                                  manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
-                                  reconstruction_weight=1,
-                                  activation_hidden_layer="RELU",
-                                  activation_output_layer=activation_output_layer,
-                                  strides=strides,
-                                  num_dense_layers=num_dense_layers
-                                  )
+    if exp_config is not None:
+        exp_config = ExperimentConfig(root_path=root_path,
+                                      num_decoder_layer=num_decoder_layer,
+                                      z_dim=z_dim,
+                                      num_units=num_units,
+                                      num_cluster_config=num_cluster_config,
+                                      confidence_decay_factor=5,
+                                      beta=5,
+                                      supervise_weight=1,
+                                      dataset_name=dataset_name,
+                                      split_name=split_name,
+                                      model_name="VAE",
+                                      batch_size=batch_size,
+                                      name=experiment_name,
+                                      num_val_samples=num_val_samples,
+                                      total_training_samples=dao.number_of_training_samples,
+                                      manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
+                                      reconstruction_weight=1,
+                                      activation_hidden_layer="RELU",
+                                      activation_output_layer=activation_output_layer,
+                                      strides=strides,
+                                      num_dense_layers=num_dense_layers
+                                      )
 
     if not exp_config.check_and_create_directories(run_id, False):
         raise Exception(" Result directories does not exist")
