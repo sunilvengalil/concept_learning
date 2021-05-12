@@ -295,9 +295,9 @@ def initialize_model_train_and_get_features(experiment_name,
                           sess,
                           test_data_iterator,
                           train_val_data_iterator,
-                          num_individual_samples_annotated,
-                          num_samples_wrongly_annotated,
-                          total_confidence_of_wrong_annotation
+                          num_individual_samples_annotated=num_individual_samples_annotated,
+                          num_samples_wrongly_annotated=num_individual_samples_annotated,
+                          total_confidence_of_wrong_annotation=num_individual_samples_annotated
                           )
         print("Starting training")
         train_and_get_features(exp, model, train_val_data_iterator)

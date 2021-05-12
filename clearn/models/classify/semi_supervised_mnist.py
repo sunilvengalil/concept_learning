@@ -299,22 +299,21 @@ class SemiSupervisedClassifierMnist(VAE):
         train_val_data_iterator.reset_counter("val")
         train_val_data_iterator.reset_counter("train")
 
-        if not metrics_saved:
-            self.evaluate(data_iterator=train_val_data_iterator,
-                          dataset_type="val")
-            self.evaluate(data_iterator=train_val_data_iterator,
-                          dataset_type="train")
-            if self.test_data_iterator is not None:
-                self.test_data_iterator.reset_counter("test")
-                self.evaluate(self.test_data_iterator, dataset_type="test")
-                self.test_data_iterator.reset_counter("test")
+        self.evaluate(data_iterator=train_val_data_iterator,
+                      dataset_type="val")
+        self.evaluate(data_iterator=train_val_data_iterator,
+                      dataset_type="train")
+        if self.test_data_iterator is not None:
+            self.test_data_iterator.reset_counter("test")
+            self.evaluate(self.test_data_iterator, dataset_type="test")
+            self.test_data_iterator.reset_counter("test")
 
-            for metric in self.metrics_to_compute:
-                print(f"Accuracy: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
-                print(f"Accuracy: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
-                print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
+        for metric in self.metrics_to_compute:
+            print(f"Accuracy: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
+            print(f"Accuracy: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
+            print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
 
-            self.save_metrics()
+        self.save_metrics()
 
     def save_metrics(self):
         # save metrics
