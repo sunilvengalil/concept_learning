@@ -211,7 +211,10 @@ def initialize_model_train_and_get_features(experiment_name,
                                             log_level=logging.INFO,
                                             fully_convolutional = False,
                                             num_concepts=10,
-                                            supervise_weight_concepts=1
+                                            supervise_weight_concepts=1,
+                                            num_individual_samples_annotated=0,
+                                            num_samples_wrongly_annotated=0,
+                                            total_confidence_of_wrong_annotation=0
                                             ):
     if dao is None:
         dao = get_dao(dataset_name, split_name, num_val_samples)
@@ -285,7 +288,17 @@ def initialize_model_train_and_get_features(experiment_name,
         else:
             raise Exception("Test data file does not exists")
     with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as sess:
-        model = get_model(dao, exp_config, model_type, num_epochs, sess, test_data_iterator, train_val_data_iterator)
+        model = get_model(dao,
+                          exp_config,
+                          model_type,
+                          num_epochs,
+                          sess,
+                          test_data_iterator,
+                          train_val_data_iterator,
+                          num_individual_samples_annotated,
+                          num_samples_wrongly_annotated,
+                          total_confidence_of_wrong_annotation
+                          )
         print("Starting training")
         train_and_get_features(exp, model, train_val_data_iterator)
         train_val_data_iterator.reset_counter("train")
@@ -365,7 +378,10 @@ def get_model(dao: IDao,
               sess,
               test_data_iterator=None,
               train_val_data_iterator=None,
-              check_point_epochs=None
+              check_point_epochs=None,
+              num_individual_samples_annotated=0,
+              num_samples_wrongly_annotated=0,
+              total_confidence_of_wrong_annotation=0
               ):
     if model_type == MODEL_TYPE_SUPERVISED_CLASSIFIER:
         model = SupervisedClassifierModel(exp_config=exp_config,
@@ -432,7 +448,10 @@ def get_model(dao: IDao,
                                               epoch=num_epochs,
                                               dao=dao,
                                               test_data_iterator=test_data_iterator,
-                                              check_point_epochs=check_point_epochs
+                                              check_point_epochs=check_point_epochs,
+                                              num_individual_samples_annotated=num_individual_samples_annotated,
+                                              num_samples_wrongly_annotated=num_samples_wrongly_annotated,
+                                              total_confidence_of_wrong_annotation=total_confidence_of_wrong_annotation
                                               )
     else:
         raise Exception(
