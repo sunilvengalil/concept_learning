@@ -197,10 +197,8 @@ class SemiSupervisedClassifierMnist(VAE):
         start_batch_id = self.start_batch_id
         start_epoch = self.start_epoch
         self.num_batches_train = train_val_data_iterator.get_num_samples("train") // self.exp_config.BATCH_SIZE
-        metrics_saved = False
         for epoch in range(start_epoch, self.epoch):
             # get batch data
-            metrics_saved = False
             for batch in range(start_batch_id, self.num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
@@ -285,8 +283,6 @@ class SemiSupervisedClassifierMnist(VAE):
                         print(f"{metric}: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
                         print(f"{metric}: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
                         print(f"{metric}: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
-                    self.save_metrics()
-                    metrics_saved = True
 
             train_val_data_iterator.reset_counter("train")
             train_val_data_iterator.reset_counter("val")
