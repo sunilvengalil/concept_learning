@@ -318,9 +318,9 @@ class SemiSupervisedClassifierMnist(VAE):
                 print(f"Accuracy: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
                 print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
 
-            self.save_merics()
+            self.save_metrics()
 
-    def save_merics(self):
+    def save_metrics(self):
         # save metrics
         df = None
         for i, metric in enumerate(self.metrics_to_compute):
