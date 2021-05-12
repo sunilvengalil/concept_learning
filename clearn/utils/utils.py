@@ -277,13 +277,17 @@ def segregate_images_by_label(train_val_iterator, dataset_type="val"):
     return images_by_label
 
 
-def get_latent_vector_column(z_dim):
+def get_latent_vector_column(z_dim, returnpredicted_proba_col_name=False):
     mean_col_names = ["mu_{}".format(i) for i in range(z_dim)]
     sigma_col_names = ["sigma_{}".format(i) for i in range(z_dim)]
     z_col_names = ["z_{}".format(i) for i in range(z_dim)]
     # TODO fix this
     l3_col_names = ["l3_{}".format(i) for i in range(32)]
-    return mean_col_names, sigma_col_names, z_col_names, l3_col_names
+    if returnpredicted_proba_col_name:
+        predicted_proba_col_names = ["predicted_proba_{}".format(i) for i in range(z_dim)]
+        return mean_col_names, sigma_col_names, z_col_names, l3_col_names, predicted_proba_col_names
+    else:
+        return mean_col_names, sigma_col_names, z_col_names, l3_col_names
 
 
 def get_mean(i, df, mean_col_names):
