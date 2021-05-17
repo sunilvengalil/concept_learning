@@ -333,7 +333,7 @@ def plot_epoch_vs_accuracy(root_path: str,
                            exp_config=None,
                            confidence=False,
                            max_epoch=100,
-                           max_accuracy=100,
+                           max_accuracy=-1,
                            min_accuracy=0,
                            plot_filename=None
                            ):
@@ -397,9 +397,10 @@ def plot_epoch_vs_accuracy(root_path: str,
 
     plt.xlabel("Epochs", **axis_font)
     plt.ylabel(metric.capitalize(), **axis_font)
-    plt.yticks(ticks = [i for i in range(min_accuracy, max_accuracy, max_accuracy // 10)],
-               labels=[i for i in range(min_accuracy, max_accuracy, max_accuracy // 10)],
-               **axis_font)
+    if max_accuracy != -1:
+        plt.yticks(ticks = [i for i in range(min_accuracy, max_accuracy, max_accuracy // 10)],
+                   labels=[i for i in range(min_accuracy, max_accuracy, max_accuracy // 10)],
+                   **axis_font)
     plt.xticks(**axis_font)
     plt.legend(loc=legend_loc, shadow=True, fontsize='x-large')
     plt.title(f"Number of units {num_units}")
