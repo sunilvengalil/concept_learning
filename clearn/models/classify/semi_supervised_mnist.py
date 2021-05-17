@@ -285,7 +285,7 @@ class SemiSupervisedClassifierMnist(VAE):
                         print(f"{metric}: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
                         print(f"{metric}: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
                         print(f"{metric}: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
-                    self.save_metrics()
+                    #self.save_metrics()
                     evaluation_run_for_last_epoch = True
             train_val_data_iterator.reset_counter("train")
             train_val_data_iterator.reset_counter("val")
