@@ -447,8 +447,8 @@ class SemiSupervisedClassifierMnist(VAE):
                 print(
                     f"Length of batch_images: {batch_images.shape} Nll_batch shape: {nll_batch.shape} Nll shape: {nll.shape} Nll:{nll} ")
                 break
-            if len(nll_batch.shape) != 2:
-                raise Exception(f"Shape of nll_batch {nll_batch.shape}")
+            # if len(nll_batch.shape) != 2:
+            #     raise Exception(f"Shape of nll_batch {nll_batch.shape}")
             print(f"len(nll_batch.shape{nll_batch.shape}")
             """
             Update priority queues for keeping top and bottom N samples for all the required metrics present save_policy
