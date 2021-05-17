@@ -11,8 +11,8 @@ from clearn.config import ExperimentConfig
 from clearn.dao.dao_factory import get_dao
 from clearn.utils.dir_utils import get_eval_result_dir
 
-separator = np.ones( ((448, 10, 3)), np.uint8 ) * 255
-large_separator = np.ones( ((448, 30, 3)), np.uint8 ) * 255
+separator = np.ones((448, 10, 3), np.uint8) * 255
+large_separator = np.ones((448, 30, 3), np.uint8) * 255
 
 
 def plot_z_dim_vs_accuracy(root_path: str,
@@ -24,8 +24,8 @@ def plot_z_dim_vs_accuracy(root_path: str,
                            run_id: int,
                            split_name: str,
                            num_val_samples: int,
-                           strides:List[int],
-                           num_dense_layers:int,
+                           strides: List[int],
+                           num_dense_layers: int,
                            activation_output_layer="SIGMOID",
                            dataset_name="mnist",
                            batch_size=64,
@@ -373,6 +373,7 @@ def plot_epoch_vs_accuracy(root_path: str,
     print(exp_config.ANALYSIS_PATH + file_prefix)
     if os.path.isfile(exp_config.ANALYSIS_PATH + file_prefix):
         df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
+        df = df[df["epoch"] < max_epoch]
         for dataset_name in dataset_types:
             print(dataset_name)
             if f"{dataset_name}_{metric}_mean" in df.columns:
@@ -382,20 +383,23 @@ def plot_epoch_vs_accuracy(root_path: str,
     else:
         file_prefix = "/metrics_*.csv"
         df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
+        df = df[df["epoch"] < max_epoch]
         for dataset_type in dataset_types:
             if confidence:
                 metric_values = df[f"{dataset_type}_{metric}_std"].values
             else:
-              if f"{dataset_type}_{metric}_mean" in df.columns:
-                  metric_values = df[f"{dataset_type}_{metric}_mean"].values
-              else:
-                  metric_values = df[f"{dataset_type}_{metric}"].values
+                if f"{dataset_type}_{metric}_mean" in df.columns:
+                    metric_values = df[f"{dataset_type}_{metric}_mean"].values
+                else:
+                    metric_values = df[f"{dataset_type}_{metric}"].values
 
     plt.plot(df["epoch"], metric_values, label=f"{dataset_type}", lw=2)
 
     plt.xlabel("Epochs", **axis_font)
     plt.ylabel(metric.capitalize(), **axis_font)
-    plt.yticks(ticks = [i for i in range(min_accuracy,max_accuracy,max_accuracy//10)], labels = [i for i in range(min_accuracy,max_accuracy,max_accuracy//10)], **axis_font)
+    plt.yticks(ticks = [i for i in range(min_accuracy, max_accuracy, max_accuracy // 10)],
+               labels=[i for i in range(min_accuracy, max_accuracy, max_accuracy // 10)],
+               **axis_font)
     plt.xticks(**axis_font)
     plt.legend(loc=legend_loc, shadow=True, fontsize='x-large')
     plt.title(f"Number of units {num_units}")
