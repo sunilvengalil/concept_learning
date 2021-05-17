@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import cv2
+import os
 
 from clearn.config import ExperimentConfig
 from clearn.dao.dao_factory import get_dao
@@ -329,8 +330,15 @@ def plot_epoch_vs_accuracy(root_path: str,
                            num_decoder_layer=4,
                            metric="accuracy",
                            legend_loc="best",
-                           exp_config=None
+                           exp_config=None,
+                           confidence=False,
+                           max_epoch=100,
+                           max_accuracy=100,
+                           min_accuracy=0,
+                           plot_filename=None
                            ):
+    axis_font = {'fontname':'Arial', 'size':'26', "fontweight":"bold"}
+
     dao = get_dao(dataset_name, split_name, num_val_samples)
     if exp_config is not None:
         exp_config = ExperimentConfig(root_path=root_path,
@@ -360,20 +368,41 @@ def plot_epoch_vs_accuracy(root_path: str,
         raise Exception(" Result directories does not exist")
 
     file_prefix = f"/{metric}_*.csv"
+    plt.figure(figsize=(16, 9))
+
     print(exp_config.ANALYSIS_PATH + file_prefix)
-    df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
-    print(df.shape)
-    for dataset_name in dataset_types:
-        print(dataset_name)
-        if f"{dataset_name}_{metric}_mean" in df.columns:
-          plt.plot(df["epoch"], df[f"{dataset_name}_{metric}_mean"], label=f"{dataset_name}_z_dim_{z_dim}")
-        else:
-          plt.plot(df["epoch"], df[f"{dataset_name}_{metric}"], label=f"{dataset_name}_z_dim_{z_dim}")
-    plt.xlabel("Epochs")
-    plt.ylabel(metric.capitalize())
+    if os.path.isfile(exp_config.ANALYSIS_PATH + file_prefix):
+        df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
+        for dataset_name in dataset_types:
+            print(dataset_name)
+            if f"{dataset_name}_{metric}_mean" in df.columns:
+                metric_values = df[f"{dataset_name}_{metric}_mean"]
+            else:
+                metric_values = df[f"{dataset_name}_{metric}"]
+    else:
+        file_prefix = "/metrics_*.csv"
+        df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
+        for dataset_type in dataset_types:
+            if confidence:
+                metric_values = df[f"{dataset_type}_{metric}_std"].values
+            else:
+              if f"{dataset_type}_{metric}_mean" in df.columns:
+                  metric_values = df[f"{dataset_type}_{metric}_mean"].values
+              else:
+                  metric_values = df[f"{dataset_type}_{metric}"].values
+
+    plt.plot(df["epoch"], metric_values, label=f"{dataset_type}", lw=2)
+
+    plt.xlabel("Epochs", **axis_font)
+    plt.ylabel(metric.capitalize(), **axis_font)
+    plt.yticks(ticks = [i for i in range(min_accuracy,max_accuracy,max_accuracy//10)], labels = [i for i in range(min_accuracy,max_accuracy,max_accuracy//10)], **axis_font)
+    plt.xticks(**axis_font)
     plt.legend(loc=legend_loc, shadow=True, fontsize='x-large')
     plt.title(f"Number of units {num_units}")
-    plt.grid()
+    plt.grid(axis="x")
+    if plot_filename is not None:
+        plt.savefig(os.path.join(exp_config.ANALYSIS_PATH + "/"+ plot_filename), bbox="tight")
+    return metric_values
 
 
 def plot_hidden_units_accuracy_layerwise(root_path: str,
