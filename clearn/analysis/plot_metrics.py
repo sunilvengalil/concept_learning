@@ -340,7 +340,7 @@ def plot_epoch_vs_accuracy(root_path: str,
     axis_font = {'fontname':'Arial', 'size':'26', "fontweight":"bold"}
 
     dao = get_dao(dataset_name, split_name, num_val_samples)
-    if exp_config is not None:
+    if exp_config is None:
         exp_config = ExperimentConfig(root_path=root_path,
                                       num_decoder_layer=num_decoder_layer,
                                       z_dim=z_dim,
