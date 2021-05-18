@@ -285,6 +285,7 @@ class SemiSupervisedClassifierMnist(VAE):
                         print(f"{metric}: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
                         print(f"{metric}: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
                         print(f"{metric}: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
+                    #self.save_metrics()
                     evaluation_run_for_last_epoch = True
             train_val_data_iterator.reset_counter("train")
             train_val_data_iterator.reset_counter("val")
@@ -447,9 +448,8 @@ class SemiSupervisedClassifierMnist(VAE):
                 print(
                     f"Length of batch_images: {batch_images.shape} Nll_batch shape: {nll_batch.shape} Nll shape: {nll.shape} Nll:{nll} ")
                 break
-            if len(nll_batch.shape) != 2:
-                raise Exception(f"Shape of nll_batch {nll_batch.shape}")
-
+            # if len(nll_batch.shape) != 2:
+            #     raise Exception(f"Shape of nll_batch {nll_batch.shape}")
             """
             Update priority queues for keeping top and bottom N samples for all the required metrics present save_policy
             """
@@ -506,7 +506,7 @@ class SemiSupervisedClassifierMnist(VAE):
 
 
         if self.exp_config.return_latent_vector:
-            mean_col_names, sigma_col_names, z_col_names, l3_col_names, predicted_proba_col_names = get_latent_vector_column(self.exp_config.Z_DIM, True)
+            mean_col_names, sigma_col_names, z_col_names, l3_col_names, predicted_proba_col_names = get_latent_vector_column(self.exp_config.Z_DIM, self.dao.num_classes, True)
             # encoded_df[mean_col_names] = mu
             for i, mean_col_name in enumerate(mean_col_names):
                 encoded_df[mean_col_name] = mu[:, i]
