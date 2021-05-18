@@ -85,7 +85,12 @@ class VAE(GenerativeModel):
     def _decoder(self, z, reuse=False):
         print("Decoding")
         if self.exp_config.fully_convolutional:
-            out = fully_deconv_n_layer(self, z, self.exp_config.num_units, self.dao.image_shape[2], reuse)
+            out = fully_deconv_n_layer(self,
+                                       z,
+                                       self.exp_config.num_units,
+                                       self.dao.image_shape[2],
+                                       1,
+                                       reuse)
         else:
             out = deconv_n_layer(self, z, self.dao.image_shape[2], reuse)
         return out

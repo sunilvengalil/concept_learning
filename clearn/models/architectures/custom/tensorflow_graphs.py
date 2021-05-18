@@ -121,7 +121,7 @@ def remove_padding(x, row_padding, col_padding):
     return x
 
 
-def fully_deconv_n_layer(model, z, n_units,  out_channels, reuse=False):
+def fully_deconv_n_layer(model, z, n_units,  out_channels, in_channels, reuse=False):
     h, w = model.dao.image_shape[0], model.dao.image_shape[1]
     strides = model.exp_config.strides
     image_sizes = model.image_sizes
@@ -139,7 +139,7 @@ def fully_deconv_n_layer(model, z, n_units,  out_channels, reuse=False):
                                            [model.exp_config.BATCH_SIZE,
                                             image_sizes[len(n_units)][0],
                                             image_sizes[len(n_units)][1],
-                                            n_units[-1]
+                                            in_channels
                                             ]
                                            )
 
@@ -244,7 +244,7 @@ def deconv_n_layer(model, z,  out_channels, reuse=False):
             out = fully_deconv_n_layer(model,
                                        model.dense_out,
                                        n_units[0: num_de_convolutional_layers],
-                                       out_channels,
+                                       n_units[num_de_convolutional_layers - 1],
                                        reuse)
         if model.exp_config.log_level == logging.DEBUG:
             print(out.shape)
