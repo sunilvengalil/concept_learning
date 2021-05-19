@@ -183,7 +183,7 @@ class VAE(GenerativeModel):
             for batch in range(start_batch_id, self.num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
-                batch_images, _, manual_labels,_ = train_val_data_iterator.get_next_batch("train")
+                batch_images, _, manual_labels, _ = train_val_data_iterator.get_next_batch("train")
                 if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                     break
                 batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
@@ -202,7 +202,7 @@ class VAE(GenerativeModel):
                 marginal_ll = -marginal_ll
                 sum_nll_batch = np.mean(marginal_ll) * self.exp_config.BATCH_SIZE
                 mean_nll = (mean_nll * num_samples_processed + sum_nll_batch) / (
-                            num_samples_processed + self.exp_config.BATCH_SIZE)
+                        num_samples_processed + self.exp_config.BATCH_SIZE)
                 self.counter += 1
                 self.num_steps_completed = batch + 1
                 num_samples_processed = self.num_steps_completed * self.exp_config.BATCH_SIZE
@@ -251,7 +251,6 @@ class VAE(GenerativeModel):
                 self.test_data_iterator.reset_counter("test")
                 self.evaluate(self.test_data_iterator, dataset_type="test")
                 self.test_data_iterator.reset_counter("test")
-
 
         # save metrics
         self.save_metrics()
@@ -437,26 +436,19 @@ class VAE(GenerativeModel):
         return mu, sigma, z
 
     def get_decoder_weights_bias(self):
-        name_w_1 = "decoder/de_fc1/Matrix:0"
-        name_w_2 = "decoder/de_dc3/w:0"
-        name_w_3 = "decoder/de_dc4/w:0"
-
-        name_b_1 = "decoder/de_fc1/bias:0"
-        name_b_2 = "decoder/de_dc3/biases:0"
-        name_b_3 = "decoder/de_dc4/biases:0"
-
-        layer_param_names = [name_w_1,
-                             name_b_1,
-                             name_w_2,
-                             name_b_2,
-                             name_w_3,
-                             name_b_3,
-                             ]
+        if self.exp_config.fully_convolutional:
+            num_deconv_layers = len(self.exp_config.num_units)
+        else:
+            num_deconv_layers = len(self.exp_config.num_units) - self.exp_config.num_dense_layers
+        param_names=[]
+        for layer_num in range(num_deconv_layers):
+            param_names.append(f"decoder/de_conv_{layer_num}/w:0")
+            param_names.append(f"decoder/de_conv_{layer_num}/biases:0")
 
         default_graph = tf.get_default_graph()
-        params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
+        params = [default_graph.get_tensor_by_name(tn) for tn in param_names]
         param_values = self.sess.run(params)
-        return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
+        return {tn: tv for tn, tv in zip(param_names, param_values)}
 
     def get_encoder_weights_bias(self):
         name_w_1 = "encoder/en_conv1/w:0"
@@ -496,20 +488,26 @@ class VAE(GenerativeModel):
 
         return mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en
 
+    def get_features_list(self):
+        feature_list = []
+        feature_names = []
+        for key, value in self.decoder_dict.items():
+            feature_names.append(key)
+            feature_list.append(value)
+        return feature_names, feature_list
+
     def decode_and_get_features(self, z: np.ndarray):
         batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
+        features_list = [self.out]
+        hidden_feature_names, hidden_features = self.get_features_list()
+        features_list.extend(hidden_features)
+        decoded_features = self.sess.run(features_list,
+                                         feed_dict={self.z: z,
+                                                    self.standard_normal: batch_z
+                                                    }
+                                         )
 
-        images, dense1_de, dense2_de, reshaped_de, deconv1_de = self.sess.run([self.out,
-                                                                               self.dense1_de,
-                                                                               self.dense2_de,
-                                                                               self.reshaped_de,
-                                                                               self.deconv1_de
-                                                                               ],
-                                                                              feed_dict={self.z: z,
-                                                                                         self.standard_normal: batch_z
-                                                                                         })
-
-        return images, dense1_de, dense2_de, reshaped_de, deconv1_de
+        return hidden_feature_names, decoded_features
 
     def decode(self, z):
         images = self.sess.run(self.out, feed_dict={self.z: z})

@@ -92,57 +92,6 @@ class SemiSupervisedClassifierMnist(VAE):
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_val][metric] = []
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_test][metric] = []
 
-    def get_decoder_weights_bias(self):
-        name_w_1 = "decoder/de_fc1/Matrix:0"
-        name_w_2 = "decoder/de_dc3/w:0"
-        name_w_3 = "decoder/de_dc4/w:0"
-
-        name_b_1 = "decoder/de_fc1/bias:0"
-        name_b_2 = "decoder/de_dc3/biases:0"
-        name_b_3 = "decoder/de_dc4/biases:0"
-
-        layer_param_names = [name_w_1,
-                             name_b_1,
-                             name_w_2,
-                             name_b_2,
-                             name_w_3,
-                             name_b_3,
-                             ]
-
-        default_graph = tf.get_default_graph()
-        params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
-        param_values = self.sess.run(params)
-        return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
-
-    def get_encoder_weights_bias(self):
-        name_w_1 = "encoder/en_conv1/w:0"
-        if len(self.exp_config.num_units) > 2:
-            name_w_2 = "encoder/en_conv2/w:0"
-        name_w_3 = "encoder/en_fc2/Matrix:0"
-        name_w_4 = "encoder/en_fc3/Matrix:0"
-
-        name_b_1 = "encoder/en_conv1/biases:0"
-        if len(self.exp_config.num_units) > 2:
-            name_b_2 = "encoder/en_conv2/biases:0"
-        name_b_3 = "encoder/en_fc2/bias:0"
-        name_b_4 = "encoder/en_fc3/bias:0"
-
-        layer_param_names = [name_w_1,
-                             name_b_1]
-        if len(self.exp_config.num_units) > 2:
-            layer_param_names.append(name_w_2)
-            layer_param_names.append(name_b_2)
-        layer_param_names.extend([ name_w_3,
-                                   name_b_3,
-                                   name_w_4,
-                                   name_b_4
-                                   ]
-                                 )
-        default_graph = tf.get_default_graph()
-        params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
-        param_values = self.sess.run(params)
-        return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
-
     def compute_and_optimize_loss(self):
         if self.exp_config.fully_convolutional:
             z_reshaped = tf.reshape(self.z, [self.exp_config.BATCH_SIZE,
