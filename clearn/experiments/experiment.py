@@ -129,12 +129,15 @@ def load_trained_model(experiment_name,
                        z_dim,
                        run_id,
                        model_type,
+                       num_dense_layers,
+                       strides,
                        num_cluster_config=None,
                        manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                        supervise_weight=150,
                        beta=5,
                        reconstruction_weight=1,
                        eval_interval_in_epochs=1
+
                        ):
     dao = get_dao(dataset_name, split_name, num_val_samples)
 
@@ -161,7 +164,9 @@ def load_trained_model(experiment_name,
                                   learning_rate=learning_rate,
                                   write_predictions=write_predictions,
                                   eval_interval_in_epochs=eval_interval_in_epochs,
-                                  seed=seed
+                                  seed=seed,
+                                  strides=strides,
+                                  num_dense_layers=num_dense_layers
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
