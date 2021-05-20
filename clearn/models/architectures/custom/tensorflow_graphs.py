@@ -244,8 +244,9 @@ def deconv_n_layer(model, z,  out_channels, reuse=False):
             out = fully_deconv_n_layer(model,
                                        model.dense_out,
                                        n_units[0: num_de_convolutional_layers],
-                                       n_units[num_de_convolutional_layers - 1],
-                                       reuse)
+                                       out_channels=out_channels,
+                                       in_channels=n_units[num_de_convolutional_layers - 1],
+                                       reuse=reuse)
         if model.exp_config.log_level == logging.DEBUG:
             print(out.shape)
 
