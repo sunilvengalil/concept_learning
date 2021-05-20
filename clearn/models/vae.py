@@ -442,9 +442,9 @@ class VAE(GenerativeModel):
             num_deconv_layers = len(self.exp_config.num_units) - self.exp_config.num_dense_layers
         param_names=[]
         for layer_num in range(num_deconv_layers):
-            param_names.append(f"decoder/de_conv_{layer_num}/w:1")
+            param_names.append(f"decoder/de_conv_{layer_num}/w:0")
             param_names.append(f"decoder/de_conv_{layer_num}/biases:0")
-        param_names.append("decoder/de_out/w:1")
+        param_names.append("decoder/de_out/w:0")
         param_names.append("decoder/de_out/biases:0")
 
         default_graph = tf.get_default_graph()
