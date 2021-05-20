@@ -110,13 +110,13 @@ class VAE(GenerativeModel):
 
         # random vectors with  multi-variate gaussian distribution
         # 0 mean and covariance matrix as Identity
-        self.standard_normal = tf.compat.v1.placeholder(tf.float32, [bs, self.exp_config.Z_DIM], name='z')
+        # self.standard_normal = tf.compat.v1.placeholder(tf.float32, [bs, self.exp_config.Z_DIM], name='z')
 
         """ Encode the input """
         self.mu, self.sigma = self._encoder(self.inputs, reuse=False)
 
         # sampling by re-parameterization technique
-        self.z = self.mu + self.sigma * tf.random.normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
+        self.z = self.mu + self.sigma * tf.random.normal(tf.shape(self.mu), 0, 0.3, dtype=tf.float32)
 
         # decoding
         out = self._decoder(self.z, reuse=False)
@@ -158,7 +158,7 @@ class VAE(GenerativeModel):
         """" Testing """
 
         # for test
-        self.fake_images = self._decoder(self.standard_normal, reuse=True)
+        # self.fake_images = self._decoder(self.standard_normal, reuse=True)
 
         """ Summary """
         tf.summary.scalar("Negative Log Likelihood", self.neg_loglikelihood)
@@ -197,8 +197,8 @@ class VAE(GenerativeModel):
                                                                                       self.marginal_likelihood
                                                                                       ],
                                                                                      feed_dict={
-                                                                                         self.inputs: batch_images,
-                                                                                         self.standard_normal: batch_z})
+                                                                                         self.inputs: batch_images
+                                                                                     })
                 marginal_ll = -marginal_ll
                 sum_nll_batch = np.mean(marginal_ll) * self.exp_config.BATCH_SIZE
                 mean_nll = (mean_nll * num_samples_processed + sum_nll_batch) / (
@@ -322,8 +322,8 @@ class VAE(GenerativeModel):
                  self.marginal_likelihood
                  ],
                 feed_dict={
-                    self.inputs: batch_images,
-                    self.standard_normal: batch_z})
+                    self.inputs: batch_images
+                })
             nll_batch = -nll_batch
             if len(nll_batch.shape) == 0:
                 data_iterator.reset_counter(dataset_type)
@@ -504,8 +504,7 @@ class VAE(GenerativeModel):
         hidden_feature_names, hidden_features = self.get_features_list()
         features_list.extend(hidden_features)
         decoded_features = self.sess.run(features_list,
-                                         feed_dict={self.z: z,
-                                                    self.standard_normal: batch_z
+                                         feed_dict={self.z: z
                                                     }
                                          )
 
@@ -521,8 +520,7 @@ class VAE(GenerativeModel):
 
     def decode_layer1(self, z):
         batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
-        dense1_de = self.sess.run(self.dense1_de, feed_dict={self.z: z,
-                                                             self.standard_normal: batch_z
+        dense1_de = self.sess.run(self.dense1_de, feed_dict={self.z: z
                                                              })
         return dense1_de
 

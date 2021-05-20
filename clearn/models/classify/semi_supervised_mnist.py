@@ -131,7 +131,7 @@ class SemiSupervisedClassifierMnist(VAE):
 
         """" Testing """
         # for test
-        self.fake_images = self._decoder(self.standard_normal, reuse=True)
+        #self.fake_images = self._decoder(self.standard_normal, reuse=True)
 
         """ Summary """
         tf.compat.v1.summary.scalar("Negative Log Likelihood", self.neg_loglikelihood)
@@ -189,8 +189,8 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                                                       :,
                                                                                                                                       self.dao.num_classes],
                                                                                                             self.concepts_labels: concepts_label,
-                                                                                                            self.is_concepts_annotated: is_concepts_annotated,
-                                                                                                            self.standard_normal: batch_z}
+                                                                                                            self.is_concepts_annotated: is_concepts_annotated
+                                                                                                        }
                                                                                                         )
                 else:
                     _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss = self.sess.run([self.optim,
@@ -203,8 +203,8 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                         feed_dict={
                                                                                                             self.inputs: batch_images,
                                                                                                             self.labels: manual_labels[:, :self.dao.num_classes],
-                                                                                                            self.is_manual_annotated: manual_labels[:, self.dao.num_classes],
-                                                                                                            self.standard_normal: batch_z}
+                                                                                                            self.is_manual_annotated: manual_labels[:, self.dao.num_classes]
+                                                                                                        }
                                                                                                         )
                 if self.exp_config.fully_convolutional:
                     print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}")
@@ -372,8 +372,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                                                      self.labels: manual_labels[:, :10],
                                                                                                                                      self.is_manual_annotated: manual_labels[:, 10],
                                                                                                                                      self.concepts_labels: concepts_label,
-                                                                                                                                     self.is_concepts_annotated: is_concepts_annotated,
-                                                                                                                                     self.standard_normal: batch_z
+                                                                                                                                     self.is_concepts_annotated: is_concepts_annotated
                                                                                                                                  }
                                                                                                                                  )
             else:
@@ -388,8 +387,8 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                                                  feed_dict={
                                                                                                                                      self.inputs: batch_images,
                                                                                                                                      self.labels: manual_labels[:, :10],
-                                                                                                                                     self.is_manual_annotated: manual_labels[:, 10],
-                                                                                                                                     self.standard_normal: batch_z})
+                                                                                                                                     self.is_manual_annotated: manual_labels[:, 10]
+                                                                                                                                 })
             nll_batch = -nll_batch
             if len(nll_batch.shape) == 0:
                 data_iterator.reset_counter(dataset_type)
