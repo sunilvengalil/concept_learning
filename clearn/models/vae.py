@@ -120,16 +120,18 @@ class VAE(GenerativeModel):
 
         # decoding
         out = self._decoder(self.z, reuse=False)
-        self.out = tf.clip_by_value(out, 1e-8, 1 - 1e-8)
 
         # loss
         if self.exp_config.activation_output_layer == "SIGMOID":
+            self.out = tf.clip_by_value(out, 1e-8, 1 - 1e-8)
+
             self.marginal_likelihood = tf.reduce_sum(self.inputs * tf.math.log(self.out) +
                                                      (1 - self.inputs) * tf.math.log(1 - self.out),
                                                      [1, 2],
                                                      )
         else:
             # Linear activation
+            self.out = out
             mll = tf.compat.v1.losses.mean_squared_error(self.inputs,
                                                          self.out,
                                                          reduction=tf.compat.v1.losses.Reduction.NONE
