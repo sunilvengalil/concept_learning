@@ -125,9 +125,10 @@ class SemiSupervisedClassifierMnist(VAE):
         last_feature = list(self.decoder_dict.keys())[-1]
         if self.exp_config.uncorrelated_features:
             f = self.decoder_dict[last_feature]
-            identity = tf.eye(f.shape[3], batch_shape=[f.shape[0]], dtype=tf.float64)
-            f = f.reshape(-1, f.shape[1] * f.shape[2], f.shape[3])
-            corr = tfp.stats.correlation(f, sasple_axis=1)
+            identity = tf.eye(num_rows=int(f.shape[3]),num_columns=int(f.shape[3]), batch_shape=[int(f.shape[0])], dtype=tf.float32)
+            f = tf.reshape(f, [-1, int(f.shape[1]) * int(f.shape[2]), int(f.shape[3]) ])
+            corr = tfp.stats.correlation(f, sample_axis=1)
+
             self.corr_loss = tf.norm(corr - identity)
             self.loss = self.loss + self.corr_loss
 
