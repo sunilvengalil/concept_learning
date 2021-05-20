@@ -499,11 +499,14 @@ class VAE(GenerativeModel):
         return feature_names, feature_list
 
     def decode_and_get_features(self, z: np.ndarray):
+        batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
         features_list = [self.out]
         hidden_feature_names, hidden_features = self.get_features_list()
         features_list.extend(hidden_features)
         decoded_features = self.sess.run(features_list,
-                                         feed_dict={self.z: z}
+                                         feed_dict={self.z: z,
+                                                    self.standard_normal: batch_z
+                                                    }
                                          )
 
         return hidden_feature_names, decoded_features
