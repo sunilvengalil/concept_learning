@@ -509,7 +509,7 @@ class VAE(GenerativeModel):
                                                     }
                                          )
 
-        return hidden_feature_names, decoded_features
+        return hidden_feature_names, decoded_features[0], decoded_features[1:]
 
     def decode(self, z):
         images = self.sess.run(self.out, feed_dict={self.z: z})
