@@ -102,6 +102,7 @@ class ExperimentConfig:
                  fully_convolutional=False,
                  num_concepts=10,
                  supervise_weight_concepts=1,
+                 uncorrelated_features=False
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -162,6 +163,7 @@ class ExperimentConfig:
         self.supervise_weight_concepts = supervise_weight_concepts
         self.strides = strides
         self.num_dense_layers = num_dense_layers
+        self.uncorrelated_features = uncorrelated_features
 
     def as_json(self):
         config_json = dict()
@@ -203,6 +205,7 @@ class ExperimentConfig:
         config_json["SUPERVISE_WEIGHT_CONCEPTS"] = self.supervise_weight_concepts
         config_json["STRIDES"] = self.strides
         config_json["NUM_DENSE_LAYER"] = self.num_dense_layers
+        config_json["UNCORRELATED_FEATURES"] = self.uncorrelated_features
 
         return config_json
 
@@ -329,6 +332,7 @@ class ExperimentConfig:
         self.supervise_weight_concepts = exp_config_dict["SUPERVISE_WEIGHT_CONCEPTS"]
         self.strides = exp_config_dict["STRIDES"],
         self.num_dense_layers = exp_config_dict["NUM_DENSE_LAYERS"]
+        self.num_dense_layers = exp_config_dict["UNCORRELATED_FEATURES"]
 
 if __name__ == "__main__":
     _root_path = "/Users/sunilv/concept_learning_exp"

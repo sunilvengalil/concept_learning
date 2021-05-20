@@ -219,7 +219,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             supervise_weight_concepts=1,
                                             num_individual_samples_annotated=0,
                                             num_samples_wrongly_annotated=0,
-                                            total_confidence_of_wrong_annotation=0
+                                            total_confidence_of_wrong_annotation=0,
+                                            uncorrelated_features=False
                                             ):
     if dao is None:
         dao = get_dao(dataset_name, split_name, num_val_samples)
@@ -262,7 +263,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                   fully_convolutional=fully_convolutional,
                                   num_concepts=num_concepts,
                                   supervise_weight_concepts=supervise_weight_concepts,
-                                  strides=strides
+                                  strides=strides,
+                                  uncorrelated_features=uncorrelated_features
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)

@@ -20,6 +20,7 @@ from scipy.special import softmax
 from sklearn.metrics import accuracy_score
 
 import tensorflow as tf
+import tensorflow_probability as tfp
 from tensorflow.compat.v1 import placeholder
 from clearn.utils.tensorflow_wrappers import linear, conv2d
 
@@ -121,6 +122,16 @@ class SemiSupervisedClassifierMnist(VAE):
               self.exp_config.beta * self.KL_divergence + \
               self.exp_config.supervise_weight * self.supervised_loss
 
+        last_feature = list(self.decoder_dict.keys())[-1]
+        if self.exp_config.uncorrelated_features:
+            f = self.decoder_dict[last_feature]
+            identity = tf.eye(f.shape[3], batch_shape=[f.shape[0]], dtype=tf.float64)
+            f = f.reshape(-1, f.shape[1] * f.shape[2], f.shape[3])
+            corr = tfp.stats.correlation(f, sasple_axis=1)
+            self.corr_loss = tf.norm(corr - identity)
+            self.loss = self.loss + self.corr_loss
+
+
         """ Training """
         # optimizers
         t_vars = tf.compat.v1.trainable_variables()
@@ -172,26 +183,51 @@ class SemiSupervisedClassifierMnist(VAE):
 
                 # update autoencoder and classifier parameters
                 if self.exp_config.fully_convolutional:
-                    _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts = self.sess.run([self.optim,
-                                                                                                         self.merged_summary_op,
-                                                                                                         self.loss,
-                                                                                                         self.neg_loglikelihood,
-                                                                                                         self.marginal_likelihood,
-                                                                                                         self.KL_divergence,
-                                                                                                         self.supervised_loss,
-                                                                                                                              self.supervised_loss_concepts     ],
-                                                                                                        feed_dict={
-                                                                                                            self.inputs: batch_images,
-                                                                                                            self.labels: manual_labels[
-                                                                                                                         :,
-                                                                                                                         :self.dao.num_classes],
-                                                                                                            self.is_manual_annotated: manual_labels[
-                                                                                                                                      :,
-                                                                                                                                      self.dao.num_classes],
-                                                                                                            self.concepts_labels: concepts_label,
-                                                                                                            self.is_concepts_annotated: is_concepts_annotated
-                                                                                                        }
-                                                                                                        )
+                    if self.exp_config.uncorrelated_features:
+                        _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts, correlation_loss = self.sess.run(
+                            [self.optim,
+                             self.merged_summary_op,
+                             self.loss,
+                             self.neg_loglikelihood,
+                             self.marginal_likelihood,
+                             self.KL_divergence,
+                             self.supervised_loss,
+                             self.supervised_loss_concepts,
+                             self.corr_loss
+                             ],
+                            feed_dict={
+                                self.inputs: batch_images,
+                                self.labels: manual_labels[
+                                             :,
+                                             :self.dao.num_classes],
+                                self.is_manual_annotated: manual_labels[
+                                                          :,
+                                                          self.dao.num_classes],
+                                self.concepts_labels: concepts_label,
+                                self.is_concepts_annotated: is_concepts_annotated
+                            }
+                            )
+                    else:
+                        _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts = self.sess.run([self.optim,
+                                                                                                             self.merged_summary_op,
+                                                                                                             self.loss,
+                                                                                                             self.neg_loglikelihood,
+                                                                                                             self.marginal_likelihood,
+                                                                                                             self.KL_divergence,
+                                                                                                             self.supervised_loss,
+                                                                                                                                  self.supervised_loss_concepts     ],
+                                                                                                            feed_dict={
+                                                                                                                self.inputs: batch_images,
+                                                                                                                self.labels: manual_labels[
+                                                                                                                             :,
+                                                                                                                             :self.dao.num_classes],
+                                                                                                                self.is_manual_annotated: manual_labels[
+                                                                                                                                          :,
+                                                                                                                                          self.dao.num_classes],
+                                                                                                                self.concepts_labels: concepts_label,
+                                                                                                                self.is_concepts_annotated: is_concepts_annotated
+                                                                                                            }
+                                                                                                            )
                 else:
                     _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss = self.sess.run([self.optim,
                                                                                                          self.merged_summary_op,
@@ -207,7 +243,12 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                         }
                                                                                                         )
                 if self.exp_config.fully_convolutional:
-                    print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}")
+                    if self.exp_config.uncorrelated_features:
+                        print(
+                            f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}  ccrrelation loss:{correlation_loss}")
+                    else:
+                        print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}")
+
                 else:
                     print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} ")
 
