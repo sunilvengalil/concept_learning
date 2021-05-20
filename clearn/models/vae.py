@@ -116,7 +116,7 @@ class VAE(GenerativeModel):
         self.mu, self.sigma = self._encoder(self.inputs, reuse=False)
 
         # sampling by re-parameterization technique
-        self.z = self.mu + self.sigma * tf.random.normal(tf.shape(self.mu), 0, 0.3, dtype=tf.float32)
+        self.z = self.mu + self.sigma * tf.random.normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
 
         # decoding
         out = self._decoder(self.z, reuse=False)
