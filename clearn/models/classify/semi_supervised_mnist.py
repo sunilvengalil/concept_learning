@@ -530,15 +530,3 @@ class SemiSupervisedClassifierMnist(VAE):
                                feed_dict={self.inputs: images})
 
         return logits
-
-    def encode_and_get_features(self, images: np.ndarray):
-        mu, sigma, z, dense2_en, reshaped, final_conv = self.sess.run([self.mu,
-                                                                       self.sigma,
-                                                                       self.z,
-                                                                       self.dense2_en,
-                                                                       self.reshaped_en,
-                                                                       self.final_conv
-                                                                       ],
-                                                                      feed_dict={self.inputs: images})
-
-        return (mu, sigma, z, dense2_en, reshaped, final_conv)
