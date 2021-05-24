@@ -45,11 +45,13 @@ num_units = [512, 256, 128, 64]
 strides = [2, 2, 1, 1, 1]
 num_dense_layers = 2
 #
-num_units = [512, 256, 128, 64]
-strides = [2, 2, 1, 1, 1]
-num_dense_layers = 1
-
-
+# num_units = [512, 256, 128, 64]
+# strides = [2, 2, 1, 1, 1]
+# num_dense_layers = 1
+#
+# num_units = [16, 32]
+# strides = [2, 1, 1]
+# num_dense_layers = 1
 initialize_model_train_and_get_features(experiment_name=experiment_name,
                                         z_dim=z_dim,
                                         run_id=run_id,

@@ -141,7 +141,8 @@ class ExperimentConfig:
         self.confidence_decay_factor = confidence_decay_factor
         self.manual_labels_config = manual_labels_config
         self.reconstruction_weight = reconstruction_weight
-        self.num_train_samples = ((total_training_samples - num_val_samples) // batch_size) * batch_size
+        self.dao = get_dao(dataset_name, split_name, num_val_samples)
+        # self.num_train_samples = (self.dao.number_of_training_samples  // batch_size) * batch_size
         self.activation_hidden_layer = activation_hidden_layer
         self.activation_output_layer = activation_output_layer
         self.save_reconstructed_images = save_reconstructed_images
@@ -164,6 +165,16 @@ class ExperimentConfig:
         self.strides = strides
         self.num_dense_layers = num_dense_layers
         self.uncorrelated_features = uncorrelated_features
+
+    @property
+    def num_train_samples(self):
+        return (self.dao.number_of_training_samples // self.BATCH_SIZE) * self.BATCH_SIZE
+
+    def set_root_path(self, env):
+        if env == "sunil_local":
+            self.root_path = "/Users/sunilv/concept_learning_exp"
+        elif env == "colab":
+            self.root_path = "/content/gdrive/MyDrive/concept_learning/concept_learning/concept_learning_exp"
 
     def as_json(self):
         config_json = dict()
@@ -333,6 +344,8 @@ class ExperimentConfig:
         self.strides = exp_config_dict["STRIDES"],
         self.num_dense_layers = exp_config_dict["NUM_DENSE_LAYERS"]
         self.num_dense_layers = exp_config_dict["UNCORRELATED_FEATURES"]
+
+
 
 if __name__ == "__main__":
     _root_path = "/Users/sunilv/concept_learning_exp"
