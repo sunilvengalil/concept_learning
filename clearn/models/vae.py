@@ -3,7 +3,7 @@ from __future__ import division
 
 import json
 import traceback
-from typing import List, Tuple
+from typing import List
 import os
 import numpy as np
 import pandas as pd
@@ -480,19 +480,27 @@ class VAE(GenerativeModel):
         param_values = self.sess.run(params)
         return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
 
+    def get_encoder_features_list(self):
+        feature_list = []
+        feature_names = []
+        for key, value in self.encoder_dict.items():
+            feature_names.append(key)
+            feature_list.append(value)
+        return feature_names, feature_list
+
+
     def encode_and_get_features(self, images: np.ndarray):
-        mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en = self.sess.run([self.mu,
-                                                                               self.sigma,
-                                                                               self.z,
-                                                                               self.dense2_en,
-                                                                               self.reshaped_en,
-                                                                               self.conv2,
-                                                                               self.conv1],
-                                                                              feed_dict={self.inputs: images})
+        features_list = [self.mu, self.sigma, self.z]
+        hidden_feature_names, hidden_features = self.get_encoder_features_list()
+        features_list.extend(hidden_features)
 
-        return mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en
+        mu, sigma, z, encoded_features = self.sess.run([features_list],
+                                                       feed_dict={self.inputs: images
+                                                                  })
 
-    def get_features_list(self):
+        return hidden_feature_names, mu, sigma, z, encoded_features
+
+    def get_decoder_features_list(self):
         feature_list = []
         feature_names = []
         for key, value in self.decoder_dict.items():
@@ -501,9 +509,8 @@ class VAE(GenerativeModel):
         return feature_names, feature_list
 
     def decode_and_get_features(self, z: np.ndarray):
-        batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
         features_list = [self.out]
-        hidden_feature_names, hidden_features = self.get_features_list()
+        hidden_feature_names, hidden_features = self.get_decoder_features_list()
         features_list.extend(hidden_features)
         decoded_features = self.sess.run(features_list,
                                          feed_dict={self.z: z
