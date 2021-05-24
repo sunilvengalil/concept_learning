@@ -24,8 +24,8 @@ num_dense_layers = 0
 
 # experiment_name = f"experiment_{num_units_str}"
 _exp_config = ExperimentConfig(root_path=None,
+                               num_decoder_layer=-1,
                                strides=strides,
-                               num_dense_layers=num_dense_layers,
                                z_dim=z_dim,
                                num_units=num_units,
                                num_cluster_config=num_cluster_config,
@@ -45,7 +45,8 @@ _exp_config = ExperimentConfig(root_path=None,
                                activation_hidden_layer="RELU",
                                activation_output_layer="SIGMOID",
                                learning_rate=1e-3,
-                               env="colab"
+                               env="colab",
+                               num_dense_layers=num_dense_layers
                                )
 _exp_config.set_root_path(env)
 _exp_config.check_and_create_directories(run_id)
