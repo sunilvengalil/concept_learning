@@ -23,7 +23,8 @@ strides = [2, 2, 2, 1, 1]
 num_dense_layers = 0
 
 # experiment_name = f"experiment_{num_units_str}"
-_exp_config = ExperimentConfig(strides=strides,
+_exp_config = ExperimentConfig(root_path=None,
+                               strides=strides,
                                num_dense_layers=num_dense_layers,
                                z_dim=z_dim,
                                num_units=num_units,
@@ -43,7 +44,8 @@ _exp_config = ExperimentConfig(strides=strides,
                                reconstruction_weight=1,
                                activation_hidden_layer="RELU",
                                activation_output_layer="SIGMOID",
-                               learning_rate=1e-3
+                               learning_rate=1e-3,
+                               env="colab"
                                )
 _exp_config.set_root_path(env)
 _exp_config.check_and_create_directories(run_id)
