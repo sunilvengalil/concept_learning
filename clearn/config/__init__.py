@@ -102,7 +102,8 @@ class ExperimentConfig:
                  fully_convolutional=False,
                  num_concepts=10,
                  supervise_weight_concepts=1,
-                 uncorrelated_features=False
+                 uncorrelated_features=False,
+                 env=None
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -113,7 +114,17 @@ class ExperimentConfig:
         """
         # if ExperimentConfig._instance is not None:
         #     raise Exception("ExperimentConfig is singleton class. Use class method get_exp_config() instead")
-        self.root_path = root_path
+        if root_path is not None :
+            #TODO validate if the folder can be created or not
+            self.root_path = root_path
+        elif env is not None:
+            if env == "sunil_local":
+                self.root_path = "/Users/sunilv/concept_learning_exp"
+            elif env == "colab":
+                self.root_path = "/content/gdrive/MyDrive/concept_learning/concept_learning/concept_learning_exp"
+            else:
+                raise Exception(f"Parameter env should be set as sunil_local or colab. env is passed as {env} instead")
+
         if len(num_units) < 1 or len(num_units) > 5 :
             print(num_units)
             raise ValueError("Length of num_units should be 2 or 3")
