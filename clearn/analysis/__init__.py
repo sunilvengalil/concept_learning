@@ -31,7 +31,7 @@ class ManualAnnotation:
 
             return confidence_1, confidence_2
         for confidence_label, confidence_interval in ManualAnnotation.confidence_intervals.items():
-            if confidence_interval[0] <= self.confidence < confidence_interval[1]:
+            if confidence_interval[0] <= self.confidence <= confidence_interval[1]:
                 return confidence_label
 
 
