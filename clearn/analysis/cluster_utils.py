@@ -136,7 +136,8 @@ def cluster_next_level_gmm(exp_config: ExperimentConfig,
                            epochs_completed,
                            dao: IDao,
                            cluster_group_dict: Dict[str, ClusterGroup],
-                           cluster_type="unknown_cluster"
+                           cluster_type="unknown_cluster",
+                           num_clusters=10
                            ):
     _, _, z_col_names, _ = get_latent_vector_column(exp_config.Z_DIM)
     level2_manual_annotations = dict()
@@ -152,7 +153,7 @@ def cluster_next_level_gmm(exp_config: ExperimentConfig,
             tf.reset_default_graph()
             _decoded_images, _cluster_centers, _cluster_labels, posterior_proba_level_2 = cluster_and_decode_latent_vectors_gmm(
                 model_type,
-                10,
+                num_clusters,
                 _latent_vectors,
                 exp_config,
                 dao
