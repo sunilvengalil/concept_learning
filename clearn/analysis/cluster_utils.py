@@ -25,6 +25,7 @@ from clearn.experiments.experiment import get_model
 from clearn.utils.utils import get_pmf_y_given_z, get_latent_vector_column
 
 MAX_IMAGES_TO_DISPLAY = 36
+NUM_IMAGES_IN_SINGLE_PLOT = 12
 
 def trace_dim(f, num_trace_steps, dim, feature_dim, z_min, z_max):
     """
@@ -137,7 +138,9 @@ def cluster_next_level_gmm(exp_config: ExperimentConfig,
                            dao: IDao,
                            cluster_group_dict: Dict[str, ClusterGroup],
                            cluster_type="unknown_cluster",
-                           num_clusters=10
+                           num_clusters=10,
+                           classes=list(range(10)),
+                           show_images=True
                            ):
     _, _, z_col_names, _ = get_latent_vector_column(exp_config.Z_DIM)
     level2_manual_annotations = dict()
@@ -145,7 +148,9 @@ def cluster_next_level_gmm(exp_config: ExperimentConfig,
         df[cluster_column_name_2] = -1
         tf.reset_default_graph()
         for cluster in cluster_group_dict[cluster_type]:
-            print(cluster.id)
+            print(cluster.id, cluster.manual_annotation.label)
+            if cluster.manual_annotation.label not in classes:
+                continue
             _indices = np.where(cluster_labels == cluster.id)
             _df = df.iloc[_indices]
 
@@ -168,7 +173,15 @@ def cluster_next_level_gmm(exp_config: ExperimentConfig,
 
             image_filename = exp_config.ANALYSIS_PATH + f"cluster_centers__level_2_epoch_{epochs_completed}_cluster_id_{cluster.id}.png"
 
-            display_images(_decoded_images, image_filename, "Reconstructed images for cluster center")
+            if show_images:
+                for i in range(0, (num_clusters // NUM_IMAGES_IN_SINGLE_PLOT)  + 1 ):
+                    display_images(_decoded_images[i* NUM_IMAGES_IN_SINGLE_PLOT : min( (i + 1) * NUM_IMAGES_IN_SINGLE_PLOT,
+                                                                                    num_clusters)],
+                                   image_filename,
+                                   "Reconstructed images for cluster center",
+                                   num_images_to_display = num_clusters
+                                )
+
             # class_labels = widgets.Text(place_holder="-1,-1,-1,-1,-1,-1,-1,-1,-1,-1",
             #     description="Labels")
             # display(class_labels)
@@ -181,6 +194,8 @@ def cluster_next_level_gmm(exp_config: ExperimentConfig,
             level_2_cluster_dict = dict()
             level_2_cluster_dict["cluster_centers"] = _cluster_centers.tolist()
             level_2_cluster_dict["cluster_labels"] = _cluster_labels.tolist()
+            level_2_cluster_dict["decoded_images"] = _decoded_images.tolist()
+
             level_2_cluster_dict["posterier_prob"] = posterior_proba_level_2.tolist()
             # level_2_cluster_dict["manual_labels"] = validate_tokenize_int(labels_input, 10)
             # level_2_cluster_dict["manual_confidences"] = validate_tokenize_float(confidence_input, 10)
@@ -282,13 +297,18 @@ def cluster_and_decode_latent_vectors_gmm(model_type: str,
 def display_images(decoded_images,
                    image_filename,
                    title,
-                   num_images_to_display = 0
+                   num_images_to_display = 0,
+                   fig_size=None,
+                   axis = None,
+                   num_cols=4,
                    ):
 
     colormap = "Greys"
-    fig = plt.figure()
+    if fig_size is not None:
+        fig = plt.figure(figsize=fig_size, constrained_layout=True)
+    else:
+        fig = plt.figure()
     fig.tight_layout()
-    num_cols = 4
     num_images = decoded_images.shape[0]
     if num_images_to_display == 0:
         num_images_to_display = min(num_images, MAX_IMAGES_TO_DISPLAY)
@@ -299,10 +319,13 @@ def display_images(decoded_images,
     if num_images >  num_images_to_display:
         print(f"Number of image is {num_images}. Displaying only first {num_images_to_display} images ")
     num_rows = math.ceil(num_images_to_display / num_cols)
-    fig.suptitle(title)
+    if title is not None and len(title) > 0:
+        fig.suptitle(title)
     for i in range(num_images_to_display):
         ax = fig.add_subplot(num_rows, num_cols, i + 1)
         ax.imshow(np.squeeze(decoded_images[i]), cmap=colormap)
+        if axis is not None:
+            ax.axis(axis)
     if image_filename is not None and len(image_filename) > 0:
         print(f"Saving the image to {image_filename}")
         plt.savefig(image_filename,
@@ -685,6 +708,109 @@ def process_second_level_clusters(df,
                                  cluster_column_name_2)
 
 
+def location_description(h_extend, v_extend, image_shape):
+    print(h_extend, v_extend, image_shape)
+    # TODO  Convert interval into names
+    h, w = image_shape[0], image_shape[1]
+    print(h_extend[0], w / 2., 0.2 * w)
+    if abs(h_extend[0] - w / 2.) <= 0.2 * w:  # start from middle on horizontal axis
+        print("Starts from middle on horizontal axis")
+        if v_extend[0] <= 0.1 * h:  # Starts from top on vertical axis
+            print("Starts from top on vertical axis")
+            print(v_extend[1], 0.9 * image_shape[0])
+            if v_extend[1] >= 0.9 * image_shape[0]:  # Extend till end of vetrical axis
+                return "right half"
+    if abs(h_extend[0] - w / 2.) <= 0.2 * w:
+        if v_extend[0] <= 0.1 * h and v_extend[1] >= 0.9 * h:
+            return "left half"
+
+
+def cluster_gmm(cropped, num_clusters):
+    print("Inside cluster_gmm")
+    gm = GaussianMixture(n_components=num_clusters, random_state=0)
+    print(cropped.shape)
+    cropped_vectorized = cropped.reshape([cropped.shape[0], cropped.shape[1] * cropped.shape[2] ])
+    print(cropped_vectorized.shape)
+    cluster_labels = gm.fit_predict(cropped_vectorized)
+    cluster_centers = gm.means_
+    posterior = gm.predict_proba(cropped_vectorized)
+    cluster_center_image = cluster_centers.reshape([cluster_centers.shape[0], cropped.shape[1], cropped.shape[2] ])
+    return cluster_labels,cluster_centers,posterior,cluster_center_image
+
+
+def segment(images, h_extend, v_extend, digit, num_clusters, exp_config, cluster, sample_index, display_image=True, epochs_completed=0):
+    height, width = images[0].shape[0], images[0].shape[1]
+    num_images = images.shape[0]
+
+    if len(v_extend) == 0:
+        v_extend = [0, height]
+    if len(h_extend) == 0:
+        h_extend = [0, width]
+    image_shape = images[0].shape
+
+    print("Image shape", image_shape)
+    ld = location_description(h_extend, v_extend, image_shape)
+    segment_location_description = f"{ld} of {digit} "
+
+    cropped = images[:, v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]]
+    masked_images = np.zeros([
+        cropped.shape[0],
+        images.shape[1],
+        images.shape[2],
+        1
+    ]
+    )
+    masked_images[:, v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]] = cropped
+    location_key = f"{h_extend[0]}_{h_extend[1]}_{v_extend[0]}_{v_extend[1]}"
+    digit_location_key = f"{digit}_{location_key}"
+    images = np.squeeze(images)
+    image_filename = exp_config.ANALYSIS_PATH + f"seg_{digit_location_key}_{int(epochs_completed)}_{cluster}_{sample_index}.png"
+    if num_images > 1:
+
+        cluster_labels, cluster_centers, posterior, cropped_cluster_center = cluster_gmm(cropped, num_clusters)
+
+        cluster_center_images = np.zeros([cropped_cluster_center.shape[0], images.shape[1], images.shape[2]])
+        cluster_center_images[:, v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]] = cropped_cluster_center
+    else:
+        cluster_center_images = np.zeros((10, height, width, 1))
+        cluster_center_images[0] = masked_images
+
+    cluster_center_images = cluster_center_images[0:num_images]
+    if display_image:
+        display_images(cluster_center_images,
+                       image_filename=image_filename,
+                       title=f"{segment_location_description}[{digit_location_key}]",
+                       num_images_to_display=num_clusters
+                       )
+
+    return cluster_center_images
+
+
+def segment_multiple_images(exp_config, image_list):
+    print(type(image_list), len(image_list))
+    segmented_images = np.zeros((len(image_list),
+                                 exp_config.dao.image_shape[0],
+                                 exp_config.dao.image_shape[1],
+                                 exp_config.dao.image_shape[2]
+                                 ))
+    for image_num, params in enumerate(image_list):
+        print(len(params))
+        digit_image, h_extend, v_extend, digit, num_clusters, cluster_name, sample_index = params[0], params[1], \
+                                                                                           params[2], params[3], \
+                                                                                           params[4], params[5], \
+                                                                                           params[6]
+        segmented_images[image_num] = segment(digit_image,
+                                              h_extend=h_extend,
+                                              v_extend=v_extend,
+                                              digit=digit,
+                                              num_clusters=num_clusters,
+                                              exp_config=exp_config,
+                                              cluster=cluster_name,
+                                              sample_index=sample_index,
+                                              display_image=False
+                                              )[0]
+
+    return segmented_images
 
     # impure_cluster = None
     # if "impure_cluster" in cluster_group_dict.keys():

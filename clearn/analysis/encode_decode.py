@@ -112,29 +112,38 @@ def decode_and_get_features(model: GenerativeModel, z: np.ndarray, batch_size: i
     reconstructed_images = np.zeros(feature_dimension)
     num_latent_vectors = z.shape[0]
     num_batches = num_latent_vectors // batch_size
-    dense1_des = []
-    dense2_des = []
-    reshaped_des = []
-    deconv1_des = []
+
+    features_dict = dict()
     for batch_num in range(num_batches):
-        decoded_images, dense1_de, dense2_de, reshaped_de, deconv1_de = model.decode_and_get_features(z[batch_num * batch_size: (batch_num + 1) * batch_size])
-        reconstructed_images[batch_num * batch_size: (batch_num + 1) * batch_size] = decoded_images
-        dense1_des.append(dense1_de)
-        dense2_des.append(dense2_de)
-        reshaped_des.append(reshaped_de)
-        deconv1_des.append(deconv1_de)
+        feature_names, decoded_images_and_features = model.decode_and_get_features(z[batch_num * batch_size: (batch_num + 1) * batch_size])
+        reconstructed_images[batch_num * batch_size: (batch_num + 1) * batch_size] = decoded_images_and_features[0]
+        for i, feature_name in enumerate(feature_names):
+            if feature_name not in features_dict:
+                print(decoded_images_and_features[i + 1].shape)
+                features_dict[feature_name] = np.zeros([len(z),
+                                                       decoded_images_and_features[i + 1].shape[1],
+                                                       decoded_images_and_features[i + 1].shape[2],
+                                                       decoded_images_and_features[i + 1].shape[3]]
+                                                       )
+            features_dict[feature_name][batch_num * batch_size: (batch_num + 1) * batch_size] = decoded_images_and_features[i + 1]
 
     left_out = num_latent_vectors % batch_size
     if left_out > 0:
         last_batch = np.zeros([batch_size, z.shape[1]])
         last_batch[0:left_out, :] = z[num_batches * batch_size:]
-        decoded_images, dense1_de, dense2_de, reshaped_de, deconv1_de = model.decode_and_get_features(last_batch)
-        reconstructed_images[num_batches * batch_size:] = decoded_images[0:left_out]
-        dense1_des.append(dense1_de)
-        dense2_des.append(dense2_de)
-        reshaped_des.append(reshaped_de)
-        deconv1_des.append(deconv1_de)
-    return reconstructed_images, dense1_des, dense2_des, reshaped_des, deconv1_des
+        feature_names, decoded_images_and_features = model.decode_and_get_features(last_batch)
+        reconstructed_images[num_batches * batch_size:] = decoded_images_and_features[0][0:left_out]
+        for i, feature_name in enumerate(feature_names):
+            if feature_name not in features_dict:
+                features_dict[feature_name] = np.zeros([len(z),
+                                                       decoded_images_and_features[i + 1].shape[1],
+                                                       decoded_images_and_features[i + 1].shape[2],
+                                                       decoded_images_and_features[i + 1].shape[3]]
+                                                       )
+            features_dict[feature_name][num_batches * batch_size:] = decoded_images_and_features[i + 1][0:left_out]
+
+
+    return feature_names, reconstructed_images, features_dict
 
 
 def encode_and_get_features(model: GenerativeModel,
