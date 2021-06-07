@@ -149,7 +149,7 @@ def cluster_next_level_gmm(exp_config: ExperimentConfig,
         tf.reset_default_graph()
         for cluster in cluster_group_dict[cluster_type]:
             print(cluster.id, cluster.manual_annotation.label)
-            if cluster.manual_annotation.label not in classes:
+            if cluster_type != "unknown_cluster"  and cluster.manual_annotation.label not in classes:
                 continue
             _indices = np.where(cluster_labels == cluster.id)
             _df = df.iloc[_indices]
