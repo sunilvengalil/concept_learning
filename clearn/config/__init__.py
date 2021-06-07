@@ -103,7 +103,8 @@ class ExperimentConfig:
                  num_concepts=10,
                  supervise_weight_concepts=1,
                  uncorrelated_features=False,
-                 env=None
+                 env=None,
+                 translate_image=False
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -176,6 +177,7 @@ class ExperimentConfig:
         self.strides = strides
         self.num_dense_layers = num_dense_layers
         self.uncorrelated_features = uncorrelated_features
+        self.translate_image = translate_image
 
     @property
     def num_train_samples(self):
@@ -228,6 +230,7 @@ class ExperimentConfig:
         config_json["STRIDES"] = self.strides
         config_json["NUM_DENSE_LAYER"] = self.num_dense_layers
         config_json["UNCORRELATED_FEATURES"] = self.uncorrelated_features
+        config_json["TRANSLATE_IMAGE"] = self.translate_image
 
         return config_json
 
@@ -355,7 +358,7 @@ class ExperimentConfig:
         self.strides = exp_config_dict["STRIDES"],
         self.num_dense_layers = exp_config_dict["NUM_DENSE_LAYERS"]
         self.num_dense_layers = exp_config_dict["UNCORRELATED_FEATURES"]
-
+        self.translate_image = exp_config["TRANSLATE_IMAGE"]
 
 
 if __name__ == "__main__":

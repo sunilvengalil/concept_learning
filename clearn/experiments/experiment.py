@@ -220,7 +220,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             num_individual_samples_annotated=0,
                                             num_samples_wrongly_annotated=0,
                                             total_confidence_of_wrong_annotation=0,
-                                            uncorrelated_features=False
+                                            uncorrelated_features=False,
+                                            translate_image=False
                                             ):
     if dao is None:
         dao = get_dao(dataset_name, split_name, num_val_samples)
@@ -264,7 +265,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                   num_concepts=num_concepts,
                                   supervise_weight_concepts=supervise_weight_concepts,
                                   strides=strides,
-                                  uncorrelated_features=uncorrelated_features
+                                  uncorrelated_features=uncorrelated_features,
+                                  translate_image = translate_image
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)
@@ -303,8 +305,8 @@ def initialize_model_train_and_get_features(experiment_name,
                           test_data_iterator,
                           train_val_data_iterator,
                           num_individual_samples_annotated=num_individual_samples_annotated,
-                          num_samples_wrongly_annotated=num_individual_samples_annotated,
-                          total_confidence_of_wrong_annotation=num_individual_samples_annotated
+                          num_samples_wrongly_annotated=num_samples_wrongly_annotated,
+                          total_confidence_of_wrong_annotation=total_confidence_of_wrong_annotation
                           )
         print("Starting training")
         train_and_get_features(exp, model, train_val_data_iterator)

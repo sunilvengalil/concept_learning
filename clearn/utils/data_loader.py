@@ -8,6 +8,28 @@ import imageio
 from clearn.config import ExperimentConfig
 from clearn.dao.dao_factory import get_dao
 from clearn.dao.idao import IDao
+from random import randint
+
+def translate_random(im, max_pixels):
+    im = im.reshape(28, 28)
+    print(im.shape, max_pixels)
+    num_pixels = randint(0, max_pixels)
+    direction = randint(0, 3)
+    if num_pixels > 0:
+        if direction == 0:
+            # move down
+            im = np.pad(im, pad_width=((num_pixels,0), (0, 0)), mode="edge")[0:-num_pixels]
+        elif direction == 1:
+            # move up
+            im = np.pad(im, pad_width=((0, num_pixels), (0, 0)), mode="edge")[num_pixels:]
+        elif direction == 2:
+            # move left
+            im = np.pad(im, pad_width=( (0, 0), (0, num_pixels)), mode="edge")[:, num_pixels:]
+        elif direction == 3:
+            im = np.pad(im, pad_width=( (0, 0), (num_pixels, 0)), mode="edge")[:, 0:-num_pixels]
+    im = im.reshape(1, 784)
+    return im
+
 
 
 def load_images(_config, train_val_data_iterator, dataset_type="train"):
@@ -106,7 +128,8 @@ class TrainValDataIterator:
                             budget=1,
                             manual_annotation_file_concepts=None,
                             num_concepts_per_image_row = 7,
-                            num_concepts_per_image_col = 7
+                            num_concepts_per_image_col = 7,
+                            translate_images = False
                             ):
         """
         Creates and initialize an instance of TrainValDataIterator
@@ -116,6 +139,9 @@ class TrainValDataIterator:
         @param: manual_labels_config:
         """
         instance = cls(batch_size=batch_size, dao=dao)
+        instance.translate_images = translate_images
+        instance.max_pixels_to_translate = 4
+
         TrainValDataIterator.num_concepts_per_image_row = num_concepts_per_image_row
         TrainValDataIterator.num_concepts_per_image_col = num_concepts_per_image_col
 
@@ -245,10 +271,12 @@ class TrainValDataIterator:
                  seed=547,
                  manual_annotation_file_concepts=None,
                  num_concepts_per_image_row=7,
-                 num_concepts_per_image_col=7
+                 num_concepts_per_image_col=7,
+                 translate_image=False
                  ):
         TrainValDataIterator.num_concepts_per_image_row = num_concepts_per_image_row
         TrainValDataIterator.num_concepts_per_image_col = num_concepts_per_image_col
+        self.translate_image = translate_image
         self.budget = budget
         self.train_idx = 0
         self.val_idx = 0
@@ -323,7 +351,11 @@ class TrainValDataIterator:
                                                                          TrainValDataIterator.num_concepts,
                                                                          self.concepts_gt
                                                                          )
-
+            self.max_pixels_to_translate = 4
+            if translate_image:
+                translated = np.apply_along_axis(translate_random, 1, self.train_x.reshape(self.train_x.shape[0], 784),
+                                    max_pixels=self.max_pixels_to_translate)
+                self.train_x = translated.reshape((self.train_x.shape[0], 28, 28, 1))
             self.train_idx = 0
             self.val_idx = 0
 
@@ -376,6 +408,10 @@ class TrainValDataIterator:
             raise ValueError("dataset_type should be either 'train' or 'val' ")
 
     def reset_counter(self, dataset_type):
+        if self.translate_image:
+            translated = np.apply_along_axis(translate_random, 1, self.train_x.reshape(self.train_x.shape[0], 784),
+                                             max_pixels=self.max_pixels_to_translate)
+            self.train_x = translated.reshape((self.train_x.shape[0], 28, 28, 1))
         if dataset_type == "train":
             self.train_idx = 0
         elif dataset_type == "val":
