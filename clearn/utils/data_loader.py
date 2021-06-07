@@ -202,6 +202,11 @@ class TrainValDataIterator:
                                                                              )
 
         print(f"Total Manual annotation confidence {np.sum(instance.manual_annotation[:, 10])}")
+        if instance.translate_image:
+            translated = np.apply_along_axis(translate_random, 1, instance.train_x.reshape(instance.train_x.shape[0], 784),
+                                             max_pixels=instance.max_pixels_to_translate)
+            instance.train_x = translated.reshape((instance.train_x.shape[0], 28, 28, 1))
+
         instance.train_idx = 0
         instance.val_idx = 0
         return instance
