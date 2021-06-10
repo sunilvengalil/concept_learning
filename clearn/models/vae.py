@@ -494,11 +494,11 @@ class VAE(GenerativeModel):
         hidden_feature_names, hidden_features = self.get_encoder_features_list()
         features_list.extend(hidden_features)
 
-        mu, sigma, z, encoded_features = self.sess.run(features_list,
+        encoded_features = self.sess.run(features_list,
                                                        feed_dict={self.inputs: images
                                                                   })
 
-        return hidden_feature_names, mu, sigma, z, encoded_features
+        return hidden_feature_names, encoded_features[0], encoded_features[1], encoded_features[2], encoded_features[3:]
 
     def get_decoder_features_list(self):
         feature_list = []
