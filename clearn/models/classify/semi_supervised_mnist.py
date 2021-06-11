@@ -52,7 +52,7 @@ class SemiSupervisedClassifierMnist(VAE):
 
         if exp_config.fully_convolutional:
             latent_image_dim = self.image_sizes[len(exp_config.num_units)]
-            self.concepts_stride = 2
+            self.concepts_stride = 1
 
             if latent_image_dim[0] % self.concepts_stride == 0:
                 self.num_concpets_per_row = latent_image_dim[0] // self.concepts_stride
@@ -101,13 +101,20 @@ class SemiSupervisedClassifierMnist(VAE):
                                             1
                                             ]
                                     )
-            self.concepts_pred = conv2d(z_reshaped, self.exp_config.num_concepts, k_h=2, k_w=2, d_h=1, d_w=1, stddev=0.02, name="predict_concepts")
+            self.concepts_pred = conv2d(z_reshaped,
+                                        self.exp_config.num_concepts,
+                                        k_h=2,
+                                        k_w=2,
+                                        d_h=self.concepts_stride,
+                                        d_w=self.concepts_stride,
+                                        stddev=0.02,
+                                        name="predict_concepts")
         self.y_pred = linear(self.z, self.dao.num_classes)
         if self.exp_config.fully_convolutional:
             self.supervised_loss_concepts = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.concepts_labels,
-                                                                             logits=self.concepts_pred,
-                                                                             weights=self.is_concepts_annotated
-                                                                             )
+                                                                                      logits=self.concepts_pred,
+                                                                                      weights=self.is_concepts_annotated
+                                                                                      )
         self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
                                                                          logits=self.y_pred,
                                                                          weights=self.is_manual_annotated
