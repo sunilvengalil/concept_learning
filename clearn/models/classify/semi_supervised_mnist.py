@@ -100,8 +100,8 @@ class SemiSupervisedClassifierMnist(VAE):
                                             self.image_sizes[len(self.exp_config.num_units)][0],
                                             1
                                             ]
-                                           )
-            self.concepts_pred = conv2d(z_reshaped, self.exp_config.num_concepts, k_h=2, k_w=2, d_h=2, d_w=2, stddev=0.02, name="predict_concepts")
+                                    )
+            self.concepts_pred = conv2d(z_reshaped, self.exp_config.num_concepts, k_h=2, k_w=2, d_h=1, d_w=1, stddev=0.02, name="predict_concepts")
         self.y_pred = linear(self.z, self.dao.num_classes)
         if self.exp_config.fully_convolutional:
             self.supervised_loss_concepts = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.concepts_labels,
