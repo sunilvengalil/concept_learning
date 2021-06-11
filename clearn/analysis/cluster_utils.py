@@ -165,7 +165,8 @@ def cluster_next_level_gmm(exp_config: ExperimentConfig,
             )
             df[cluster_column_name_2].iloc[_indices] = _cluster_labels
             print(posterior_proba_level_2.shape, _cluster_labels.shape)
-            for i in range(10):
+
+            for i in range(num_clusters):
                 __indices = np.where((cluster_labels == cluster.id) &
                                      (df[cluster_column_name_2].values == i))[0]
                 df[f"confidence_level_2_{cluster.id}_{i}"] = 0
@@ -463,7 +464,9 @@ def get_cluster_groups(manual_labels,
                        cluster_centers,
                        cluster_labels,
                        df,
-                       parent_indices=None):
+                       parent_indices=None,
+                       level=1,
+                       parent_cluster_id = None):
     """
     Create groups of clusters based on manual label given to each cluster. Different categories of cluster group are
 
@@ -486,6 +489,10 @@ def get_cluster_groups(manual_labels,
 
     cluster_groups_dict = dict()
     for cluster_num, cluster_center_label in enumerate(manual_labels):
+        if parent_cluster_id is not None:
+            name = f"cluster_{parent_cluster_id}_{cluster_num}"
+        else:
+            name = f"cluster_{cluster_num}"
         if parent_indices is None:
             _df = get_samples_for_cluster(df, cluster_num, cluster_column_name)
             indices = np.where(df[cluster_column_name].values == cluster_num)
@@ -506,9 +513,9 @@ def get_cluster_groups(manual_labels,
             manual_annotation = ManualAnnotation(cluster_center_label,
                                                  manual_confidence[cluster_num])
             cluster = Cluster(cluster_id=cluster_num,
-                              name=f"cluster_{cluster_num}",
+                              name=name,
                               cluster_details=cluster_details,
-                              level=1,
+                              level=level,
                               manual_annotation=manual_annotation)
             if "impure_cluster" in cluster_groups_dict.keys():
                 cluster_groups_dict["impure_cluster"].add_cluster(cluster)
@@ -517,10 +524,11 @@ def get_cluster_groups(manual_labels,
         elif cluster_center_label == -1:
             # unknown cluster
             manual_annotation = ManualAnnotation(cluster_center_label, manual_confidence[cluster_num])
+
             cluster = Cluster(cluster_id=cluster_num,
-                              name=f"cluster_{cluster_num}",
+                              name=name,
                               cluster_details=cluster_details,
-                              level=1,
+                              level=level,
                               manual_annotation=manual_annotation
                               )
             if "unknown_cluster" in cluster_groups_dict.keys():
@@ -532,9 +540,9 @@ def get_cluster_groups(manual_labels,
             # good/average/low confidence
             manual_annotation = ManualAnnotation(cluster_center_label, manual_confidence[cluster_num])
             cluster = Cluster(cluster_id=cluster_num,
-                              name="cluster_".format(cluster_num),
+                              name=name,
                               cluster_details=cluster_details,
-                              level=1,
+                              level=level,
                               manual_annotation=manual_annotation)
             cluster_group_label = manual_annotation.get_label()
             if cluster_group_label in cluster_groups_dict.keys():
@@ -689,7 +697,8 @@ def process_second_level_clusters(df,
                                                         _cluster_centers,
                                                         _cluster_labels,
                                                         df,
-                                                        _indices
+                                                        _indices,
+                                                        parent_cluster_id=f"{cluster_id}"
                                                         )
         _, cluster = get_cluster(cluster_id, cluster_group_dict)
         cluster.set_next_level_clusters(cluster_level_2_group_dict)
