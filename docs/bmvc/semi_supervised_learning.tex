@@ -107,6 +107,9 @@ Also instead of using a separate SVM classifier, we augment the VAE by adding ad
 We demonstrate the proposed approach by performing experiments on MNIST dataset.
 We split the 50,000 training samples in MNIST dataset into  train (70\%) and validate (30\%).
 Performance on the validation set is used for hyper parameter tuning.
+Since MNIST images are centered, in order to achieve translation invariance during training, each image was translated by $t$ pixels in one of the four direction - up, down, left and right.
+For each image one of the direction is chosen randomly from the set \{up,down,left,right\} with equal probability for each direction.
+Also the number of pixels to translate $t$ are obtained by chosing an interger from the set \{0,1,2,3,4\} again with equal probablity for each element.
 
 \subsection{Neural Network architecture}
 
@@ -119,6 +122,8 @@ Performance on the validation set is used for hyper parameter tuning.
 \label{vae_architecture}
 \end{figure}
 
+TODO change fcnn
+
 Figure \ref{vae_architecture} shows the architecture of the proposed model.
 The model follows the usual encoder-decoder architecture found in VAE.
 The encoder consists of one down-sampling convolutional layer followed by two dense layers.
@@ -128,6 +133,7 @@ An additional softmax classification layer was added to classify the latent vect
 \subsection{Semi-supervised loss function and training}\label{section_loss_function}
 The variational autoencoder is initially trained until the reconstruction loss converges using the beta-VAE loss function \cite{beta_vae} given below.
 % \vspace{-0.3in}
+TODO add correlation loss
 \begin{equation} \label{vae_loss_eqn}
 L_{VAE} = -\sum_{i, j}(x_{ij}^n \ln \hat{x}_{ij}^n
 + (1 - x_{ij}^n) \ln(1 -  \hat{x}_{ij}^n ) )\\
