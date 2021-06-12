@@ -74,7 +74,10 @@ class Model(ABC):
             if check_point_epochs is not None:
                 num_training_samples = self.dao.number_of_training_samples // self.exp_config.BATCH_SIZE
                 print("num_training_samples", num_training_samples)
-                steps = check_point_epochs * num_training_samples + 1
+                if check_point_epochs < 6:
+                    steps = check_point_epochs * num_training_samples + 1
+                else:
+                    steps = check_point_epochs * num_training_samples
                 ckpt_name = f"{self._model_name_}.model-{steps}"
             print("ckpt_name", ckpt_name)
             self.saver.restore(self.sess, os.path.join(checkpoint_dir, ckpt_name))
