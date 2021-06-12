@@ -167,7 +167,7 @@ def save_single_image(images, path, epoch, step, training_batch, eval_batch, eva
 
 
 def save_image(image, size, image_file_name):
-    scaler = MinMaxScaler(feature_range=(-0.99, 0.99))
+    scaler = MinMaxScaler(feature_range=(0, 0.99))
     image_np = np.asarray(image)
     if len(image_np.shape) == 3:
         im = scaler.fit_transform(image_np.reshape(-1, image_np.shape[1]  * image_np.shape[2] )).reshape(image_np.shape)
