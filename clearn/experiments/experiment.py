@@ -278,7 +278,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                                          dao,
                                                          exp_config,
                                                          num_epochs_completed,
-                                                         split_name
+                                                         split_name,
+                                                         translate_image
                                                          )
 
     if test_data_iterator is None:
@@ -336,7 +337,8 @@ def get_train_val_iterator(create_split: bool,
                            dao: IDao,
                            exp_config: ExperimentConfig,
                            num_epochs_completed: int,
-                           split_name: str):
+                           split_name: str,
+                           translate_image):
     split_filename = exp_config.DATASET_PATH + split_name + ".json"
     manual_annotation_file_name = f"manual_annotation.csv"
 
@@ -357,7 +359,8 @@ def get_train_val_iterator(create_split: bool,
                                                                                manual_annotation_file=manual_annotation_file,
                                                                                budget=exp_config.budget,
                                                                                num_concepts_per_image_row=num_concepts_per_row,
-                                                                               num_concepts_per_image_col=num_concepts_per_col
+                                                                               num_concepts_per_image_col=num_concepts_per_col,
+                                                                               translate_image=translate_image
                                                                                )
     elif create_split:
         train_val_data_iterator = TrainValDataIterator(dataset_path=exp_config.DATASET_ROOT_PATH,
@@ -373,7 +376,8 @@ def get_train_val_iterator(create_split: bool,
                                                        seed=exp_config.seed,
                                                        budget=exp_config.budget,
                                                        num_concepts_per_image_row=num_concepts_per_row,
-                                                       num_concepts_per_image_col=num_concepts_per_col
+                                                       num_concepts_per_image_col=num_concepts_per_col,
+                                                       translate_image=translate_image
                                                        )
     else:
         raise Exception(f"File does not exists {split_filename}")

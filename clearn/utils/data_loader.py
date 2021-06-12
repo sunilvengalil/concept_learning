@@ -129,7 +129,7 @@ class TrainValDataIterator:
                             manual_annotation_file_concepts=None,
                             num_concepts_per_image_row = 7,
                             num_concepts_per_image_col = 7,
-                            translate_images = False
+                            translate_image = False
                             ):
         """
         Creates and initialize an instance of TrainValDataIterator
@@ -139,7 +139,7 @@ class TrainValDataIterator:
         @param: manual_labels_config:
         """
         instance = cls(batch_size=batch_size, dao=dao)
-        instance.translate_images = translate_images
+        instance.translate_image = translate_image
         instance.max_pixels_to_translate = 4
 
         TrainValDataIterator.num_concepts_per_image_row = num_concepts_per_image_row
