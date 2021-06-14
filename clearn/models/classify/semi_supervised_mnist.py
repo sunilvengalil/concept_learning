@@ -182,10 +182,10 @@ class SemiSupervisedClassifierMnist(VAE):
                 # and next value is confidence
                 batch_images, _, manual_labels, manual_labels_concepts = train_val_data_iterator.get_next_batch("train")
                 if num_images_to_save > images_saved:
-                    save_images(batch_images,
+                    save_images(batch_images[0:64],
                                 [manifold_h, manifold_w],
                                 self.exp_config.PREDICTION_RESULTS_PATH + "/" + f"train_{batch}.png")
-                    images_saved += batch_images.shape[0]
+                    images_saved += 64
 
                 if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                     break
