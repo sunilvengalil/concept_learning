@@ -344,7 +344,7 @@ class VAE(GenerativeModel):
                     for rp in retention_policies:
                         rp.update_heap(cost=nll_batch,
                                        exp_config=self.exp_config,
-                                       data=[reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch])
+                                       data=[reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch, batch_images])
                 except:
                     print(f"Shape of mse is {nll_batch.shape}")
                     traceback.print_exc()
@@ -405,12 +405,18 @@ class VAE(GenerativeModel):
             if dataset_type.upper() == rp.data_type.upper():
                 for image_no in range(num_images):
                     file_image = f"{dataset_type}_{rp.policy_type}_{image_no}.png"
+                    original_image_filename = f"orig_{dataset_type}_{rp.policy_type}_{image_no}.png"
                     file_label = f"{dataset_type}_{rp.policy_type}_{image_no}_labels.json"
                     file_loss = f"{dataset_type}_{rp.policy_type}_{image_no}_loss.json"
                     samples_to_save = np.zeros((num_samples_per_image,
                                                 self.dao.image_shape[0],
                                                 self.dao.image_shape[1],
                                                 self.dao.image_shape[2]))
+                    original_image = np.zeros((num_samples_per_image,
+                                                self.dao.image_shape[0],
+                                                self.dao.image_shape[1],
+                                                self.dao.image_shape[2]))
+
                     labels = np.zeros(num_samples_per_image)
                     losses = np.zeros(num_samples_per_image)
                     for sample_num, e in enumerate(rp.data_queue[image_no * num_samples_per_image: (
@@ -418,7 +424,10 @@ class VAE(GenerativeModel):
                         samples_to_save[sample_num, :, :, :] = e[2][0]
                         labels[sample_num] = e[2][1]
                         losses[sample_num] = e[2][2]
+                        original_image[sample_num, :, :, :] = e[2][3]
+
                     save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file_image)
+                    save_image(original_image, [manifold_h, manifold_w], reconstructed_dir + original_image_filename)
 
                     with open(reconstructed_dir + file_label, "w") as fp:
                         json.dump(labels.tolist(), fp)
