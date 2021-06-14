@@ -205,7 +205,9 @@ class TrainValDataIterator:
         print(f"Total Manual annotation confidence {np.sum(instance.manual_annotation[:, 10])}")
         if instance.translate_image:
             instance.orig_train_x = deepcopy(instance.train_x)
-            translated = np.apply_along_axis(translate_random, 1, instance.train_x.reshape(instance.orig_train_x.shape[0], 784),
+            translated = np.apply_along_axis(translate_random,
+                                             1,
+                                             instance.orig_train_x.reshape(instance.orig_train_x.shape[0], 784),
                                              max_pixels=instance.max_pixels_to_translate)
             instance.train_x = translated.reshape((instance.orig_train_x.shape[0], 28, 28, 1))
 
@@ -363,7 +365,7 @@ class TrainValDataIterator:
                 self.orig_train_x = deepcopy(self.train_x)
                 translated = np.apply_along_axis(translate_random,
                                                  1,
-                                                 self.train_x.reshape(self.orig_train_x.shape[0], 784),
+                                                 self.orig_train_x.reshape(self.orig_train_x.shape[0], 784),
                                                  max_pixels=self.max_pixels_to_translate
                                                  )
                 self.train_x = translated.reshape((self.orig_train_x.shape[0], 28, 28, 1))
@@ -420,7 +422,9 @@ class TrainValDataIterator:
 
     def reset_counter(self, dataset_type):
         if self.translate_image:
-            translated = np.apply_along_axis(translate_random, 1, self.train_x.reshape(self.orig_train_x.shape[0], 784),
+            translated = np.apply_along_axis(translate_random,
+                                             1,
+                                             self.orig_train_x.reshape(self.orig_train_x.shape[0], 784),
                                              max_pixels=self.max_pixels_to_translate)
             self.train_x = translated.reshape((self.orig_train_x.shape[0], 28, 28, 1))
         if dataset_type == "train":
