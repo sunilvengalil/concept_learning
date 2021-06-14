@@ -338,7 +338,7 @@ def get_train_val_iterator(create_split: bool,
                            exp_config: ExperimentConfig,
                            num_epochs_completed: int,
                            split_name: str,
-                           translate_image):
+                           translate_image=False):
     split_filename = exp_config.DATASET_PATH + split_name + ".json"
     manual_annotation_file_name = f"manual_annotation.csv"
 
