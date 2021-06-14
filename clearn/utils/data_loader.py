@@ -1,5 +1,7 @@
 import os
 import gzip
+from copy import deepcopy
+
 import numpy as np
 import pandas as pd
 import json
@@ -202,9 +204,10 @@ class TrainValDataIterator:
 
         print(f"Total Manual annotation confidence {np.sum(instance.manual_annotation[:, 10])}")
         if instance.translate_image:
-            translated = np.apply_along_axis(translate_random, 1, instance.train_x.reshape(instance.train_x.shape[0], 784),
+            instance.orig_train_x = deepcopy(instance.train_x)
+            translated = np.apply_along_axis(translate_random, 1, instance.train_x.reshape(instance.orig_train_x.shape[0], 784),
                                              max_pixels=instance.max_pixels_to_translate)
-            instance.train_x = translated.reshape((instance.train_x.shape[0], 28, 28, 1))
+            instance.train_x = translated.reshape((instance.orig_train_x.shape[0], 28, 28, 1))
 
         instance.train_idx = 0
         instance.val_idx = 0
@@ -357,9 +360,13 @@ class TrainValDataIterator:
                                                                          )
             self.max_pixels_to_translate = 4
             if translate_image:
-                translated = np.apply_along_axis(translate_random, 1, self.train_x.reshape(self.train_x.shape[0], 784),
-                                    max_pixels=self.max_pixels_to_translate)
-                self.train_x = translated.reshape((self.train_x.shape[0], 28, 28, 1))
+                self.orig_train_x = deepcopy(self.train_x)
+                translated = np.apply_along_axis(translate_random,
+                                                 1,
+                                                 self.train_x.reshape(self.orig_train_x.shape[0], 784),
+                                                 max_pixels=self.max_pixels_to_translate
+                                                 )
+                self.train_x = translated.reshape((self.orig_train_x.shape[0], 28, 28, 1))
             self.train_idx = 0
             self.val_idx = 0
 
@@ -413,9 +420,9 @@ class TrainValDataIterator:
 
     def reset_counter(self, dataset_type):
         if self.translate_image:
-            translated = np.apply_along_axis(translate_random, 1, self.train_x.reshape(self.train_x.shape[0], 784),
+            translated = np.apply_along_axis(translate_random, 1, self.train_x.reshape(self.orig_train_x.shape[0], 784),
                                              max_pixels=self.max_pixels_to_translate)
-            self.train_x = translated.reshape((self.train_x.shape[0], 28, 28, 1))
+            self.train_x = translated.reshape((self.orig_train_x.shape[0], 28, 28, 1))
         if dataset_type == "train":
             self.train_idx = 0
         elif dataset_type == "val":
