@@ -15,7 +15,7 @@ from clearn.models.classify.classifier import ClassifierModel
 from clearn.models.vae import VAE
 from clearn.utils import prior_factory as prior
 from clearn.utils.retention_policy.policy import RetentionPolicy
-from clearn.utils.utils import get_latent_vector_column, get_padding_info
+from clearn.utils.utils import get_latent_vector_column, get_padding_info, save_images
 from scipy.special import softmax
 from sklearn.metrics import accuracy_score
 
@@ -166,13 +166,27 @@ class SemiSupervisedClassifierMnist(VAE):
         start_epoch = self.start_epoch
         self.num_batches_train = train_val_data_iterator.get_num_samples("train") // self.exp_config.BATCH_SIZE
         evaluation_run_for_last_epoch = False
+
+        images_saved = 0
+        num_images_to_save = 256
+        num_samples_per_image = 64
+        manifold_w = 4
+        manifold_h = num_samples_per_image // manifold_w
+
         for epoch in range(start_epoch, self.epoch):
             evaluation_run_for_last_epoch = False
             # get batch data
+
             for batch in range(start_batch_id, self.num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
                 batch_images, _, manual_labels, manual_labels_concepts = train_val_data_iterator.get_next_batch("train")
+                if num_images_to_save > images_saved:
+                    save_images(batch_images,
+                                [manifold_h, manifold_w],
+                                self.exp_config.PREDICTION_RESULTS_PATH + "/" + f"train_{batch}.png")
+                    images_saved += batch_images.shape[0]
+
                 if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                     break
                 batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
