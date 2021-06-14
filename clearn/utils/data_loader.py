@@ -12,7 +12,6 @@ from random import randint
 
 def translate_random(im, max_pixels):
     im = im.reshape(28, 28)
-    print(im.shape, max_pixels)
     num_pixels = randint(0, max_pixels)
     direction = randint(0, 3)
     if num_pixels > 0:
