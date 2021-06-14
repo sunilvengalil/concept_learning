@@ -28,10 +28,10 @@ class RetentionPolicy:
         Validation started
         """
 
-        if len(data) != 3:
+        if len(data) != 4:
             raise ValueError(f"Parameter data should be a list of lenght 3. Got {type(data)} of length {len(data)} instead")
 
-        reconstructed_images, labels, nlls = data[0], data[1], data[2]
+        reconstructed_images, labels, nlls, orig_images = data[0], data[1], data[2], data[3]
         if isinstance(costs, np.ndarray):
             costs = np.squeeze(costs)
             costs = costs.tolist()
@@ -52,15 +52,15 @@ class RetentionPolicy:
 
 
         try:
-            for cost, reconstructed_image, label, nll in zip(costs, reconstructed_images, labels, nlls):
+            for cost, reconstructed_image, label, nll, orig_image in zip(costs, reconstructed_images, labels, nlls, orig_images):
                 if len(self.data_queue) < self.N:
-                    heapq.heappush(self.data_queue, (-cost,  next(tiebreaker), [reconstructed_image, label, nll]))
+                    heapq.heappush(self.data_queue, (-cost,  next(tiebreaker), [reconstructed_image, label, nll, orig_image]))
                     if cost < current_max_in_heap:
                         current_max_in_heap = cost
                     # print("Cost", cost, current_max_in_heap)
                 else:
                     if cost < current_max_in_heap:
-                        _current_max_in_heap = heapq.heappushpop(self.data_queue, (-cost, next(tiebreaker),  [reconstructed_image, label, nll]))
+                        _current_max_in_heap = heapq.heappushpop(self.data_queue, (-cost, next(tiebreaker),  [reconstructed_image, label, nll, orig_image]))
                         current_max_in_heap = -_current_max_in_heap[0]
         except:
             print(f" Type of cost {type(cost)}. Cost:{cost}")
