@@ -59,13 +59,24 @@ def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False):
         if len(n_units) > 0:
             x = add_zero_padding(x, model.padding_added_row[layer_num], model.padding_added_col[layer_num])
             if model.exp_config.activation_hidden_layer == "RELU":
-                model.encoder_dict[f"layer_{layer_num}"] = lrelu(conv2d(x,
-                                                                        n_units[layer_num],
-                                                                        3, 3,
-                                                                        strides[layer_num],
-                                                                        strides[layer_num],
-                                                                        name=f"layer_{layer_num}")
-                                                                 )
+                if strides[layer_num] > 1:
+                    model.encoder_dict[f"layer_{layer_num}"] = max_pool_2d( lrelu(conv2d(x,
+                                                                            n_units[layer_num],
+                                                                            3, 3,
+                                                                            1,
+                                                                            1,
+                                                                            name=f"layer_{layer_num}") ),
+                                                                            2,
+                                                                            strides[layer_num]
+                                                                     )
+                else:
+                    model.encoder_dict[f"layer_{layer_num}"] = lrelu(conv2d(x,
+                                                                            n_units[layer_num],
+                                                                            3, 3,
+                                                                            strides[layer_num],
+                                                                            strides[layer_num],
+                                                                            name=f"layer_{layer_num}")
+                                                                     )
                 if model.exp_config.log_level == logging.DEBUG:
                     print(layer_num, model.encoder_dict[f"layer_{layer_num}"].shape)
                 for layer_num in range(1, len(n_units)):
@@ -73,12 +84,27 @@ def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False):
                                                                                     model.padding_added_row[layer_num],
                                                                                     model.padding_added_col[layer_num]
                                                                                     )
-                    model.encoder_dict[f"layer_{layer_num}"] = lrelu((conv2d(model.encoder_dict[f"layer_{layer_num - 1}"],
-                                                                               n_units[layer_num],
-                                                                               3, 3,
-                                                                               strides[layer_num],
-                                                                               strides[layer_num],
-                                                                               name=f"layer_{layer_num}")))
+                    if strides[layer_num] > 1:
+
+                        model.encoder_dict[f"layer_{layer_num}"] = max_pool_2d(lrelu((conv2d(model.encoder_dict[f"layer_{layer_num - 1}"],
+                                                                                   n_units[layer_num],
+                                                                                   3, 3,
+                                                                                   1,
+                                                                                   1,
+                                                                                   name=f"layer_{layer_num}"))),
+                                                                                2,
+                                                                                strides[layer_num]
+                                                                                )
+
+                    else:
+                        model.encoder_dict[f"layer_{layer_num}"] = lrelu(
+                            (conv2d(model.encoder_dict[f"layer_{layer_num - 1}"],
+                                    n_units[layer_num],
+                                    3, 3,
+                                    strides[layer_num],
+                                    strides[layer_num],
+                                    name=f"layer_{layer_num}")))
+
                     if model.exp_config.log_level == logging.DEBUG:
                         print(layer_num, model.encoder_dict[f"layer_{layer_num}"].shape)
             else:
