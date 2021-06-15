@@ -12,8 +12,9 @@ from clearn.dao.dao_factory import get_dao
 from clearn.dao.idao import IDao
 from random import randint
 
-def translate_random(im, max_pixels):
-    im = im.reshape(28, 28)
+
+def translate_random(im, max_pixels, image_shape):
+    im = im.reshape(image_shape[0], image_shape[1], image_shape[2])
     num_pixels = randint(0, max_pixels)
     direction = randint(0, 3)
     if num_pixels > 0:
@@ -28,9 +29,8 @@ def translate_random(im, max_pixels):
             im = np.pad(im, pad_width=( (0, 0), (0, num_pixels)), mode="edge")[:, num_pixels:]
         elif direction == 3:
             im = np.pad(im, pad_width=( (0, 0), (num_pixels, 0)), mode="edge")[:, 0:-num_pixels]
-    im = im.reshape(1, 784)
+    im = im.reshape(1, image_shape[0] * image_shape[1] * image_shape[2])
     return im
-
 
 
 def load_images(_config, train_val_data_iterator, dataset_type="train"):
@@ -207,9 +207,14 @@ class TrainValDataIterator:
             instance.orig_train_x = deepcopy(instance.train_x)
             translated = np.apply_along_axis(translate_random,
                                              1,
-                                             instance.orig_train_x.reshape(instance.orig_train_x.shape[0], 784),
-                                             max_pixels=instance.max_pixels_to_translate)
-            instance.train_x = translated.reshape((instance.orig_train_x.shape[0], 28, 28, 1))
+                                             instance.orig_train_x.reshape(instance.orig_train_x.shape[0],
+                                                                           dao.image_shape[0] * dao.image_shape[1]) * dao.image_shape[2],
+                                             max_pixels=instance.max_pixels_to_translate,
+                                             image_shape=dao.image_shape)
+            instance.train_x = translated.reshape((instance.orig_train_x.shape[0],
+                                                   dao.image_shape[0],
+                                                   dao.image_shape[1],
+                                                   dao.image_shape[2]))
 
         instance.train_idx = 0
         instance.val_idx = 0
@@ -365,10 +370,15 @@ class TrainValDataIterator:
                 self.orig_train_x = deepcopy(self.train_x)
                 translated = np.apply_along_axis(translate_random,
                                                  1,
-                                                 self.orig_train_x.reshape(self.orig_train_x.shape[0], 784),
-                                                 max_pixels=self.max_pixels_to_translate
+                                                 self.orig_train_x.reshape(self.orig_train_x.shape[0],
+                                                                           dao.image_shape[0] * dao.image_shape[1] * dao.image_shape[2]),
+                                                 max_pixels=self.max_pixels_to_translate,
+                                                 image_shape = dao.image_shape
                                                  )
-                self.train_x = translated.reshape((self.orig_train_x.shape[0], 28, 28, 1))
+                self.train_x = translated.reshape((self.orig_train_x.shape[0],
+                                                   dao.image_shape[0],
+                                                   dao.image_shape[1],
+                                                   dao.image_shape[2]))
             self.train_idx = 0
             self.val_idx = 0
 
@@ -424,9 +434,14 @@ class TrainValDataIterator:
         if self.translate_image:
             translated = np.apply_along_axis(translate_random,
                                              1,
-                                             self.orig_train_x.reshape(self.orig_train_x.shape[0], 784),
-                                             max_pixels=self.max_pixels_to_translate)
-            self.train_x = translated.reshape((self.orig_train_x.shape[0], 28, 28, 1))
+                                             self.orig_train_x.reshape(self.orig_train_x.shape[0],
+                                                                       self.dao.image_shape[0] * self.dao.image_shape[1] * self.dao.image_shape[2]),
+                                             max_pixels=self.max_pixels_to_translate,
+                                             image_shape=self.dao.image_shape)
+            self.train_x = translated.reshape((self.orig_train_x.shape[0],
+                                               self.dao.image_shape[0],
+                                               self.dao.image_shape[1],
+                                               self.dao.image_shape[2]))
         if dataset_type == "train":
             self.train_idx = 0
         elif dataset_type == "val":
@@ -488,21 +503,21 @@ def load_train(data_dir,
     return dao.load_train(data_dir, shuffle)
 
 
-def load_test_raw_data(data_dir):
-    data_dir = os.path.join(data_dir, "images/")
-
-    def extract_data(filename, num_data, head_size, data_size):
-        with gzip.open(filename) as bytestream:
-            bytestream.read(head_size)
-            buf = bytestream.read(data_size * num_data)
-            _data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
-        return _data
-
-    data = extract_data(data_dir + '/t10k-images-idx3-ubyte.gz', 10000, 16, 28 * 28)
-    test_x = data.reshape((10000, 28, 28, 1))
-    data = extract_data(data_dir + '/t10k-labels-idx1-ubyte.gz', 10000, 8, 1)
-    test_y = data.reshape(10000)
-    return test_x, test_y
+# def load_test_raw_data(data_dir):
+#     data_dir = os.path.join(data_dir, "images/")
+#
+#     def extract_data(filename, num_data, head_size, data_size):
+#         with gzip.open(filename) as bytestream:
+#             bytestream.read(head_size)
+#             buf = bytestream.read(data_size * num_data)
+#             _data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
+#         return _data
+#
+#     data = extract_data(data_dir + '/t10k-images-idx3-ubyte.gz', 10000, 16, 28 * 28)
+#     test_x = data.reshape((10000, 28, 28, 1))
+#     data = extract_data(data_dir + '/t10k-labels-idx1-ubyte.gz', 10000, 8, 1)
+#     test_y = data.reshape(10000)
+#     return test_x, test_y
 
 
 def load_train_val(data_dir,
