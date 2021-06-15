@@ -380,7 +380,7 @@ def plot_epoch_vs_accuracy(root_path: str,
                     metric_values = df[f"{dataset_name}_{metric}_mean"]
                 else:
                     metric_values = df[f"{dataset_name}_{metric}"]
-                plt.plot(df["epoch"], metric_values, label=f"{dataset_type}", lw=2)
+                plt.plot(df["epoch"], metric_values, label=f"{dataset_type}_{run_id}", lw=2)
 
         else:
             file_prefix = "/metrics_*.csv"
