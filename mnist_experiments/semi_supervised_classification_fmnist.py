@@ -26,7 +26,7 @@ if __name__ == '__main__':
                                             model_type=MODEL_TYPE_VAE_SEMI_SUPERVISED_MNIST,
                                             strides=[2, 1, 1],
                                             num_dense_layers=1,
-                                            translate_image=True,
-                                            dataset_name="fashion_mnist"
+                                            dataset_name="fashion_mnist",
+                                            translate_image=False
                                             )
     tf.reset_default_graph()
