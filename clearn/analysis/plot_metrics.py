@@ -318,7 +318,7 @@ def plot_epoch_vs_accuracy(root_path: str,
                            num_units: List[int],
                            num_cluster_config: str,
                            z_dim: int,
-                           run_id: int,
+                           run_ids: List[int],
                            strides:List[int],
                            num_dense_layers:int,
                            dataset_types: List[str] = ["train", "test"],
@@ -339,8 +339,8 @@ def plot_epoch_vs_accuracy(root_path: str,
                            ):
     axis_font = {'fontname':'Arial', 'size':'26', "fontweight":"bold"}
 
-    dao = get_dao(dataset_name, split_name, num_val_samples)
     if exp_config is None:
+        dao = get_dao(dataset_name, split_name, num_val_samples)
         exp_config = ExperimentConfig(root_path=root_path,
                                       num_decoder_layer=num_decoder_layer,
                                       z_dim=z_dim,
@@ -364,36 +364,38 @@ def plot_epoch_vs_accuracy(root_path: str,
                                       num_dense_layers=num_dense_layers
                                       )
 
-    if not exp_config.check_and_create_directories(run_id, False):
-        raise Exception(" Result directories does not exist")
-
     file_prefix = f"/{metric}_*.csv"
     plt.figure(figsize=(16, 9))
 
-    print(exp_config.ANALYSIS_PATH + file_prefix)
-    if os.path.isfile(exp_config.ANALYSIS_PATH + file_prefix):
-        df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
-        df = df[df["epoch"] < max_epoch]
-        for dataset_name in dataset_types:
-            print(dataset_name)
-            if f"{dataset_name}_{metric}_mean" in df.columns:
-                metric_values = df[f"{dataset_name}_{metric}_mean"]
-            else:
-                metric_values = df[f"{dataset_name}_{metric}"]
-    else:
-        file_prefix = "/metrics_*.csv"
-        df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
-        df = df[df["epoch"] < max_epoch]
-        for dataset_type in dataset_types:
-            if confidence:
-                metric_values = df[f"{dataset_type}_{metric}_std"].values
-            else:
-                if f"{dataset_type}_{metric}_mean" in df.columns:
-                    metric_values = df[f"{dataset_type}_{metric}_mean"].values
+    for run_id in run_ids:
+        if not exp_config.check_and_create_directories(run_id, False):
+            raise Exception("Result directories does not exist")
+        print(exp_config.ANALYSIS_PATH + file_prefix)
+        if os.path.isfile(exp_config.ANALYSIS_PATH + file_prefix):
+            df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
+            df = df[df["epoch"] < max_epoch]
+            for dataset_name in dataset_types:
+                print(dataset_name)
+                if f"{dataset_name}_{metric}_mean" in df.columns:
+                    metric_values = df[f"{dataset_name}_{metric}_mean"]
                 else:
-                    metric_values = df[f"{dataset_type}_{metric}"].values
+                    metric_values = df[f"{dataset_name}_{metric}"]
+                plt.plot(df["epoch"], metric_values, label=f"{dataset_type}", lw=2)
 
-    plt.plot(df["epoch"], metric_values, label=f"{dataset_type}", lw=2)
+        else:
+            file_prefix = "/metrics_*.csv"
+            df = read_accuracy_from_file(exp_config.ANALYSIS_PATH + file_prefix)
+            df = df[df["epoch"] < max_epoch]
+            for dataset_type in dataset_types:
+                if confidence:
+                    metric_values = df[f"{dataset_type}_{metric}_std"].values
+                else:
+                    if f"{dataset_type}_{metric}_mean" in df.columns:
+                        metric_values = df[f"{dataset_type}_{metric}_mean"].values
+                    else:
+                        metric_values = df[f"{dataset_type}_{metric}"].values
+
+                plt.plot(df["epoch"], metric_values, label=f"{dataset_type}_{run_id}", lw=2)
 
     plt.xlabel("Epochs", **axis_font)
     plt.ylabel(metric.capitalize(), **axis_font)
