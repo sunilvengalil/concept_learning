@@ -227,7 +227,7 @@ class VAE(GenerativeModel):
                         print(f"{metric}: train: {self.metrics[VAE.dataset_type_train][metric][-1]}")
                         print(f"{metric}: val: {self.metrics[VAE.dataset_type_val][metric][-1]}")
                         print(f"{metric}: test: {self.metrics[VAE.dataset_type_test][metric][-1]}")
-
+                    self.save_metrics()
                     evaluation_run_for_last_epoch = True
 
             train_val_data_iterator.reset_counter("train")
@@ -272,7 +272,7 @@ class VAE(GenerativeModel):
                 df[f"val_{metric}_std"] = np.asarray(self.metrics["val"][metric])[:, 2]
                 df[f"test_{metric}_std"] = np.asarray(self.metrics["test"][metric])[:, 2]
 
-            df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"{metric}_{self.num_training_epochs_completed}.csv"),
+            df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"{metric}_{self.start_epoch}.csv"),
                       index=False)
             max_value = df[f"test_{metric}_mean"].max()
             print(f"Max test {metric}", max_value)
