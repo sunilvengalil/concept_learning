@@ -435,6 +435,8 @@ class VAE(GenerativeModel):
                         if len(image_np.shape) == 4:
                             im = scaler.fit_transform(image_np.reshape(-1, image_np.shape[1] * image_np.shape[2] *
                                                                        image_np.shape[3])).reshape(image_np.shape)
+                    else:
+                        im = samples_to_save
                     save_image(im, [manifold_h, manifold_w], reconstructed_dir + file_image)
                     print(f"Saving original image  to {reconstructed_dir + original_image_filename}")
                     save_image(original_image, [manifold_h, manifold_w], reconstructed_dir + original_image_filename)
