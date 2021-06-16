@@ -129,14 +129,29 @@ class SemiSupervisedClassifierMnist(VAE):
               self.exp_config.beta * self.KL_divergence + \
               self.exp_config.supervise_weight * self.supervised_loss
 
-        last_feature = list(self.decoder_dict.keys())[-1]
         if self.exp_config.uncorrelated_features:
-            f = self.decoder_dict[last_feature]
-            identity = tf.eye(num_rows=int(f.shape[3]),num_columns=int(f.shape[3]), batch_shape=[int(f.shape[0])], dtype=tf.float32)
-            f = tf.reshape(f, [-1, int(f.shape[1]) * int(f.shape[2]), int(f.shape[3]) ])
+            first_feature = list(self.encoder_features.keys())[0]
+            f = self.encoder_dict[first_feature]
+            identity = tf.eye(num_rows=int(f.shape[3]), num_columns=int(f.shape[3]), batch_shape=[int(f.shape[0])],
+                              dtype=tf.float32)
+            f = tf.reshape(f, [-1, int(f.shape[1]) * int(f.shape[2]), int(f.shape[3])])
             corr = tfp.stats.correlation(f, sample_axis=1)
+            self.cross_loss = tf.norm(corr - identity)
+            for encoder_feature in list(self.encoder_dict.keys())[1:]:
+                f = self.encoder_dict[encoder_feature]
+                identity = tf.eye(num_rows=int(f.shape[3]), num_columns=int(f.shape[3]), batch_shape=[int(f.shape[0])],
+                                  dtype=tf.float32)
+                f = tf.reshape(f, [-1, int(f.shape[1]) * int(f.shape[2]), int(f.shape[3])])
+                corr = tfp.stats.correlation(f, sample_axis=1)
+                self.cross_loss += tf.norm(corr - identity)
 
-            self.corr_loss = tf.norm(corr - identity)
+            for decoder_feature in self.decoder_feature.keys():
+                f = self.decoder_feature[decoder_feature]
+                identity = tf.eye(num_rows=int(f.shape[3]), num_columns=int(f.shape[3]), batch_shape=[int(f.shape[0])],
+                                  dtype=tf.float32)
+                f = tf.reshape(f, [-1, int(f.shape[1]) * int(f.shape[2]), int(f.shape[3])])
+                corr = tfp.stats.correlation(f, sample_axis=1)
+                self.cross_loss += tf.norm(corr - identity)
             self.loss = self.loss + self.corr_loss
 
 
