@@ -18,7 +18,7 @@ import imageio
 from collections import defaultdict
 
 from clearn.config import ExperimentConfig
-from clearn.utils.data_loader import load_test_raw_data
+# from clearn.utils.data_loader import load_test_raw_data
 
 from sklearn.cluster import KMeans
 from yellowbrick.cluster import KElbowVisualizer

@@ -7,6 +7,7 @@ from typing import List
 import os
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
 
 from clearn.config import ExperimentConfig
 from clearn.config.common_path import get_encoded_csv_file
@@ -425,7 +426,16 @@ class VAE(GenerativeModel):
                         labels[sample_num] = e[2][1]
                         losses[sample_num] = e[2][2]
                         original_image[sample_num, :, :, :] = e[2][3]
-                    save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file_image)
+                    if self.exp_config.normalize_before_saving:
+                        scaler = MinMaxScaler(feature_range=(0, 0.99))
+                        image_np = np.asarray(samples_to_save)
+                        if len(image_np.shape) == 3:
+                            im = scaler.fit_transform(
+                                image_np.reshape(-1, image_np.shape[1] * image_np.shape[2])).reshape(image_np.shape)
+                        if len(image_np.shape) == 4:
+                            im = scaler.fit_transform(image_np.reshape(-1, image_np.shape[1] * image_np.shape[2] *
+                                                                       image_np.shape[3])).reshape(image_np.shape)
+                    save_image(im, [manifold_h, manifold_w], reconstructed_dir + file_image)
                     print(f"Saving original image  to {reconstructed_dir + original_image_filename}")
                     save_image(original_image, [manifold_h, manifold_w], reconstructed_dir + original_image_filename)
 

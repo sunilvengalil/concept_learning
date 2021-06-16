@@ -104,7 +104,8 @@ class ExperimentConfig:
                  supervise_weight_concepts=1,
                  uncorrelated_features=False,
                  env=None,
-                 translate_image=False
+                 translate_image=False,
+                 normalize_before_saving=False
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -178,6 +179,7 @@ class ExperimentConfig:
         self.num_dense_layers = num_dense_layers
         self.uncorrelated_features = uncorrelated_features
         self.translate_image = translate_image
+        self.normalize_before_saving = normalize_before_saving
 
     @property
     def num_train_samples(self):
@@ -231,7 +233,7 @@ class ExperimentConfig:
         config_json["NUM_DENSE_LAYER"] = self.num_dense_layers
         config_json["UNCORRELATED_FEATURES"] = self.uncorrelated_features
         config_json["TRANSLATE_IMAGE"] = self.translate_image
-
+        config_json["NORMALIZE_BEFORE_SAVING"] = self.normalize_before_saving
         return config_json
 
     def get_exp_name_with_parameters(self, run_id):
@@ -359,7 +361,7 @@ class ExperimentConfig:
         self.num_dense_layers = exp_config_dict["NUM_DENSE_LAYERS"]
         self.num_dense_layers = exp_config_dict["UNCORRELATED_FEATURES"]
         self.translate_image = exp_config["TRANSLATE_IMAGE"]
-
+        self.normalize_before_saving = exp_config["NORMALIZE_BEFORE_SAVING"]
 
 if __name__ == "__main__":
     _root_path = "/Users/sunilv/concept_learning_exp"
