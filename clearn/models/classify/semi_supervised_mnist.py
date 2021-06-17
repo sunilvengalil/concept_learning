@@ -130,7 +130,7 @@ class SemiSupervisedClassifierMnist(VAE):
               self.exp_config.supervise_weight * self.supervised_loss
 
         if self.exp_config.uncorrelated_features:
-            first_feature = list(self.encoder_features.keys())[0]
+            first_feature = list(self.encoder_dict.keys())[0]
             f = self.encoder_dict[first_feature]
             identity = tf.eye(num_rows=int(f.shape[3]), num_columns=int(f.shape[3]), batch_shape=[int(f.shape[0])],
                               dtype=tf.float32)
@@ -145,8 +145,8 @@ class SemiSupervisedClassifierMnist(VAE):
                 corr = tfp.stats.correlation(f, sample_axis=1)
                 self.cross_loss += tf.norm(corr - identity)
 
-            for decoder_feature in self.decoder_feature.keys():
-                f = self.decoder_feature[decoder_feature]
+            for decoder_feature in self.decoder_dict.keys():
+                f = self.decoder_dict[decoder_feature]
                 identity = tf.eye(num_rows=int(f.shape[3]), num_columns=int(f.shape[3]), batch_shape=[int(f.shape[0])],
                                   dtype=tf.float32)
                 f = tf.reshape(f, [-1, int(f.shape[1]) * int(f.shape[2]), int(f.shape[3])])
