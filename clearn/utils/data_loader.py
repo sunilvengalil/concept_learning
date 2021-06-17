@@ -32,6 +32,10 @@ def translate_random(im, max_pixels, image_shape):
     im = im.reshape(1, image_shape[0] * image_shape[1] * image_shape[2])
     return im
 
+def generate_concepts(im):
+    pass
+
+
 
 def load_images(_config, train_val_data_iterator, dataset_type="train"):
     dao = get_dao(_config.dataset_name, _config.split_name, _config.num_val_samples)

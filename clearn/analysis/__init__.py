@@ -1,3 +1,5 @@
+from typing import List
+import Numpy as np
 # Column names in annotated csv file
 CSV_COL_NAME_EPOCH = "epoch"
 CSV_COL_NAME_STEP = "step"
@@ -97,3 +99,22 @@ class ClusterGroup:
         for cluster in self.cluster_list:
             if cluster.id == cluster_num:
                 return cluster
+
+
+class ImageConcept:
+    def __init__(self,
+                 digit_image:np.ndarray,
+                 h_extend:List,
+                 v_extend:List,
+                 digit:int,
+                 num_clusters:int,
+                 cluster_name:str,
+                 sample_index:int):
+        self.digit_image = digit_image
+        self.h_extend = h_extend
+        self.v_extend = v_extend
+        self.digit = digit
+        self.num_clusters = num_clusters
+        self.cluster_name = cluster_name
+        self.sample_index = sample_index
+
