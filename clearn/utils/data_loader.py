@@ -204,7 +204,7 @@ class TrainValDataIterator:
                 # create a numpy array of dimension (num_training_samples, num_unique_labels) and  set the one-hot encoded label
                 # with uniform probability distribution for each label. i.e in case of MNIST each row will be set as one of the symbol
                 # {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
-                _manual_annotation = np.random.choice(instance.unique_labels, len(instance.train_x))
+                _manual_annotation = np.random.choice(dao.num_classes, len(instance.train_x))
 
         if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
             if manual_annotation_file_concepts is not None and os.path.isfile(manual_annotation_file_concepts):
