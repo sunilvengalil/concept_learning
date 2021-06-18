@@ -43,7 +43,7 @@ class MnistDao(IDao):
         y = np.asarray(data.reshape(self.number_of_testing_samples)).astype(np.int)
         return x, y
 
-    def load_train(self, data_dir, shuffle):
+    def load_train(self, data_dir, shuffle, split_location=None):
         tr_x, tr_y = self.load_train_val_1(data_dir)
         if shuffle:
             seed = 547

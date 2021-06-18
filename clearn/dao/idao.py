@@ -37,7 +37,7 @@ class IDao(ABC):
     def num_classes(self) -> int:
         pass
 
-    def load_train(self, data_dir, shuffle):
+    def load_train(self, data_dir, shuffle, split_location=None):
         pass
 
     @abstractmethod

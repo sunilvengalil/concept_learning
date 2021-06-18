@@ -104,7 +104,8 @@ class ExperimentConfig:
                  supervise_weight_concepts=1,
                  uncorrelated_features=False,
                  env=None,
-                 translate_image=False
+                 translate_image=False,
+                 dao=None
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -116,7 +117,7 @@ class ExperimentConfig:
         # if ExperimentConfig._instance is not None:
         #     raise Exception("ExperimentConfig is singleton class. Use class method get_exp_config() instead")
         if root_path is not None :
-            #TODO validate if the folder can be created or not
+            # TODO validate if the folder can be created or not
             self.root_path = root_path
         elif env is not None:
             if env == "sunil_local":
@@ -128,11 +129,9 @@ class ExperimentConfig:
 
         if len(num_units) < 1 or len(num_units) > 5 :
             print(num_units)
-            raise ValueError("Length of num_units should be 2 or 3")
+            raise ValueError("Length of num_units should be between 1 and 5")
 
-        # num_units.append(z_dim * 2)
         self.learning_rate = learning_rate
-
         self.num_decoder_layer = len(num_units) + 1
         self.Z_DIM = z_dim
         self.num_units = num_units
@@ -146,14 +145,25 @@ class ExperimentConfig:
                                                                   dataset_name,
                                                                   self.BATCH_SIZE,
                                                                   z_dim)
-        self.DATASET_ROOT_PATH = os.path.join(self.root_path, "datasets/" + dataset_name)
+        _dataset_name = dataset_name
+        if _dataset_name =="mnist_concepts":
+            _dataset_name = "mnist"
+        self.DATASET_ROOT_PATH = os.path.join(self.root_path, "datasets/" + _dataset_name)
         self.name = name
         self.num_val_samples = num_val_samples
         self.num_cluster_config = num_cluster_config
         self.confidence_decay_factor = confidence_decay_factor
         self.manual_labels_config = manual_labels_config
         self.reconstruction_weight = reconstruction_weight
-        self.dao = get_dao(dataset_name, split_name, num_val_samples)
+        if dao is None:
+            # base_path = get_base_path()
+            #
+            # analysis_path = os.path.join(base_path, "analysis/")
+            self.dao = get_dao(dataset_name,
+                          split_name,
+                          num_val_samples)
+        else:
+            self.dao = dao
         # self.num_train_samples = (self.dao.number_of_training_samples  // batch_size) * batch_size
         self.activation_hidden_layer = activation_hidden_layer
         self.activation_output_layer = activation_output_layer
@@ -247,7 +257,11 @@ class ExperimentConfig:
 
         self.TRAINED_MODELS_PATH = os.path.join(self.BASE_PATH, "trained_models/")
 
-        self.DATASET_PATH = os.path.join(self.DATASET_ROOT_PATH, self.split_name + "/")
+        if self.dataset_name == "mnist_concepts":
+            dataset_temp = os.path.join(self.root_path, "datasets/" + self.dataset_name)
+            self.DATASET_PATH = os.path.join(dataset_temp, self.split_name + "/")
+        else:
+            self.DATASET_PATH = os.path.join(self.DATASET_ROOT_PATH, self.split_name + "/")
 
         self.PREDICTION_RESULTS_PATH = os.path.join(self.BASE_PATH, "prediction_results/")
         self.reconstructed_images_path = os.path.join(self.PREDICTION_RESULTS_PATH, "reconstructed_images/")

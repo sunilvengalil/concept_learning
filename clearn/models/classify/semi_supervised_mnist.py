@@ -15,7 +15,7 @@ from clearn.models.classify.classifier import ClassifierModel
 from clearn.models.vae import VAE
 from clearn.utils import prior_factory as prior
 from clearn.utils.retention_policy.policy import RetentionPolicy
-from clearn.utils.utils import get_latent_vector_column, get_padding_info
+from clearn.utils.utils import get_latent_vector_column, get_padding_info, save_images
 from scipy.special import softmax
 from sklearn.metrics import accuracy_score
 
@@ -52,7 +52,7 @@ class SemiSupervisedClassifierMnist(VAE):
 
         if exp_config.fully_convolutional:
             latent_image_dim = self.image_sizes[len(exp_config.num_units)]
-            self.concepts_stride = 2
+            self.concepts_stride = 1
 
             if latent_image_dim[0] % self.concepts_stride == 0:
                 self.num_concpets_per_row = latent_image_dim[0] // self.concepts_stride
@@ -96,12 +96,19 @@ class SemiSupervisedClassifierMnist(VAE):
     def compute_and_optimize_loss(self):
         if self.exp_config.fully_convolutional:
             z_reshaped = tf.reshape(self.z, [self.exp_config.BATCH_SIZE,
-                                            self.image_sizes[len(self.exp_config.num_units)][0],
-                                            self.image_sizes[len(self.exp_config.num_units)][0],
-                                            1
+                                             self.image_sizes[len(self.exp_config.num_units)][0],
+                                             self.image_sizes[len(self.exp_config.num_units)][0],
+                                             1
                                             ]
                                            )
-            self.concepts_pred = conv2d(z_reshaped, self.exp_config.num_concepts, k_h=2, k_w=2, d_h=2, d_w=2, stddev=0.02, name="predict_concepts")
+            self.concepts_pred = conv2d(z_reshaped,
+                                        self.exp_config.num_concepts,
+                                        k_h=2,
+                                        k_w=2,
+                                        d_h=self.concepts_stride,
+                                        d_w=self.concepts_stride,
+                                        stddev=0.02,
+                                        name="predict_concepts")
         self.y_pred = linear(self.z, self.dao.num_classes)
         if self.exp_config.fully_convolutional:
             self.supervised_loss_concepts = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.concepts_labels,
@@ -159,6 +166,13 @@ class SemiSupervisedClassifierMnist(VAE):
         start_epoch = self.start_epoch
         self.num_batches_train = train_val_data_iterator.get_num_samples("train") // self.exp_config.BATCH_SIZE
         evaluation_run_for_last_epoch = False
+
+        images_saved = 0
+        num_images_to_save = 256
+        num_samples_per_image = 64
+        manifold_w = 4
+        manifold_h = num_samples_per_image // manifold_w
+
         for epoch in range(start_epoch, self.epoch):
             evaluation_run_for_last_epoch = False
             # get batch data
@@ -166,6 +180,12 @@ class SemiSupervisedClassifierMnist(VAE):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
                 batch_images, _, manual_labels, manual_labels_concepts = train_val_data_iterator.get_next_batch("train")
+                if num_images_to_save > images_saved:
+                    save_images(batch_images[0:64],
+                                [manifold_h, manifold_w],
+                                self.exp_config.PREDICTION_RESULTS_PATH + "/" + f"train_{batch}.png")
+                    images_saved += 64
+
                 if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                     break
                 batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
@@ -448,7 +468,7 @@ class SemiSupervisedClassifierMnist(VAE):
                     for rp in retention_policies:
                         rp.update_heap(cost=nll_batch,
                                        exp_config=self.exp_config,
-                                       data=[reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch])
+                                       data=[reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch, batch_images])
                 except:
                     print(f"Shape of mse is {nll_batch.shape}")
                     traceback.print_exc()

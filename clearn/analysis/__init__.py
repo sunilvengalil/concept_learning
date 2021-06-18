@@ -1,4 +1,7 @@
 # Column names in annotated csv file
+from typing import List
+import numpy as np
+
 CSV_COL_NAME_EPOCH = "epoch"
 CSV_COL_NAME_STEP = "step"
 CSV_COL_NAME_IMAGE_ID = "_idx"
@@ -97,3 +100,57 @@ class ClusterGroup:
         for cluster in self.cluster_list:
             if cluster.id == cluster_num:
                 return cluster
+
+
+class ImageConcept:
+    def __init__(self,
+                 digit_image:np.ndarray,
+                 h_extend:List,
+                 v_extend:List,
+                 digit:int,
+                 num_clusters:int,
+                 cluster_name:str,
+                 sample_index:int,
+                 epochs_completed = 0):
+        self.digit_image = digit_image
+        self.h_extend = h_extend
+        self.v_extend = v_extend
+        self.digit = digit
+        self.num_clusters = num_clusters
+        self.cluster_name = cluster_name
+        self.sample_index = sample_index
+        self.epochs_completed = epochs_completed
+
+    def todict(self):
+        concept_dict = dict()
+        concept_dict["digit_image"] = self.digit_image.tolist()
+        concept_dict["h_extend"] = self.h_extend
+        concept_dict["v_extend"] = self.v_extend
+        concept_dict["digit"] = self.digit
+        concept_dict["num_clusters"] = self.num_clusters
+        concept_dict["cluster_name"] = self.cluster_name
+        concept_dict["sample_index"] = self.sample_index
+        return concept_dict
+
+    @classmethod
+    def fromdict(cls, image_concept_dict):
+        instance = cls(digit_image=image_concept_dict["digit_image"],
+                       h_extend=image_concept_dict["h_extend"],
+                       v_extend=image_concept_dict["v_extend"],
+                       digit=image_concept_dict["digit"],
+                       num_clusters=image_concept_dict["num_clusters"],
+                       cluster_name=image_concept_dict["cluster_name"],
+                       sample_index=image_concept_dict["sample_index"] )
+        return instance
+
+    # classmethod
+    def tolist(self, image_concept_dict):
+        return [ image_concept_dict["digit_image"],
+                       image_concept_dict["h_extend"],
+                       image_concept_dict["v_extend"],
+                       image_concept_dict["digit"],
+                       image_concept_dict["num_clusters"],
+                       image_concept_dict["cluster_name"],
+                       image_concept_dict["sample_index"]
+        ]
+

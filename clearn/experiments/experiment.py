@@ -223,8 +223,37 @@ def initialize_model_train_and_get_features(experiment_name,
                                             uncorrelated_features=False,
                                             translate_image=False
                                             ):
+    def get_base_path() -> str:
+        """
+        :rtype:
+        """
+
+        if len(num_units) >= 3:
+            units_ = str(num_units[-1])
+            for i in num_units[1:-1][::-1]:
+                units_ += "_" + str(i)
+        else:
+            if len(num_units) == 2:
+                units_ = "0"
+            else:
+                units_ = "0_0"
+        if num_cluster_config is None:
+            return os.path.join(os.path.join(root_path, experiment_name),
+                                f"Exp_{units_}_{num_units[0]}_{z_dim}_{run_id}/")
+        else:
+            return os.path.join(os.path.join(root_path, experiment_name),
+                                f"Exp_{units_}_{num_units[0]}_{z_dim}_{num_cluster_config}_{run_id}/")
+
     if dao is None:
-        dao = get_dao(dataset_name, split_name, num_val_samples)
+        base_path = get_base_path()
+
+        analysis_path = os.path.join(base_path, "analysis/")
+        print(root_path)
+        dao = get_dao(dataset_name,
+                      split_name,
+                      num_val_samples,
+                      analysis_path = analysis_path,
+                      dataset_path=root_path+"datasets/")
 
     if num_units is None:
         num_units = [64, 128, 32]
@@ -266,7 +295,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                   supervise_weight_concepts=supervise_weight_concepts,
                                   strides=strides,
                                   uncorrelated_features=uncorrelated_features,
-                                  translate_image = translate_image
+                                  translate_image = translate_image,
+                                  dao=dao
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)

@@ -34,7 +34,7 @@ class CiFar10Dao(IDao):
     def num_classes(self) -> int:
         return 10
 
-    def load_train(self, data_dir, shuffle):
+    def load_train(self, data_dir, shuffle, split_location=None):
         tr_x, tr_y = self.load_train_val_1(data_dir)
 
         if shuffle:
