@@ -158,10 +158,11 @@ class ExperimentConfig:
         if dao is None:
             # base_path = get_base_path()
             #
-            # analysis_path = os.path.join(base_path, "analysis/")
             self.dao = get_dao(dataset_name,
                           split_name,
-                          num_val_samples)
+                          num_val_samples,
+                          dataset_path=os.path.join(self.root_path, "datasets/")
+                          )
         else:
             self.dao = dao
         # self.num_train_samples = (self.dao.number_of_training_samples  // batch_size) * batch_size

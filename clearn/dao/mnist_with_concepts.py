@@ -156,7 +156,8 @@ class MnistConceptsDao(IDao):
         self.split_name:str = split_name
         self.num_validation_samples:int = num_validation_samples
         self.num_concepts_label_generated = 0
-        map_filename = self.dataset_path + "/" + self.split_name + "/" + MAP_FILE_NAME
+        print(self.dataset_path, self.split_name, MAP_FILE_NAME)
+        map_filename = self.dataset_path + "/" + dataset_name+"/" + self.split_name + "/" + MAP_FILE_NAME
         print(f"Reading concepts map from {map_filename}")
         concepts_dict = self.get_concept_map(map_filename)
 
@@ -181,8 +182,9 @@ class MnistConceptsDao(IDao):
         self.load_orig_train_images_and_labels(dataset_path+"mnist")
         self.image_set_dict = dict()
         self.level2_manual_annotations_good_cluster = dict()
-        level2_manual_annotations_good_cluster_filename = "level2_manual_annotations_good_cluster.json"
-        with open(analysis_path + "/" + level2_manual_annotations_good_cluster_filename) as json_file:
+        level2_manual_annotations_good_cluster_filename = self.dataset_path + "/" + dataset_name+"/" + self.split_name + "/" + "level2_manual_annotations_good_cluster.json"
+
+        with open(level2_manual_annotations_good_cluster_filename) as json_file:
             level2_manual_annotations_good_cluster = json.load(json_file)
         print([k for k in level2_manual_annotations_good_cluster.keys()])
         for cluster_id in range(10):
