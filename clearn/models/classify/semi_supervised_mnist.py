@@ -561,6 +561,17 @@ class SemiSupervisedClassifierMnist(VAE):
                                              feed_dict={self.inputs: images})
         return mu, sigma, z, y_pred
 
+    def reconstruct_images(self, images):
+        reconstructed_images, nll, nll_batch = self.sess.run([self.out,
+                                                              self.neg_loglikelihood,
+                                                              self.marginal_likelihood],
+                                                             feed_dict={
+                                                                 self.inputs: images
+                                                             })
+        return reconstructed_images, nll, nll_batch
+
+
+
     def classify(self, images):
         logits = self.sess.run([self.y_pred],
                                feed_dict={self.inputs: images})
