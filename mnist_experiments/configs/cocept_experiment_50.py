@@ -12,6 +12,7 @@ num_units = [256, 128, 128, 64]
 z_dim = 16
 run_id = 50
 experiment_name = "concept_experiments"
+
 for i in range(len(num_units)):
     experiment_name = experiment_name + "_" + str(num_units[i])
 create_split = False
