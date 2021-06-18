@@ -190,11 +190,12 @@ class SemiSupervisedClassifierMnist(VAE):
                     break
                 batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
                 if self.exp_config.fully_convolutional:
-                    concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.num_concepts],
+
+                    concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.dao.num_classes],
                                                 (self.exp_config.BATCH_SIZE,
                                                 self.num_concpets_per_row,
                                                 self.num_concpets_per_col,
-                                                self.exp_config.num_concepts)
+                                                self.exp_config.dao.num_classes)
                                                 )
                     is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts],
                                                       (self.exp_config.BATCH_SIZE,

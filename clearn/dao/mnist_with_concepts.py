@@ -148,12 +148,36 @@ class MnistConceptsDao(IDao):
                  split_name: str,
                  num_validation_samples: int,
                  analysis_path,
-                 dataset_path:str):
+                 dataset_path:str
+                 ):
+
         self.dataset_name:str = "mnist_concepts"
         self.dataset_path = dataset_path
         self.split_name:str = split_name
         self.num_validation_samples:int = num_validation_samples
         self.num_concepts_label_generated = 0
+        map_filename = self.dataset_path + "/" + self.split_name + "/" + MAP_FILE_NAME
+        print(f"Reading concepts map from {map_filename}")
+        concepts_dict = self.get_concept_map(map_filename)
+
+        label_start = 10
+        self.label_key_to_label_map = dict()
+        current_label = label_start
+        for digit, list_of_concept_dict in concepts_dict.items():
+            for image_concept_dict in list_of_concept_dict:
+                concept_image = ImageConcept.fromdict(image_concept_dict)
+                v_extend = concept_image.v_extend
+                h_extend = concept_image.h_extend
+                if len(v_extend) == 0:
+                    v_extend = [0, 28]
+                if len(h_extend) == 0:
+                    h_extend = [0, 28]
+
+                self.label_key_to_label_map[f"{digit}_{h_extend[0]}_{h_extend[1]}_{v_extend[0]}_{v_extend[1]}"] = current_label
+                current_label += 1
+        self.num_concepts_label_generated = int(current_label)
+
+
         self.load_orig_train_images_and_labels(dataset_path+"mnist")
         self.image_set_dict = dict()
         self.level2_manual_annotations_good_cluster = dict()
@@ -284,23 +308,23 @@ class MnistConceptsDao(IDao):
 
     def generate_concepts(self, map_filename, num_images_per_concept):
         concepts_dict = self.get_concept_map(map_filename)
+        # label_start = 10
+        # label_key_to_label_map = dict()
+        # current_label = label_start
+        # for digit, list_of_concept_dict in concepts_dict.items():
+        #     for image_concept_dict in list_of_concept_dict:
+        #         concept_image = ImageConcept.fromdict(image_concept_dict)
+        #         v_extend = concept_image.v_extend
+        #         h_extend = concept_image.h_extend
+        #         if len(v_extend) == 0:
+        #             v_extend = [0, 28]
+        #         if len(h_extend) == 0:
+        #             h_extend = [0, 28]
+        #
+        #         label_key_to_label_map[f"{digit}_{h_extend[0]}_{h_extend[1]}_{v_extend[0]}_{v_extend[1]}"] = current_label
+        #         current_label += 1
+        # self.num_concepts_label_generated = int(current_label)
 
-        label_start = 10
-        label_key_to_label_map = dict()
-        current_label = label_start
-        for digit, list_of_concept_dict in concepts_dict.items():
-            for image_concept_dict in list_of_concept_dict:
-                concept_image = ImageConcept.fromdict(image_concept_dict)
-                v_extend = concept_image.v_extend
-                h_extend = concept_image.h_extend
-                if len(v_extend) == 0:
-                    v_extend = [0, 28]
-                if len(h_extend) == 0:
-                    h_extend = [0, 28]
-
-                label_key_to_label_map[f"{digit}_{h_extend[0]}_{h_extend[1]}_{v_extend[0]}_{v_extend[1]}"] = current_label
-                current_label += 1
-        self.num_concepts_label_generated = int(current_label)
         print(self.num_concepts_label_generated)
         # Change 8 to 12 below . 10 + 2 (4 and 9 has bimodal distribution)
         concepts = np.zeros((num_images_per_concept * self.num_concepts, 28, 28, 1))
@@ -310,7 +334,7 @@ class MnistConceptsDao(IDao):
             concepts_for_digit, labels_for_concepts_for_digit = self.generate_concepts_for_digit(digit,
                                                                   list_of_concept_dict,
                                                                   num_images_per_concept,
-                                                                          label_key_to_label_map
+                                                                          self.label_key_to_label_map
                                                                   )
             concepts[num_concepts_generated: num_concepts_generated + concepts_for_digit.shape[0]] = concepts_for_digit
             labels[num_concepts_generated: num_concepts_generated + concepts_for_digit.shape[0]] = labels_for_concepts_for_digit
