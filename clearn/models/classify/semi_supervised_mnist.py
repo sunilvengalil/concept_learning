@@ -102,7 +102,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                             ]
                                            )
             self.concepts_pred = conv2d(z_reshaped,
-                                        self.exp_config.num_concepts,
+                                        self.exp_config.dao.num_classes,
                                         k_h=2,
                                         k_w=2,
                                         d_h=self.concepts_stride,
