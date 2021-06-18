@@ -72,7 +72,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                                [exp_config.BATCH_SIZE,
                                                 self.num_concpets_per_row,
                                                 self.num_concpets_per_col,
-                                                self.exp_config.dao.num_classes],
+                                                exp_config.dao.num_classes],
                                                name='manual_label_concepts')
 
         super().__init__(exp_config=exp_config,
