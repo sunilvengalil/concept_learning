@@ -349,7 +349,7 @@ def get_num_concepts_per_image(exp_config, dao):
 
     _,  _, image_sizes = get_padding_info(exp_config, dao.image_shape)
     latent_image_dim = image_sizes[len(exp_config.num_units)]
-    concepts_stride = 2
+    concepts_stride = 1
 
     if latent_image_dim[0] % concepts_stride == 0:
         h = latent_image_dim[0] //concepts_stride
