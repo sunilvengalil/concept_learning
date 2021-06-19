@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+MAP_FILE_NAME = "manually_generated_concepts.json"
 
 class IDao(ABC):
     VALIDATION_Y_RAW = "validation_y_raw"
@@ -41,7 +42,7 @@ class IDao(ABC):
         pass
 
     @abstractmethod
-    def load_train_images_and_label(self, data_dir):
+    def load_train_images_and_label(self, data_dir, map_filename=None):
         pass
 
     @abstractmethod
@@ -63,7 +64,7 @@ class IDao(ABC):
                        split_location=None,
                        split_names=[],
                        seed=547):
-        x, y = self.load_train_images_and_label(data_dir)
+        x, y = self.load_train_images_and_label(data_dir,  split_location + MAP_FILE_NAME)
         _stratify = None
         if stratified:
             _stratify = y
@@ -85,20 +86,20 @@ class IDao(ABC):
             num_splits = len(split_names)
             dataset_dict["split_names"] = split_names
 
-            # for split_num, split in enumerate(split_names):
-            #     print(split, splitted[split_num].shape)
-            #     feature_dim = self.image_shape[0] * self.image_shape[1] * self.image_shape[2]
-            #     train_df = pd.DataFrame(splitted[split_num].reshape(splitted[split_num].shape[0],
-            #                                                         feature_dim)
-            #                             )
-            #     train_df["label"] = splitted[split_num + num_splits]
-            #     train_df.to_csv(split_location + split + ".csv", index=False)
-            # print(split_location)
-            # json_ = split_location + split_name + ".json"
-            # with open(json_, "w") as fp:
-            #     print("Writing json to ", json_)
-            #     json.dump(dataset_dict, fp)
-            # print("Writing json to ", json_)
+            for split_num, split in enumerate(split_names):
+                print(split, splitted[split_num].shape)
+                feature_dim = self.image_shape[0] * self.image_shape[1] * self.image_shape[2]
+                train_df = pd.DataFrame(splitted[split_num].reshape(splitted[split_num].shape[0],
+                                                                    feature_dim)
+                                        )
+                train_df["label"] = splitted[split_num + num_splits]
+                train_df.to_csv(split_location + split + ".csv", index=False)
+            print(split_location)
+            json_ = split_location + split_name + ".json"
+            with open(json_, "w") as fp:
+                print("Writing json to ", json_)
+                json.dump(dataset_dict, fp)
+            print("Writing json to ", json_)
         else:
             raise Exception("Split not implemented for more than two splits")
 

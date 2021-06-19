@@ -76,5 +76,6 @@ initialize_model_train_and_get_features(experiment_name=experiment_name,
                                         num_dense_layers=num_dense_layers,
                                         batch_size=4,
                                         dataset_name="mnist_concepts",
-                                        split_name="split_70_30"
+                                        split_name="split_70_30",
+                                        concept_id=0
                                         )

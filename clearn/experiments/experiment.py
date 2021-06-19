@@ -221,8 +221,12 @@ def initialize_model_train_and_get_features(experiment_name,
                                             num_samples_wrongly_annotated=0,
                                             total_confidence_of_wrong_annotation=0,
                                             uncorrelated_features=False,
-                                            translate_image=False
+                                            translate_image=False,
+                                            concept_id = -1
                                             ):
+    if concept_id == -1 and dataset_name == "mnist_concepts":
+        raise Exception("Parameter concept_id should be non-negative")
+
     def get_base_path() -> str:
         """
         :rtype:
@@ -252,8 +256,9 @@ def initialize_model_train_and_get_features(experiment_name,
         dao = get_dao(dataset_name,
                       split_name,
                       num_val_samples,
-                      analysis_path = analysis_path,
-                      dataset_path=root_path+"/datasets/")
+                      dataset_path=root_path+"/datasets/",
+                      concept_id = concept_id
+                      )
 
     if num_units is None:
         num_units = [64, 128, 32]

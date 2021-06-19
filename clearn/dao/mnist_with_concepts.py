@@ -8,7 +8,7 @@ from clearn.analysis import ImageConcept
 from clearn.dao.idao import IDao
 import json
 import math
-
+import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from matplotlib import pyplot as plt
@@ -147,8 +147,8 @@ class MnistConceptsDao(IDao):
                  dataset_name: str,
                  split_name: str,
                  num_validation_samples: int,
-                 analysis_path,
-                 dataset_path:str
+                 dataset_path:str,
+                 concept_id:int
                  ):
 
         self.dataset_name:str = "mnist_concepts"
@@ -156,6 +156,7 @@ class MnistConceptsDao(IDao):
         self.split_name:str = split_name
         self.num_validation_samples:int = num_validation_samples
         self.num_concepts_label_generated = 0
+        self.concept_id = concept_id
         print(self.dataset_path, self.split_name, MAP_FILE_NAME)
         map_filename = self.dataset_path + "/" + dataset_name+"/" + self.split_name + "/" + MAP_FILE_NAME
         print(f"Reading concepts map from {map_filename}")
@@ -230,40 +231,9 @@ class MnistConceptsDao(IDao):
         y = np.asarray(data.reshape(10000)).astype(np.int)
         return x, y
 
-    def load_train_val(self,
-                       data_dir,
-                       shuffle=False,
-                       stratified=None,
-                       percentage_to_be_sampled=0.7,
-                       split_location=None,
-                       split_names=[],
-                       seed=547):
-        x, y = self.load_train_images_and_label(data_dir, split_location + MAP_FILE_NAME)
-        _stratify = None
-        if stratified:
-            _stratify = y
-
-        if len(split_names) == 2:
-            splitted = train_test_split(x,
-                                        y,
-                                        test_size=percentage_to_be_sampled,
-                                        stratify=_stratify,
-                                        shuffle=shuffle,
-                                        random_state=seed
-                                        )
-            train_x = splitted[0]
-            val_x = splitted[1]
-            train_y = splitted[2]
-            val_y = splitted[3]
-            dataset_dict = dict()
-            dataset_dict["split_names"] = split_names
-        else:
-            raise Exception("Split not implemented for more than two splits")
-
-        data_dict = self.create_data_dict(train_x, train_y, val_x, val_y)
-        return data_dict
-
     def load_train(self, data_dir, shuffle, split_location=None):
+        if self.concept_id is None:
+            raise Exception("Pass an integer for parameter concept_id while creating the MnistConceptsDao instance ")
         tr_x, tr_y = self.load_train_images_and_label(data_dir, split_location + MAP_FILE_NAME)
         if shuffle:
             seed = 547
@@ -294,15 +264,29 @@ class MnistConceptsDao(IDao):
         return orig_train_images, orig_train_labels
 
     def load_train_images_and_label(self, data_dir, map_filename=None):
+
         if map_filename is None:
             raise Exception("parameter map_filename can be None. Pass a valid path for loading concepts dictionary")
-        concepts, concept_labels = self.generate_concepts( map_filename, num_images_per_concept=6000)
+        if self.concept_id is None:
+            raise Exception("Pass an integer for parameter concept_id while creating the instance of MnistConceptsDao")
 
-        # TODO verify the concepts once
-        print(self.orig_train_images.shape, concepts.shape)
-        x = np.vstack([self.orig_train_images, concepts])
-        print(self.orig_train_labels.shape, concept_labels.shape)
-        y = np.hstack([self.orig_train_labels, concept_labels])
+        concept_image_filename = data_dir + f"concept_{self.concept_id}.csv"
+        feature_dim = self.image_shape[0] * self.image_shape[1] * self.image_shape[2]
+
+        if os.path.isfile(concept_image_filename):
+            concepts_df  = pd.read_csv(concept_image_filename)
+            x = concepts_df.values[0:feature_dim]
+            y = concepts_df.values[feature_dim]
+        else:
+            concepts, concept_labels = self.generate_concepts(map_filename, num_images_per_concept=6000)
+            # TODO verify the concepts once
+            print(self.orig_train_images.shape, concepts.shape)
+            x = np.vstack([self.orig_train_images, concepts])
+            print(self.orig_train_labels.shape, concept_labels.shape)
+            y = np.hstack([self.orig_train_labels, concept_labels])
+            image_df = pd.DataFrame(x.reshape(x.shape[0], feature_dim))
+            image_df["label"] = y
+            image_df.to_csv(concept_image_filename)
         return x, y
 
     def generate_concepts(self, map_filename, num_images_per_concept):

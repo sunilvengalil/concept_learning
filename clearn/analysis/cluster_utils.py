@@ -737,7 +737,6 @@ def cluster_gmm(cropped, num_clusters):
     cluster_center_image = cluster_centers.reshape([cluster_centers.shape[0], cropped.shape[1], cropped.shape[2] ])
     return cluster_labels,cluster_centers,posterior,cluster_center_image
 
-
 def segment(images, h_extend, v_extend, digit, num_clusters, exp_config, cluster, sample_index, display_image=True, epochs_completed=0):
     height, width = images[0].shape[0], images[0].shape[1]
     num_images = images.shape[0]
@@ -766,15 +765,12 @@ def segment(images, h_extend, v_extend, digit, num_clusters, exp_config, cluster
     images = np.squeeze(images)
     image_filename = exp_config.ANALYSIS_PATH + f"seg_{digit_location_key}_{int(epochs_completed)}_{cluster}_{sample_index}.png"
     if num_images > 1:
-
         cluster_labels, cluster_centers, posterior, cropped_cluster_center = cluster_gmm(cropped, num_clusters)
-
         cluster_center_images = np.zeros([cropped_cluster_center.shape[0], images.shape[1], images.shape[2]])
         cluster_center_images[:, v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]] = cropped_cluster_center
     else:
         cluster_center_images = np.zeros((10, height, width, 1))
         cluster_center_images[0] = masked_images
-
     cluster_center_images = cluster_center_images[0:num_images]
     if display_image:
         display_images(cluster_center_images,
@@ -782,7 +778,6 @@ def segment(images, h_extend, v_extend, digit, num_clusters, exp_config, cluster
                        title=f"{segment_location_description}[{digit_location_key}]",
                        num_images_to_display=num_clusters
                        )
-
     return cluster_center_images
 
 
@@ -792,7 +787,8 @@ def segment_multiple_images(exp_config, image_list):
                                  exp_config.dao.image_shape[0],
                                  exp_config.dao.image_shape[1],
                                  exp_config.dao.image_shape[2]
-                                 ))
+                                 )
+                                )
     for image_num, params in enumerate(image_list):
         print(len(params))
         digit_image, h_extend, v_extend, digit, num_clusters, cluster_name, sample_index = params[0], params[1], \
