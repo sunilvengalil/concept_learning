@@ -162,7 +162,8 @@ class ExperimentConfig:
             self.dao = get_dao(dataset_name,
                           split_name,
                           num_val_samples,
-                          dataset_path=os.path.join(self.root_path, "datasets/")
+                          dataset_path=os.path.join(self.root_path, "datasets/"),
+                               concept_id = concept_id
                           )
         else:
             self.dao = dao
