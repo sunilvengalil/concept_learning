@@ -37,7 +37,8 @@ def translate_random(im, max_pixels):
 
 
 def load_images(_config, train_val_data_iterator, dataset_type="train"):
-    dao = get_dao(_config.dataset_name, _config.split_name, _config.num_val_samples)
+    #dao = get_dao(_config.dataset_name, _config.split_name, _config.num_val_samples)
+    dao = _config.dao
     num_images = train_val_data_iterator.get_num_samples(dataset_type)
     feature_shape = list(train_val_data_iterator.get_feature_shape())
     num_images = (num_images // _config.BATCH_SIZE) * _config.BATCH_SIZE

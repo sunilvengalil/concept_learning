@@ -248,12 +248,12 @@ def initialize_model_train_and_get_features(experiment_name,
         base_path = get_base_path()
 
         analysis_path = os.path.join(base_path, "analysis/")
-        print(root_path)
+        print("root path",root_path)
         dao = get_dao(dataset_name,
                       split_name,
                       num_val_samples,
                       analysis_path = analysis_path,
-                      dataset_path=root_path+"datasets/")
+                      dataset_path=root_path+"/datasets/")
 
     if num_units is None:
         num_units = [64, 128, 32]

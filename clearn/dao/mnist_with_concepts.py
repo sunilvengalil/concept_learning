@@ -302,10 +302,8 @@ class MnistConceptsDao(IDao):
         # TODO verify the concepts once
         print(self.orig_train_images.shape, concepts.shape)
         x = np.vstack([self.orig_train_images, concepts])
-        print(x.shape)
         print(self.orig_train_labels.shape, concept_labels.shape)
         y = np.hstack([self.orig_train_labels, concept_labels])
-        print(y.shape)
         return x, y
 
     def generate_concepts(self, map_filename, num_images_per_concept):
