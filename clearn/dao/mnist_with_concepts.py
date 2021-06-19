@@ -241,7 +241,7 @@ class MnistConceptsDao(IDao):
             np.random.shuffle(tr_y)
             np.random.seed(seed)
             np.random.shuffle(tr_y)
-
+        tr_y = tr_y.astype(int)
         y_vec = np.eye(self.num_classes)[tr_y]
         return tr_x / self.max_value, y_vec
 
@@ -284,7 +284,6 @@ class MnistConceptsDao(IDao):
             x = np.vstack([self.orig_train_images, concepts])
             print(self.orig_train_labels.shape, concept_labels.shape)
             y = np.hstack([self.orig_train_labels, concept_labels])
-
             image_df = pd.DataFrame(x.reshape(x.shape[0], feature_dim))
             image_df["label"] = y
             image_df.to_csv(concept_image_filename)
