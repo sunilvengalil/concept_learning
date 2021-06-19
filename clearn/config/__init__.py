@@ -105,7 +105,8 @@ class ExperimentConfig:
                  uncorrelated_features=False,
                  env=None,
                  translate_image=False,
-                 dao=None
+                 dao=None,
+                 concept_id=-1
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -189,6 +190,7 @@ class ExperimentConfig:
         self.num_dense_layers = num_dense_layers
         self.uncorrelated_features = uncorrelated_features
         self.translate_image = translate_image
+        self.concept_id = concept_id
 
     @property
     def num_train_samples(self):
@@ -242,7 +244,7 @@ class ExperimentConfig:
         config_json["NUM_DENSE_LAYER"] = self.num_dense_layers
         config_json["UNCORRELATED_FEATURES"] = self.uncorrelated_features
         config_json["TRANSLATE_IMAGE"] = self.translate_image
-
+        config_json["CONCEPT_ID"] = self.concept_id
         return config_json
 
     def get_exp_name_with_parameters(self, run_id):
@@ -374,7 +376,7 @@ class ExperimentConfig:
         self.num_dense_layers = exp_config_dict["NUM_DENSE_LAYERS"]
         self.num_dense_layers = exp_config_dict["UNCORRELATED_FEATURES"]
         self.translate_image = exp_config["TRANSLATE_IMAGE"]
-
+        self.concept_id = exp_config["CONCEPT_ID"]
 
 if __name__ == "__main__":
     _root_path = "/Users/sunilv/concept_learning_exp"

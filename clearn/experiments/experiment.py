@@ -301,7 +301,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                   strides=strides,
                                   uncorrelated_features=uncorrelated_features,
                                   translate_image = translate_image,
-                                  dao=dao
+                                  dao=dao,
+                                  concept_id=concept_id
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)
