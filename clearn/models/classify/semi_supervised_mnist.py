@@ -297,7 +297,7 @@ class SemiSupervisedClassifierMnist(VAE):
                         print(f"{metric}: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
                         print(f"{metric}: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
                         print(f"{metric}: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
-                    #self.save_metrics()
+                    self.save_metrics()
                     evaluation_run_for_last_epoch = True
             train_val_data_iterator.reset_counter("train")
             train_val_data_iterator.reset_counter("val")
@@ -322,7 +322,6 @@ class SemiSupervisedClassifierMnist(VAE):
                 self.test_data_iterator.reset_counter("test")
                 self.evaluate(self.test_data_iterator, dataset_type="test")
                 self.test_data_iterator.reset_counter("test")
-
         for metric in self.metrics_to_compute:
             print(f"Accuracy: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
             print(f"Accuracy: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
@@ -361,7 +360,7 @@ class SemiSupervisedClassifierMnist(VAE):
         df["total_confidence_of_wrong_annotation"] = self.total_confidence_of_wrong_annotation
 
         if df is not None:
-            df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"metrics_{self.num_training_epochs_completed}.csv"),
+            df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"metrics_{self.start_epoch}.csv"),
                       index=False)
 
     def evaluate(self,
