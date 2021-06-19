@@ -13,6 +13,7 @@ from clearn.dao.dao_factory import get_dao
 from clearn.dao.idao import IDao
 from random import randint
 
+
 def translate_random(im, max_pixels):
     im = im.reshape(28, 28)
     print(im.shape, max_pixels)
@@ -65,8 +66,6 @@ def generate_concepts(train_x_in, train_y, concept_map, percentage_concepts):
                                 stratify=train_y,
                                 shuffle=True
                                 )
-    #print(f"Splitting {len(splitted[3])} samples", len(splitted[2]), len(splitted[3]))
-
     for i in test_y:
         v_extend = concept_map[i]["v_extend"]
         h_extend = concept_map[i]["h_extend"]
@@ -92,7 +91,7 @@ class TrainValDataIterator:
     VALIDATION_X = "validation_x"
     TRAIN_Y = "train_y"
     TRAIN_X = "train_x"
-    num_concepts = 20
+#    num_concepts = 20
     num_concepts_per_image_row: int
     num_concepts_per_image_col: int
 
@@ -573,7 +572,7 @@ class DataIterator:
     Y_RAW = "test_y"
     Y_ONE_HOT = "test_y_one_hot"
     X = "test_x"
-    num_concepts = 20
+    #num_concepts = 20
 
     def __init__(self,
                  dao: IDao,
@@ -602,7 +601,7 @@ class DataIterator:
         self.manual_annotation[:, dao.num_classes] = 1  # set manual annotation confidence as 1
         self.manual_annotation_concepts = np.zeros((len(self.x),
                                                     DataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col,
-                                                    DataIterator.num_concepts + 1),
+                                                    dao.num_classes + 1),
                                                    dtype=np.float)
         self.idx = 0
 
