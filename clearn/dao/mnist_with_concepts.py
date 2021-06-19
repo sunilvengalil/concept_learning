@@ -274,9 +274,9 @@ class MnistConceptsDao(IDao):
         feature_dim = self.image_shape[0] * self.image_shape[1] * self.image_shape[2]
 
         if os.path.isfile(concept_image_filename):
-            concepts_df  = pd.read_csv(concept_image_filename)
-            x = concepts_df.values[0:feature_dim]
-            y = concepts_df.values[feature_dim]
+            concepts_df = pd.read_csv(concept_image_filename)
+            x = concepts_df.values[:, 0:feature_dim]
+            y = concepts_df.values[:, feature_dim]
         else:
             concepts, concept_labels = self.generate_concepts(map_filename, num_images_per_concept=6000)
             # TODO verify the concepts once
@@ -284,6 +284,7 @@ class MnistConceptsDao(IDao):
             x = np.vstack([self.orig_train_images, concepts])
             print(self.orig_train_labels.shape, concept_labels.shape)
             y = np.hstack([self.orig_train_labels, concept_labels])
+
             image_df = pd.DataFrame(x.reshape(x.shape[0], feature_dim))
             image_df["label"] = y
             image_df.to_csv(concept_image_filename)
