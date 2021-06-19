@@ -178,12 +178,14 @@ class MnistConceptsDao(IDao):
                 current_label += 1
         self.num_concepts_label_generated = int(current_label)
 
+        self.orig_train_images, self.orig_train_labels =  self.load_orig_train_images_and_labels(dataset_path+"mnist")
+        self.images_by_label = dict()
+        for i in range(10):
+            self.images_by_label[i] = self.orig_train_images[self.orig_train_labels == i]
 
-        self.load_orig_train_images_and_labels(dataset_path+"mnist")
         self.image_set_dict = dict()
         self.level2_manual_annotations_good_cluster = dict()
         level2_manual_annotations_good_cluster_filename = self.dataset_path + "/" + dataset_name+"/" + self.split_name + "/" + "level2_manual_annotations_good_cluster.json"
-
         with open(level2_manual_annotations_good_cluster_filename) as json_file:
             level2_manual_annotations_good_cluster = json.load(json_file)
         print([k for k in level2_manual_annotations_good_cluster.keys()])
@@ -286,12 +288,10 @@ class MnistConceptsDao(IDao):
                                  60000,
                                  16,
                                  28 * 28)
-        self.orig_train_images = data.reshape((60000, 28, 28, 1))
+        orig_train_images = data.reshape((60000, 28, 28, 1))
         data = self.extract_data(data_dir + '/train-labels-idx1-ubyte.gz', self.number_of_training_samples, 8, 1)
-        self.orig_train_labels = np.asarray(data.reshape(60000)).astype(np.int)
-        self.images_by_label = dict()
-        for i in range(10):
-            self.images_by_label[i] = self.orig_train_images[self.orig_train_labels == i]
+        orig_train_labels = np.asarray(data.reshape(60000)).astype(np.int)
+        return orig_train_images, orig_train_labels
 
 
     def load_train_val_1(self, data_dir, map_filename=None):
