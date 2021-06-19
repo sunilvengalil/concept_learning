@@ -238,7 +238,7 @@ class MnistConceptsDao(IDao):
                        split_location=None,
                        split_names=[],
                        seed=547):
-        x, y = self.load_train_val_1(data_dir, split_location + MAP_FILE_NAME)
+        x, y = self.load_train_images_and_label(data_dir, split_location + MAP_FILE_NAME)
         _stratify = None
         if stratified:
             _stratify = y
@@ -264,7 +264,7 @@ class MnistConceptsDao(IDao):
         return data_dict
 
     def load_train(self, data_dir, shuffle, split_location=None):
-        tr_x, tr_y = self.load_train_val_1(data_dir, split_location + MAP_FILE_NAME)
+        tr_x, tr_y = self.load_train_images_and_label(data_dir, split_location + MAP_FILE_NAME)
         if shuffle:
             seed = 547
             np.random.seed(seed)
@@ -293,8 +293,7 @@ class MnistConceptsDao(IDao):
         orig_train_labels = np.asarray(data.reshape(60000)).astype(np.int)
         return orig_train_images, orig_train_labels
 
-
-    def load_train_val_1(self, data_dir, map_filename=None):
+    def load_train_images_and_label(self, data_dir, map_filename=None):
         if map_filename is None:
             raise Exception("parameter map_filename can be None. Pass a valid path for loading concepts dictionary")
         concepts, concept_labels = self.generate_concepts( map_filename, num_images_per_concept=6000)
@@ -308,23 +307,6 @@ class MnistConceptsDao(IDao):
 
     def generate_concepts(self, map_filename, num_images_per_concept):
         concepts_dict = self.get_concept_map(map_filename)
-        # label_start = 10
-        # label_key_to_label_map = dict()
-        # current_label = label_start
-        # for digit, list_of_concept_dict in concepts_dict.items():
-        #     for image_concept_dict in list_of_concept_dict:
-        #         concept_image = ImageConcept.fromdict(image_concept_dict)
-        #         v_extend = concept_image.v_extend
-        #         h_extend = concept_image.h_extend
-        #         if len(v_extend) == 0:
-        #             v_extend = [0, 28]
-        #         if len(h_extend) == 0:
-        #             h_extend = [0, 28]
-        #
-        #         label_key_to_label_map[f"{digit}_{h_extend[0]}_{h_extend[1]}_{v_extend[0]}_{v_extend[1]}"] = current_label
-        #         current_label += 1
-        # self.num_concepts_label_generated = int(current_label)
-
         print(self.num_concepts_label_generated)
         # Change 8 to 12 below . 10 + 2 (4 and 9 has bimodal distribution)
         concepts = np.zeros((num_images_per_concept * self.num_concepts, 28, 28, 1))
@@ -343,7 +325,7 @@ class MnistConceptsDao(IDao):
         return concepts[0:num_concepts_generated], labels[0:num_concepts_generated]
 
     def get_samples(self, digit, cluster_name, sample_index):
-        # TODO implemnt for multiple images
+        # TODO implement for multiple images
         return [self.image_set_dict[cluster_name][sample_index]]
 
     def generate_concepts_for_digit(self, digit, list_of_concept_dict, num_images_per_concept, label_key_to_label_map):

@@ -44,7 +44,7 @@ class MnistDao(IDao):
         return x, y
 
     def load_train(self, data_dir, shuffle, split_location=None):
-        tr_x, tr_y = self.load_train_val_1(data_dir)
+        tr_x, tr_y = self.load_train_images_and_label(data_dir)
         if shuffle:
             seed = 547
             np.random.seed(seed)
@@ -62,7 +62,7 @@ class MnistDao(IDao):
             _data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
         return _data
 
-    def load_train_val_1(self, data_dir):
+    def load_train_images_and_label(self, data_dir):
         data_dir = os.path.join(data_dir, "images/")
         data = self.extract_data(data_dir + 'train-images-idx3-ubyte.gz',
                                  self.number_of_training_samples,

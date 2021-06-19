@@ -41,7 +41,7 @@ class IDao(ABC):
         pass
 
     @abstractmethod
-    def load_train_val_1(self, data_dir):
+    def load_train_images_and_label(self, data_dir):
         pass
 
     @abstractmethod
@@ -63,7 +63,7 @@ class IDao(ABC):
                        split_location=None,
                        split_names=[],
                        seed=547):
-        x, y = self.load_train_val_1(data_dir)
+        x, y = self.load_train_images_and_label(data_dir)
         _stratify = None
         if stratified:
             _stratify = y
