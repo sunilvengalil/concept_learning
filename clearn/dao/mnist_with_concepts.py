@@ -152,7 +152,6 @@ class MnistConceptsDao(IDao):
                  dataset_path:str,
                  concept_id:int
                  ):
-
         self.dataset_name:str = "mnist_concepts"
         self.dataset_path = dataset_path
         self.split_name:str = split_name
@@ -162,11 +161,11 @@ class MnistConceptsDao(IDao):
         print(self.dataset_path, self.split_name, MAP_FILE_NAME)
         map_filename = self.dataset_path + "/" + dataset_name+"/" + self.split_name + "/" + MAP_FILE_NAME
         print(f"Reading concepts map from {map_filename}")
-        concepts_dict = self.get_concept_map(map_filename)
+        self.concepts_dict = self.get_concept_map(map_filename)
 
         label_start = 10
         self.label_key_to_label_map = dict()
-        for digit, list_of_concept_dict in concepts_dict.items():
+        for digit, list_of_concept_dict in self.concepts_dict.items():
             for image_concept_dict in list_of_concept_dict:
                 concept_image = ImageConcept.fromdict(image_concept_dict)
                 v_extend = concept_image.v_extend
@@ -178,7 +177,6 @@ class MnistConceptsDao(IDao):
 
                 self.label_key_to_label_map[f"{digit}_{h_extend[0]}_{h_extend[1]}_{v_extend[0]}_{v_extend[1]}"] = label_start + self.num_concepts_label_generated
                 self.num_concepts_label_generated = self.num_concepts_label_generated + 1
-                print(self.num_concepts_label_generated)
 
         self.orig_train_images, self.orig_train_labels =  self.load_orig_train_images_and_labels(dataset_path+"mnist")
         self.images_by_label = dict()
@@ -281,7 +279,7 @@ class MnistConceptsDao(IDao):
             _x = x.reshape((x.shape[0], self.image_shape[0], self.image_shape[1], self.image_shape[2] ))
 
         else:
-            concepts, concept_labels = self.generate_concepts(map_filename, num_images_per_concept=6000)
+            concepts, concept_labels = self.generate_concepts(map_filename, num_images_per_concept=3000)
             # TODO verify the concepts once
             print(self.orig_train_images.shape, concepts.shape)
             _x = np.vstack([self.orig_train_images, concepts])
@@ -377,5 +375,9 @@ class MnistConceptsDao(IDao):
                                                                    cluster_name,
                                                                    sample_index,
                                                                    display_image=False,
-                                                                   epochs_completed=epochs_completed)
+                                                                   epochs_completed=epochs_completed
+                                                                   )
+        if digit == 4:
+            print(h_extend, v_extend, np.sum(concept_images, axis=(1,2,3)).shape)
+
         return concept_images
