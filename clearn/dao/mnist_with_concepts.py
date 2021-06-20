@@ -2,6 +2,8 @@ import numpy as np
 import os
 import gzip
 
+from copy import deepcopy
+
 from scipy.stats import truncnorm
 
 from clearn.analysis import ImageConcept
@@ -164,7 +166,6 @@ class MnistConceptsDao(IDao):
 
         label_start = 10
         self.label_key_to_label_map = dict()
-        current_label = label_start
         for digit, list_of_concept_dict in concepts_dict.items():
             for image_concept_dict in list_of_concept_dict:
                 concept_image = ImageConcept.fromdict(image_concept_dict)
@@ -175,9 +176,9 @@ class MnistConceptsDao(IDao):
                 if len(h_extend) == 0:
                     h_extend = [0, 28]
 
-                self.label_key_to_label_map[f"{digit}_{h_extend[0]}_{h_extend[1]}_{v_extend[0]}_{v_extend[1]}"] = current_label
-                current_label += 1
-        self.num_concepts_label_generated = int(current_label)
+                self.label_key_to_label_map[f"{digit}_{h_extend[0]}_{h_extend[1]}_{v_extend[0]}_{v_extend[1]}"] = label_start + self.num_concepts_label_generated
+                self.num_concepts_label_generated = self.num_concepts_label_generated + 1
+                print(self.num_concepts_label_generated)
 
         self.orig_train_images, self.orig_train_labels =  self.load_orig_train_images_and_labels(dataset_path+"mnist")
         self.images_by_label = dict()
@@ -277,17 +278,22 @@ class MnistConceptsDao(IDao):
             concepts_df = pd.read_csv(concept_image_filename)
             x = concepts_df.values[:, 0:feature_dim]
             y = concepts_df.values[:, feature_dim]
+            _x = x.reshape((x.shape[0], self.image_shape[0], self.image_shape[1], self.image_shape[2] ))
+
         else:
             concepts, concept_labels = self.generate_concepts(map_filename, num_images_per_concept=6000)
             # TODO verify the concepts once
             print(self.orig_train_images.shape, concepts.shape)
-            x = np.vstack([self.orig_train_images, concepts])
+            _x = np.vstack([self.orig_train_images, concepts])
             print(self.orig_train_labels.shape, concept_labels.shape)
             y = np.hstack([self.orig_train_labels, concept_labels])
-            image_df = pd.DataFrame(x.reshape(x.shape[0], feature_dim))
+            print("After hstack and vstack", _x.shape, y.shape)
+            x = deepcopy(_x).reshape(_x.shape[0], feature_dim)
+            image_df = pd.DataFrame(x)
             image_df["label"] = y
-            image_df.to_csv(concept_image_filename)
-        return x, y
+            image_df.to_csv(concept_image_filename, index=False)
+            print("Just before returning",_x.shape, x.shape)
+        return _x, y
 
     def generate_concepts(self, map_filename, num_images_per_concept):
         concepts_dict = self.get_concept_map(map_filename)

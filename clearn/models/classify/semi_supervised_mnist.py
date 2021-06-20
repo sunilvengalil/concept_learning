@@ -431,8 +431,8 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                                                   self.marginal_likelihood],
                                                                                                                                  feed_dict={
                                                                                                                                      self.inputs: batch_images,
-                                                                                                                                     self.labels: manual_labels[:, :38],
-                                                                                                                                     self.is_manual_annotated: manual_labels[:, 38],
+                                                                                                                                     self.labels: manual_labels[:, :self.dao.num_classes],
+                                                                                                                                     self.is_manual_annotated: manual_labels[:, self.dao.num_classes],
                                                                                                                                      self.concepts_labels: concepts_label,
                                                                                                                                      self.is_concepts_annotated: is_concepts_annotated
                                                                                                                                  }
