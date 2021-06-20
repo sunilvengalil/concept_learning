@@ -65,6 +65,7 @@ class IDao(ABC):
                        split_names=[],
                        seed=547):
         x, y = self.load_train_images_and_label(data_dir,  split_location + MAP_FILE_NAME)
+        y = y.astype(int)
         _stratify = None
         if stratified:
             _stratify = y
@@ -107,6 +108,7 @@ class IDao(ABC):
         return data_dict
 
     def create_data_dict(self, train_x, train_y, val_x, val_y):
+        print(type(val_y), val_y.dtype)
         _val_y = np.eye(self.num_classes)[val_y]
         _train_y = np.eye(self.num_classes)[train_y]
         data_dict = {self.TRAIN_X: train_x / self.max_value,
