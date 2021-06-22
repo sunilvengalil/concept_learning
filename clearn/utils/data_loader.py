@@ -281,11 +281,12 @@ class TrainValDataIterator:
 
     def get_manual_annotation(self, manual_annotation_file, _manual_annotation, num_labels, actual_labels):
         if self.manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
-            manual_annotation = np.zeros((len(_manual_annotation), num_labels + 1), dtype=np.float)
+            manual_annotation = np.zeros((len(_manual_annotation), num_labels + 2), dtype=np.float)
             if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
                 for i, label in enumerate(_manual_annotation):
                     manual_annotation[i, int(_manual_annotation[i, 0])] = 1.0
                     manual_annotation[i, num_labels] = _manual_annotation[i, 1]
+                    manual_annotation[i, num_labels+1] = 3
             else:
                 for i, label in enumerate(_manual_annotation):
                     manual_annotation[i, _manual_annotation[i]] = 1.0
