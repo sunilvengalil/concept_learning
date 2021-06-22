@@ -615,6 +615,8 @@ class DataIterator:
         self.manual_annotation = np.zeros((len(self.x), dao.num_classes + 1), dtype=np.float16)
         self.manual_annotation[:, 0:dao.num_classes] = self.y
         self.manual_annotation[:, dao.num_classes] = 1  # set manual annotation confidence as 1
+        self.manual_annotation[:, dao.num_classes + 1] = -1
+
         self.manual_annotation_concepts = np.zeros((len(self.x),
                                                     DataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col,
                                                     dao.num_classes + 1),
