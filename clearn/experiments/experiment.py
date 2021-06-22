@@ -385,19 +385,19 @@ def get_train_val_iterator(create_split: bool,
         num_concepts_per_row, num_concepts_per_col = get_num_concepts_per_image(exp_config, dao)
     else:
         num_concepts_per_row, num_concepts_per_col = 1, 1
-    if os.path.isfile(split_filename):
-        if manual_annotation_file is not None:
-            train_val_data_iterator = TrainValDataIterator.from_existing_split(dao=dao,
-                                                                               split_name=exp_config.split_name,
-                                                                               split_location=exp_config.DATASET_PATH,
-                                                                               batch_size=exp_config.BATCH_SIZE,
-                                                                               manual_labels_config=exp_config.manual_labels_config,
-                                                                               manual_annotation_file=manual_annotation_file,
-                                                                               budget=exp_config.budget,
-                                                                               num_concepts_per_image_row=num_concepts_per_row,
-                                                                               num_concepts_per_image_col=num_concepts_per_col
-                                                                               )
-    elif create_split:
+    # if os.path.isfile(split_filename):
+    #     if manual_annotation_file is not None:
+    #         train_val_data_iterator = TrainValDataIterator.from_existing_split(dao=dao,
+    #                                                                            split_name=exp_config.split_name,
+    #                                                                            split_location=exp_config.DATASET_PATH,
+    #                                                                            batch_size=exp_config.BATCH_SIZE,
+    #                                                                            manual_labels_config=exp_config.manual_labels_config,
+    #                                                                            manual_annotation_file=manual_annotation_file,
+    #                                                                            budget=exp_config.budget,
+    #                                                                            num_concepts_per_image_row=num_concepts_per_row,
+    #                                                                            num_concepts_per_image_col=num_concepts_per_col
+    #                                                                            )
+    if True:
         train_val_data_iterator = TrainValDataIterator(dataset_path=exp_config.DATASET_ROOT_PATH,
                                                        dao=dao,
                                                        shuffle=True,
