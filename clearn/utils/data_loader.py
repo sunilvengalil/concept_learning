@@ -305,8 +305,6 @@ class TrainValDataIterator:
                 raise Exception("Grount truth not set")
         return manual_annotation
 
-
-
     def __init__(self,
                  dao: IDao,
                  dataset_path=None,
