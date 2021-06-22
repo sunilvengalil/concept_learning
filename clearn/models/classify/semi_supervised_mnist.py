@@ -506,6 +506,29 @@ class SemiSupervisedClassifierMnist(VAE):
                                                   )
 
             if self.exp_config.fully_convolutional:
+                feed_dict = {
+                    self.inputs: batch_images,
+                    self.labels: manual_labels[:, :self.dao.num_classes],
+                    self.is_manual_annotated: manual_labels[:, self.dao.num_classes],
+                    self.concepts_labels: concepts_label,
+                    self.is_concepts_annotated: is_concepts_annotated
+                }
+
+                for layer_num in self.exp_config.concept_dict.keys():
+                    # print(self.mask_for_concept_no[layer_num])
+                    for concept_no in self.unique_concepts[layer_num]:
+                        # print("concept number", concept_no)
+                        # print(self.mask_for_concept_no[layer_num][concept_no])
+
+                        masks = np.zeros(self.exp_config.BATCH_SIZE)
+                        if concept_no == -1:
+                            masks[manual_labels[:, self.dao.num_classes + 1] <= 9] = 1
+                        else:
+                            masks[manual_labels[:, self.dao.num_classes + 1] == layer_num] = 1
+                        # print(
+                        #    f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
+                        feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
+
                 reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, y_pred, nll, nll_batch = self.sess.run([self.out,
                                                                                                                                   self.merged_summary_op,
                                                                                                                                   self.mu,
@@ -514,13 +537,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                                                   self.y_pred,
                                                                                                                                   self.neg_loglikelihood,
                                                                                                                                   self.marginal_likelihood],
-                                                                                                                                 feed_dict={
-                                                                                                                                     self.inputs: batch_images,
-                                                                                                                                     self.labels: manual_labels[:, :self.dao.num_classes],
-                                                                                                                                     self.is_manual_annotated: manual_labels[:, self.dao.num_classes],
-                                                                                                                                     self.concepts_labels: concepts_label,
-                                                                                                                                     self.is_concepts_annotated: is_concepts_annotated
-                                                                                                                                 }
+                                                                                                                                 feed_dict=feed_dict
                                                                                                                                  )
             else:
                 reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, y_pred, nll, nll_batch = self.sess.run([self.out,

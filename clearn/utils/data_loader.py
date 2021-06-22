@@ -362,6 +362,12 @@ class TrainValDataIterator:
             if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
                 if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
                     _manual_annotation = TrainValDataIterator.load_manual_annotation(manual_annotation_file)
+                    fname = manual_annotation_file.rsplit("/", 1)[1]
+                    print(fname)
+                    manual_annotation_file_val = manual_annotation_file.rsplit("/", 1)[0] + "/" + fname.rsplit(".", 1)[0] +"_val" + ".csv"
+                    if os.path.isfile(manual_annotation_file_val):
+                        raise Exception(f"File does not exist {manual_annotation_file_val}")
+                    _manual_annotation_val = TrainValDataIterator.load_manual_annotation(manual_annotation_file_val)
                     print("Loaded manual annotation")
                     print(f"Number of samples with manual confidence {sum(_manual_annotation[:, 1] > 0)}")
                 else:
@@ -400,6 +406,12 @@ class TrainValDataIterator:
                                                                 _manual_annotation,
                                                                 dao.num_classes,
                                                                 self.train_y)
+            self.val_manual_annotation = self.get_manual_annotation(manual_annotation_file,
+                                                                _manual_annotation_val,
+                                                                dao.num_classes,
+                                                                self.val_y)
+
+
             self.manual_annotation_concepts = self.get_manual_annotation_concepts(manual_annotation_file_concepts,
                                                                                   _manual_annotation_concepts,
                                                                                   self.dao.num_classes,
@@ -446,7 +458,7 @@ class TrainValDataIterator:
         elif dataset_type == "val":
             x = self.val_x[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
             y = self.val_y[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
-            label = self.manual_annotation[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
+            label = self.val_manual_annotation[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
             label_concepts = self.manual_annotation_concepts[
                              self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
             # TODO check if this is last batch, if yes,reset the counter
