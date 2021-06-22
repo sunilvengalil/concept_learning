@@ -612,7 +612,7 @@ class DataIterator:
             self.y = self.dataset_dict[DataIterator.Y_ONE_HOT]
             self.unique_labels = np.unique(self.dataset_dict[DataIterator.Y_RAW])
 
-        self.manual_annotation = np.zeros((len(self.x), dao.num_classes + 1), dtype=np.float16)
+        self.manual_annotation = np.zeros((len(self.x), dao.num_classes + 2), dtype=np.float16)
         self.manual_annotation[:, 0:dao.num_classes] = self.y
         self.manual_annotation[:, dao.num_classes] = 1  # set manual annotation confidence as 1
         self.manual_annotation[:, dao.num_classes + 1] = -1
