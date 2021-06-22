@@ -87,8 +87,8 @@ class IDao(ABC):
             val_indices = splitted[5]
             split_name = self.get_split_name(split_location)
             dataset_dict = {}
-            dataset_dict["TRAIN_INDICES"]
-            dataset_dict["VAL_INDICES"]
+            dataset_dict["TRAIN_INDICES"] = train_indices
+            dataset_dict["VAL_INDICES"] = val_indices
 
 
             num_splits = len(split_names)
