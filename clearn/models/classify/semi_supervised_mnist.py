@@ -57,32 +57,31 @@ class SemiSupervisedClassifierMnist(VAE):
             self.num_concpets_per_row = [None] * len(exp_config.num_units)
             self.num_concpets_per_col = [None] * len(exp_config.num_units)
 
-            for layer_num in exp_config.concept_dict:
-                concepts_stride = concept_dict[layer_num]["concept_stride"]
-                feature_dim = self.image_sizes[layer_num]
+#            for layer_num in exp_config.concept_dict:
+#                concepts_stride = concept_dict[layer_num]["concept_stride"]
+#                feature_dim = self.image_sizes[layer_num]
                 #latent_image_dim = self.image_sizes[len(exp_config.num_units)]
 
+                # if feature_dim[0] % concepts_stride == 0:
+                #     self.num_concpets_per_row[layer_num] = feature_dim[0] // concepts_stride
+                # else:
+                #     self.num_concpets_per_row[layer_num] = (feature_dim[0] // concepts_stride) + 1
+                # if feature_dim[1] % concepts_stride == 0:
+                #     self.num_concpets_per_col[layer_num] = feature_dim[1] // concepts_stride
+                # else:
+                #     self.num_concpets_per_col[layer_num] = (feature_dim[1] // concepts_stride) + 1
 
-                if feature_dim[0] % concepts_stride == 0:
-                    self.num_concpets_per_row[layer_num] = feature_dim[0] // concepts_stride
-                else:
-                    self.num_concpets_per_row[layer_num] = (feature_dim[0] // concepts_stride) + 1
-                if feature_dim[1] % concepts_stride == 0:
-                    self.num_concpets_per_col[layer_num] = feature_dim[1] // concepts_stride
-                else:
-                    self.num_concpets_per_col[layer_num] = (feature_dim[1] // concepts_stride) + 1
-
-                self.is_concept_annotated[layer_num] = placeholder(tf.float32,
-                                                         [exp_config.BATCH_SIZE,
-                                                          self.num_concpets_per_row,
-                                                          self.num_concpets_per_col],
-                                                         name="is_concepts_annotated")
-                self.concept_labels[layer_num] = placeholder(tf.float32,
-                                                   [exp_config.BATCH_SIZE,
-                                                    self.num_concpets_per_row,
-                                                    self.num_concpets_per_col,
-                                                    exp_config.dao.num_classes],
-                                                   name='manual_label_concepts')
+                # self.is_concept_annotated[layer_num] = placeholder(tf.float32,
+                #                                          [exp_config.BATCH_SIZE,
+                #                                           self.num_concpets_per_row,
+                #                                           self.num_concpets_per_col],
+                #                                          name="is_concepts_annotated")
+                # self.concept_labels[layer_num] = placeholder(tf.float32,
+                #                                    [exp_config.BATCH_SIZE,
+                #                                     self.num_concpets_per_row,
+                #                                     self.num_concpets_per_col,
+                #                                     exp_config.dao.num_classes],
+                #                                    name='manual_label_concepts')
 
         super().__init__(exp_config=exp_config,
                          sess=sess,
@@ -102,10 +101,11 @@ class SemiSupervisedClassifierMnist(VAE):
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_val][metric] = []
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_test][metric] = []
         self.layers_to_apply_concept_loss = []
-        self.unique_concepts:Dict[int, np.ndarray]
+        self.unique_concepts:Dict[int, List]
         self.mask_for_concept_no = [None] * len(self.layers_to_apply_concept_loss)
-        for layer_num in self.layers_to_apply_concept_loss:
-            self.mask_for_concept_no[layer_num] = [None] * len(self.unique_concepts)
+        for layer_num in self.exp_config.concept_dict.keys():
+            self.unique_concepts[layer_num] = concept_dict[layer_num]["unique_concepts"]
+            self.mask_for_concept_no[layer_num] = [None] * len(self.unique_concepts[layer_num])
             for concept_no in self.unique_concepts[layer_num]:
                 self.mask_for_concept_no[layer_num][concept_no] = placeholder(tf.float32, self.exp_config.BATCH_SIZE)
 
