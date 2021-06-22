@@ -298,18 +298,18 @@ class SemiSupervisedClassifierMnist(VAE):
                             self.is_concepts_annotated: is_concepts_annotated
                         }
                         for layer_num in self.exp_config.concept_dict.keys():
-                            print(self.mask_for_concept_no[layer_num])
+                            # print(self.mask_for_concept_no[layer_num])
                             for concept_no in self.unique_concepts[layer_num]:
-                                print("concept number", concept_no)
-                                print(self.mask_for_concept_no[layer_num][concept_no])
+                                #print("concept number", concept_no)
+                                #print(self.mask_for_concept_no[layer_num][concept_no])
 
                                 masks = np.zeros(self.exp_config.BATCH_SIZE)
                                 if concept_no == -1:
                                     masks[manual_labels[:, self.dao.num_classes + 1] <= 9] = 1
                                 else:
                                     masks[manual_labels[:, self.dao.num_classes + 1] == layer_num] = 1
-                                print(
-                                    f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
+                                #print(
+                                #    f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
                                 feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
 
                         _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts = self.sess.run([self.optim,
