@@ -207,22 +207,25 @@ class TrainValDataIterator:
                 _manual_annotation = np.random.choice(dao.num_classes, len(instance.train_x))
 
         if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
-            if manual_annotation_file_concepts is not None and os.path.isfile(manual_annotation_file_concepts):
-                _manual_annotation_concepts = cls.load_manual_annotation(manual_annotation_file_concepts)
-                print("Loaded manual annotation concepts")
-                print(f"Number of samples with manual confidence {sum(_manual_annotation_concepts[:, 1] > 0)}")
-            else:
-                # TODO if we are using random prior with uniform distribution, do we need to keep
-                # manual confidence as 0.5 or 0
-                print("Warning", "{} path does not exist. Creating random prior with uniform distribution".
-                      format(manual_annotation_file_concepts))
-                # create a numpy array of dimension (num_training_samples, num_unique_labels) and  set the one-hot encoded label
-                # with uniform probability distribution for each label. i.e in case of MNIST each row will be set as one of the symbol
-                # {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
-                _manual_annotation_concepts = np.random.choice(instance.dao.num_classes,
-                                                               size=(len(instance.train_x),
-                                                                     TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col)
-                                                               )
+            # if manual_annotation_file_concepts is not None and os.path.isfile(manual_annotation_file_concepts):
+            #     _manual_annotation_concepts = cls.load_manual_annotation(manual_annotation_file_concepts)
+            #     print("Loaded manual annotation concepts")
+            #     print(f"Number of samples with manual confidence {sum(_manual_annotation_concepts[:, 1] > 0)}")
+            # else:
+            #     # TODO if we are using random prior with uniform distribution, do we need to keep
+            #     # manual confidence as 0.5 or 0
+            #     print("Warning", "{} path does not exist. Creating random prior with uniform distribution".
+            #           format(manual_annotation_file_concepts))
+            #     # create a numpy array of dimension (num_training_samples, num_unique_labels) and  set the one-hot encoded label
+            #     # with uniform probability distribution for each label. i.e in case of MNIST each row will be set as one of the symbol
+            #     # {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
+            #     _manual_annotation_concepts = np.random.choice(instance.dao.num_classes,
+            #                                                    size=(len(instance.train_x),
+            #                                                          TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col)
+            #                                                    )
+
+            _manual_annotation_concepts = np.zeros((len(instance.train_x), 13))
+
 
         instance.manual_annotation = instance.get_manual_annotation(manual_annotation_file,
                                                                     _manual_annotation,
