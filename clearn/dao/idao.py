@@ -87,31 +87,31 @@ class IDao(ABC):
             val_indices = splitted[5]
             split_name = self.get_split_name(split_location)
             dataset_dict = {}
-            dataset_dict["TRAIN_INDICES"] = train_indices
-            dataset_dict["VAL_INDICES"] = val_indices
-
 
             num_splits = len(split_names)
             dataset_dict["split_names"] = split_names
 
-            for split_num, split in enumerate(split_names):
-                print(split, splitted[split_num].shape)
-                feature_dim = self.image_shape[0] * self.image_shape[1] * self.image_shape[2]
-                train_df = pd.DataFrame(splitted[split_num].reshape(splitted[split_num].shape[0],
-                                                                    feature_dim)
-                                        )
-                train_df["label"] = splitted[split_num + num_splits]
-                train_df.to_csv(split_location + split + ".csv", index=False)
-            print(split_location)
-            json_ = split_location + split_name + ".json"
-            with open(json_, "w") as fp:
-                print("Writing json to ", json_)
-                json.dump(dataset_dict, fp)
-            print("Writing json to ", json_)
+            # for split_num, split in enumerate(split_names):
+            #     print(split, splitted[split_num].shape)
+            #     feature_dim = self.image_shape[0] * self.image_shape[1] * self.image_shape[2]
+            #     train_df = pd.DataFrame(splitted[split_num].reshape(splitted[split_num].shape[0],
+            #                                                         feature_dim)
+            #                             )
+            #     train_df["label"] = splitted[split_num + num_splits]
+            #     train_df.to_csv(split_location + split + ".csv", index=False)
+            # print(split_location)
+            # json_ = split_location + split_name + ".json"
+            # with open(json_, "w") as fp:
+            #     print("Writing json to ", json_)
+            #     json.dump(dataset_dict, fp)
+            # print("Writing json to ", json_)
         else:
             raise Exception("Split not implemented for more than two splits")
 
         data_dict = self.create_data_dict(train_x, train_y, val_x, val_y)
+        data_dict["TRAIN_INDICES"] = train_indices
+        data_dict["VAL_INDICES"] = val_indices
+
         return data_dict
 
     def create_data_dict(self, train_x, train_y, val_x, val_y):
