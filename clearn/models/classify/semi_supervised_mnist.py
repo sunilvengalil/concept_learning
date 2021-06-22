@@ -76,32 +76,6 @@ class SemiSupervisedClassifierMnist(VAE):
                                                 exp_config.dao.num_classes],
                                                name='manual_label_concepts')
 
-#            for layer_num in exp_config.concept_dict:
-#                concepts_stride = concept_dict[layer_num]["concept_stride"]
-#                feature_dim = self.image_sizes[layer_num]
-                #latent_image_dim = self.image_sizes[len(exp_config.num_units)]
-
-                # if feature_dim[0] % concepts_stride == 0:
-                #     self.num_concpets_per_row[layer_num] = feature_dim[0] // concepts_stride
-                # else:
-                #     self.num_concpets_per_row[layer_num] = (feature_dim[0] // concepts_stride) + 1
-                # if feature_dim[1] % concepts_stride == 0:
-                #     self.num_concpets_per_col[layer_num] = feature_dim[1] // concepts_stride
-                # else:
-                #     self.num_concpets_per_col[layer_num] = (feature_dim[1] // concepts_stride) + 1
-
-                # self.is_concept_annotated[layer_num] = placeholder(tf.float32,
-                #                                          [exp_config.BATCH_SIZE,
-                #                                           self.num_concpets_per_row,
-                #                                           self.num_concpets_per_col],
-                #                                          name="is_concepts_annotated")
-                # self.concept_labels[layer_num] = placeholder(tf.float32,
-                #                                    [exp_config.BATCH_SIZE,
-                #                                     self.num_concpets_per_row,
-                #                                     self.num_concpets_per_col,
-                #                                     exp_config.dao.num_classes],
-                #                                    name='manual_label_concepts')
-
         self.layers_to_apply_concept_loss = []
         self.unique_concepts:Dict[int, List] = dict()
         self.mask_for_concept_no = dict()
@@ -131,7 +105,6 @@ class SemiSupervisedClassifierMnist(VAE):
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_test][metric] = []
 
     def compute_and_optimize_loss(self):
-        concept_dict = self.exp_config.concept_dict
         if self.exp_config.fully_convolutional :
             concepts_stride = 1
 
@@ -272,11 +245,17 @@ class SemiSupervisedClassifierMnist(VAE):
                                                 self.num_concpets_per_col,
                                                 self.exp_config.dao.num_classes)
                                                 )
-                    is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts],
-                                                      (self.exp_config.BATCH_SIZE,
-                                                        self.num_concpets_per_row,
-                                                        self.num_concpets_per_col)
-                                                      )
+                    # is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts],
+                    #                                   (self.exp_config.BATCH_SIZE,
+                    #                                     self.num_concpets_per_row,
+                    #                                     self.num_concpets_per_col)
+                    #                                   )
+
+                    is_concepts_annotated = np.zeros(
+                                  (self.exp_config.BATCH_SIZE,
+                                    self.num_concpets_per_row,
+                                    self.num_concpets_per_col)
+                                  )
 
                 # update autoencoder and classifier parameters
                 if self.exp_config.fully_convolutional:
@@ -305,6 +284,25 @@ class SemiSupervisedClassifierMnist(VAE):
                             }
                             )
                     else:
+                        feed_dict = {
+                            self.inputs: batch_images,
+                            self.labels: manual_labels[
+                                         :,
+                                         :self.dao.num_classes],
+                            self.is_manual_annotated: manual_labels[
+                                                      :,
+                                                      self.dao.num_classes],
+                            self.concepts_labels: concepts_label,
+                            self.is_concepts_annotated: is_concepts_annotated
+                        }
+                        for layer_num in self.exp_config.concept_dict.keys():
+                            for concept_no in self.unique_concepts:
+                                masks = np.zeros(self.exp_config.BATCH_SIZE)
+                                masks[manual_labels[:, self.dao.num_classes + 1] == layer_num] = 1
+                                print(
+                                    f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
+                                feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
+
                         _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts = self.sess.run([self.optim,
                                                                                                              self.merged_summary_op,
                                                                                                              self.loss,
@@ -312,18 +310,8 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                              self.marginal_likelihood,
                                                                                                              self.KL_divergence,
                                                                                                              self.supervised_loss,
-                                                                                                                                  self.supervised_loss_concepts     ],
-                                                                                                            feed_dict={
-                                                                                                                self.inputs: batch_images,
-                                                                                                                self.labels: manual_labels[
-                                                                                                                             :,
-                                                                                                                             :self.dao.num_classes],
-                                                                                                                self.is_manual_annotated: manual_labels[
-                                                                                                                                          :,
-                                                                                                                                          self.dao.num_classes],
-                                                                                                                self.concepts_labels: concepts_label,
-                                                                                                                self.is_concepts_annotated: is_concepts_annotated
-                                                                                                            }
+                                                                                                             self.supervised_loss_concepts],
+                                                                                                            feed_dict=feed_dict
                                                                                                             )
                 else:
                     feed_dict = {
