@@ -9,13 +9,14 @@ import numpy as np
 import pandas as pd
 from statistics import mean
 
+from clearn.config import ExperimentConfig
 from clearn.config.common_path import get_encoded_csv_file
 from clearn.dao.idao import IDao
 from clearn.models.classify.classifier import ClassifierModel
 from clearn.models.vae import VAE
 from clearn.utils import prior_factory as prior
 from clearn.utils.retention_policy.policy import RetentionPolicy
-from clearn.utils.utils import get_latent_vector_column, get_padding_info, save_images
+from clearn.utils.utils import get_latent_vector_column, get_padding_info, save_images, get_layer_num
 from scipy.special import softmax
 from sklearn.metrics import accuracy_score
 
@@ -29,7 +30,7 @@ class SemiSupervisedClassifierMnist(VAE):
     _model_name_ = "SemiSupervisedClassifierMnist"
 
     def __init__(self,
-                 exp_config,
+                 exp_config:ExperimentConfig,
                  sess,
                  epoch,
                  dao: IDao,
@@ -42,38 +43,46 @@ class SemiSupervisedClassifierMnist(VAE):
                  ):
         # Whether the sample was manually annotated.
         self.is_manual_annotated = placeholder(tf.float32, [exp_config.BATCH_SIZE], name="is_manual_annotated")
-
         self.labels = placeholder(tf.float32, [exp_config.BATCH_SIZE, dao.num_classes], name='manual_label')
         self.padding_added_row, self.padding_added_col, self.image_sizes = get_padding_info(exp_config,
                                                                                                  dao.image_shape)
         self.num_individual_samples_annotated = num_individual_samples_annotated
         self.num_samples_wrongly_annotated = num_samples_wrongly_annotated
         self.total_confidence_of_wrong_annotation = total_confidence_of_wrong_annotation
+        concept_dict = exp_config.concept_dict
 
-        if exp_config.fully_convolutional:
-            latent_image_dim = self.image_sizes[len(exp_config.num_units)]
-            self.concepts_stride = 1
+        if exp_config.fully_convolutional and concept_dict is not None and len(concept_dict) > 0:
+            self.is_concept_annotated = [None] * len(exp_config.num_units)
+            self.concept_labels = [None] * len(exp_config.num_units)
+            self.num_concpets_per_row = [None] * len(exp_config.num_units)
+            self.num_concpets_per_col = [None] * len(exp_config.num_units)
 
-            if latent_image_dim[0] % self.concepts_stride == 0:
-                self.num_concpets_per_row = latent_image_dim[0] // self.concepts_stride
-            else:
-                self.num_concpets_per_row = (latent_image_dim[0] // self.concepts_stride) + 1
-            if latent_image_dim[1] % self.concepts_stride == 0:
-                self.num_concpets_per_col = latent_image_dim[1] // self.concepts_stride
-            else:
-                self.num_concpets_per_col = (latent_image_dim[1] // self.concepts_stride) + 1
+            for layer_num in exp_config.concept_dict:
+                concepts_stride = concept_dict[layer_num]["concept_stride"]
+                feature_dim = self.image_sizes[layer_num]
+                #latent_image_dim = self.image_sizes[len(exp_config.num_units)]
 
-            self.is_concepts_annotated = placeholder(tf.float32,
-                                                     [exp_config.BATCH_SIZE,
-                                                      self.num_concpets_per_row,
-                                                      self.num_concpets_per_col],
-                                                     name="is_concepts_annotated")
-            self.concepts_labels = placeholder(tf.float32,
-                                               [exp_config.BATCH_SIZE,
-                                                self.num_concpets_per_row,
-                                                self.num_concpets_per_col,
-                                                exp_config.dao.num_classes],
-                                               name='manual_label_concepts')
+
+                if feature_dim[0] % concepts_stride == 0:
+                    self.num_concpets_per_row[layer_num] = feature_dim[0] // concepts_stride
+                else:
+                    self.num_concpets_per_row[layer_num] = (feature_dim[0] // concepts_stride) + 1
+                if feature_dim[1] % concepts_stride == 0:
+                    self.num_concpets_per_col[layer_num] = feature_dim[1] // concepts_stride
+                else:
+                    self.num_concpets_per_col[layer_num] = (feature_dim[1] // concepts_stride) + 1
+
+                self.is_concept_annotated[layer_num] = placeholder(tf.float32,
+                                                         [exp_config.BATCH_SIZE,
+                                                          self.num_concpets_per_row,
+                                                          self.num_concpets_per_col],
+                                                         name="is_concepts_annotated")
+                self.concept_labels[layer_num] = placeholder(tf.float32,
+                                                   [exp_config.BATCH_SIZE,
+                                                    self.num_concpets_per_row,
+                                                    self.num_concpets_per_col,
+                                                    exp_config.dao.num_classes],
+                                                   name='manual_label_concepts')
 
         super().__init__(exp_config=exp_config,
                          sess=sess,
@@ -94,7 +103,10 @@ class SemiSupervisedClassifierMnist(VAE):
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_test][metric] = []
 
     def compute_and_optimize_loss(self):
-        if self.exp_config.fully_convolutional:
+        concept_dict = self.exp_config.concept_dict
+        if self.exp_config.fully_convolutional :
+            concepts_stride = concept_dict[len(self.exp_config.num_units)]["concept_stride"]
+
             z_reshaped = tf.reshape(self.z, [self.exp_config.BATCH_SIZE,
                                              self.image_sizes[len(self.exp_config.num_units)][0],
                                              self.image_sizes[len(self.exp_config.num_units)][0],
@@ -105,20 +117,37 @@ class SemiSupervisedClassifierMnist(VAE):
                                         self.exp_config.dao.num_classes,
                                         k_h=2,
                                         k_w=2,
-                                        d_h=self.concepts_stride,
-                                        d_w=self.concepts_stride,
+                                        d_h= concepts_stride,
+                                        d_w= concepts_stride,
                                         stddev=0.02,
                                         name="predict_concepts")
-        self.y_pred = linear(self.z, self.dao.num_classes)
+
         if self.exp_config.fully_convolutional:
-            self.supervised_loss_concepts = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.concepts_labels,
-                                                                             logits=self.concepts_pred,
-                                                                             weights=self.is_concepts_annotated
-                                                                             )
+            self.supervised_loss_concepts = 0
+            self.supervised_loss_concepts_per_layer = []
+            for decoder_feature in list(self.decoder_feature.keys()):
+                layer_num = get_layer_num(decoder_feature)
+                f = self.decoder_dict[decoder_feature]
+                f = tf.reshape(f, [-1, int(f.shape[1]) * int(f.shape[2]), int(f.shape[3])])
+                num_concepts = len(self.concept_labels[layer_num])
+                self.supervised_loss_concepts_per_layer[layer_num] = [None] * num_concepts
+                for concept_no in range(num_concepts):
+                    print(f"Computing loss for {layer_num} concept {concept_no}")
+                    mse = tf.compat.v1.losses.mean_squared_error(f[:, :, :, concept_no],
+                                                                 self.concept_labels[layer_num][concept_no],
+                                                                 reduction=tf.compat.v1.losses.Reduction.NONE
+                                                                 )
+                    self.supervised_loss_concepts_per_layer[layer_num][concept_no] = tf.compat.v1.reduce_mean(mse, axis=(1, 2, 3))
+                    self.supervised_loss_concepts += self.supervised_loss_concepts_per_layer[layer_num][concept_no]
+
+
+        self.y_pred = linear(self.z, self.dao.num_classes)
         self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
                                                                          logits=self.y_pred,
                                                                          weights=self.is_manual_annotated
                                                                          )
+
+
         if self.exp_config.fully_convolutional:
             self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
                         self.exp_config.beta * self.KL_divergence + \

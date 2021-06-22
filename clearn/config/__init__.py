@@ -106,7 +106,8 @@ class ExperimentConfig:
                  env=None,
                  translate_image=False,
                  dao=None,
-                 concept_id=-1
+                 concept_id=-1,
+                 concept_dict=None
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -128,9 +129,9 @@ class ExperimentConfig:
             else:
                 raise Exception(f"Parameter env should be set as sunil_local or colab. env is passed as {env} instead")
 
-        if len(num_units) < 1 or len(num_units) > 5 :
+        if len(num_units) < 1 :
             print(num_units)
-            raise ValueError("Length of num_units should be between 1 and 5")
+            raise ValueError("Length of num_units should be greater than 1")
 
         self.learning_rate = learning_rate
         self.num_decoder_layer = len(num_units) + 1
@@ -192,6 +193,7 @@ class ExperimentConfig:
         self.uncorrelated_features = uncorrelated_features
         self.translate_image = translate_image
         self.concept_id = concept_id
+        self.concept_dict = concept_dict
 
     @property
     def num_train_samples(self):
@@ -246,6 +248,8 @@ class ExperimentConfig:
         config_json["UNCORRELATED_FEATURES"] = self.uncorrelated_features
         config_json["TRANSLATE_IMAGE"] = self.translate_image
         config_json["CONCEPT_ID"] = self.concept_id
+        config_json["CONCEPT_DICT"] = self.concept_dict
+
         return config_json
 
     def get_exp_name_with_parameters(self, run_id):
@@ -378,6 +382,7 @@ class ExperimentConfig:
         self.num_dense_layers = exp_config_dict["UNCORRELATED_FEATURES"]
         self.translate_image = exp_config["TRANSLATE_IMAGE"]
         self.concept_id = exp_config["CONCEPT_ID"]
+        self.concept_dict = exp_config["CONCEPT_DICT"]
 
 if __name__ == "__main__":
     _root_path = "/Users/sunilv/concept_learning_exp"

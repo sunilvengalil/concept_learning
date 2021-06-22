@@ -222,7 +222,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             total_confidence_of_wrong_annotation=0,
                                             uncorrelated_features=False,
                                             translate_image=False,
-                                            concept_id = -1
+                                            concept_id = -1,
+                                            concept_dict=None
                                             ):
     if concept_id == -1 and dataset_name == "mnist_concepts":
         raise Exception("Parameter concept_id should be non-negative")
@@ -302,7 +303,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                   uncorrelated_features=uncorrelated_features,
                                   translate_image = translate_image,
                                   dao=dao,
-                                  concept_id=concept_id
+                                  concept_id=concept_id,
+                                  concept_dict=concept_dict
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)
