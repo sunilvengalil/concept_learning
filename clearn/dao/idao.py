@@ -73,6 +73,7 @@ class IDao(ABC):
         if len(split_names) == 2:
             splitted = train_test_split(x,
                                         y,
+                                        np.asarray(list(range(x.shape[0]))),
                                         test_size=percentage_to_be_sampled,
                                         stratify=_stratify,
                                         shuffle=shuffle,
@@ -82,8 +83,14 @@ class IDao(ABC):
             val_x = splitted[1]
             train_y = splitted[2]
             val_y = splitted[3]
+            train_indices = splitted[4]
+            val_indices = splitted[5]
             split_name = self.get_split_name(split_location)
             dataset_dict = {}
+            dataset_dict["TRAIN_INDICES"]
+            dataset_dict["VAL_INDICES"]
+
+
             num_splits = len(split_names)
             dataset_dict["split_names"] = split_names
 
