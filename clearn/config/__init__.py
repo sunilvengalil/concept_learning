@@ -168,6 +168,7 @@ class ExperimentConfig:
                           )
         else:
             self.dao = dao
+        self.num_val_samples = self.dao.num_validation_samples
         # self.num_train_samples = (self.dao.number_of_training_samples  // batch_size) * batch_size
         self.activation_hidden_layer = activation_hidden_layer
         self.activation_output_layer = activation_output_layer
