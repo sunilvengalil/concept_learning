@@ -193,11 +193,16 @@ class MnistConceptsDao(IDao):
             self.image_set_dict[f"level_2_cluster_centers_{cluster_id}"] = np.asarray(
                 level2_manual_annotations_good_cluster[str(cluster_id)]["decoded_images"])
             self.image_set_dict[f"training_set_{cluster_id}"] = self.images_by_label[cluster_id]
+        self.data_dict = None
 
 
     @property
     def number_of_training_samples(self):
-        return 180000 - self.num_validation_samples
+        if self.data_dict is None:
+            return self.orig_train_images.shape[0]
+        else:
+            return self.data_dict["TRAIN_INDICES"].shape[0]
+
 
     @property
     def num_concepts(self):

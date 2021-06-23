@@ -111,8 +111,10 @@ class IDao(ABC):
         data_dict = self.create_data_dict(train_x, train_y, val_x, val_y)
         data_dict["TRAIN_INDICES"] = train_indices
         data_dict["VAL_INDICES"] = val_indices
+        self.num_validation_samples = data_dict["VAL_INDICES"].shape[0]
+        self.data_dict = data_dict
 
-        return data_dict
+        return self.data_dict
 
     def create_data_dict(self, train_x, train_y, val_x, val_y):
         print(type(val_y), val_y.dtype)
