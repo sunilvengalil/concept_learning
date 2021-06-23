@@ -153,13 +153,11 @@ class SemiSupervisedClassifierMnist(VAE):
 
                     self.supervised_loss_concepts += self.supervised_loss_concepts_per_layer[layer_num][concept_no]
 
-
         self.y_pred = linear(self.z, self.dao.num_classes)
         self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
                                                                          logits=self.y_pred,
                                                                          weights=self.is_manual_annotated
                                                                          )
-
 
         if self.exp_config.fully_convolutional:
             self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
@@ -180,7 +178,6 @@ class SemiSupervisedClassifierMnist(VAE):
         #
         #     self.corr_loss = tf.norm(corr - identity)
         #     self.loss = self.loss + self.corr_loss
-
 
         """ Training """
         # optimizers
@@ -221,7 +218,6 @@ class SemiSupervisedClassifierMnist(VAE):
         #     # Get the list of uniques concepts to be aplied on this layer
         #     labels = np.argmax(train_val_data_iterator.train_y)
         #     self.unique_concepts[layer_num] = np.unique(labels[train_val_data_iterator.manual_annotation[2] == layer_num])
-
 
         for epoch in range(start_epoch, self.epoch):
             evaluation_run_for_last_epoch = False
