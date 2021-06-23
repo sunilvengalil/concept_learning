@@ -152,6 +152,8 @@ class MnistConceptsDao(IDao):
                  dataset_path:str,
                  concept_id:int
                  ):
+        self.data_dict = None
+
         self.dataset_name:str = "mnist_concepts"
         self.dataset_path = dataset_path
         self.split_name:str = split_name
@@ -193,7 +195,6 @@ class MnistConceptsDao(IDao):
             self.image_set_dict[f"level_2_cluster_centers_{cluster_id}"] = np.asarray(
                 level2_manual_annotations_good_cluster[str(cluster_id)]["decoded_images"])
             self.image_set_dict[f"training_set_{cluster_id}"] = self.images_by_label[cluster_id]
-        self.data_dict = None
 
 
     @property
@@ -263,7 +264,7 @@ class MnistConceptsDao(IDao):
                                  16,
                                  28 * 28)
         orig_train_images = data.reshape((60000, 28, 28, 1))
-        data = self.extract_data(data_dir + '/train-labels-idx1-ubyte.gz', self.number_of_training_samples, 8, 1)
+        data = self.extract_data(data_dir + '/train-labels-idx1-ubyte.gz', 60000, 8, 1)
         orig_train_labels = np.asarray(data.reshape(60000)).astype(np.int)
         return orig_train_images, orig_train_labels
 
