@@ -302,7 +302,10 @@ class SemiSupervisedClassifierMnist(VAE):
                                 if concept_no == -1:
                                     masks[manual_labels[:, self.dao.num_classes + 1] <= 9] = 1
                                 else:
-                                    masks[manual_labels[:, self.dao.num_classes + 1] == layer_num] = 1
+                                    masks[manual_labels[:, self.dao.num_classes + 1] == concept_no] = 1
+                                print("label",manual_labels[:, self.dao.num_classes + 1])
+                                print"masks",(masks)
+
                                 print(f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
                                 feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
 
