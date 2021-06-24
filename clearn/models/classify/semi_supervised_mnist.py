@@ -225,7 +225,7 @@ class SemiSupervisedClassifierMnist(VAE):
             for batch in range(start_batch_id, self.num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
-                batch_images, _, manual_labels, manual_labels_concepts = train_val_data_iterator.get_next_batch("train")
+                batch_images, batch_labels, manual_labels, manual_labels_concepts = train_val_data_iterator.get_next_batch("train")
                 if num_images_to_save > images_saved:
                     save_images(batch_images[0:64],
                                 [manifold_h, manifold_w],
@@ -294,18 +294,16 @@ class SemiSupervisedClassifierMnist(VAE):
                             self.is_concepts_annotated: is_concepts_annotated
                         }
                         for layer_num in self.exp_config.concept_dict.keys():
-                            # print(self.mask_for_concept_no[layer_num])
                             for concept_no in self.unique_concepts[layer_num]:
-                                #print("concept number", concept_no)
-                                #print(self.mask_for_concept_no[layer_num][concept_no])
-
+                                print("concept number", layer_num, concept_no)
+                                print(self.mask_for_concept_no[layer_num][concept_no])
+                                print(np.argmax(batch_labels))
                                 masks = np.zeros(self.exp_config.BATCH_SIZE)
                                 if concept_no == -1:
                                     masks[manual_labels[:, self.dao.num_classes + 1] <= 9] = 1
                                 else:
                                     masks[manual_labels[:, self.dao.num_classes + 1] == layer_num] = 1
-                                #print(
-                                #    f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
+                                print(f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
                                 feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
 
                         _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts = self.sess.run([self.optim,
