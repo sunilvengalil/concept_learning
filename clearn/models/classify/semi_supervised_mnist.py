@@ -218,7 +218,7 @@ class SemiSupervisedClassifierMnist(VAE):
         #     # Get the list of uniques concepts to be aplied on this layer
         #     labels = np.argmax(train_val_data_iterator.train_y)
         #     self.unique_concepts[layer_num] = np.unique(labels[train_val_data_iterator.manual_annotation[2] == layer_num])
-
+        supervised_loss_concepts_batch = np.asarray(self.exp_config.BATCH_SIZE)
         for epoch in range(start_epoch, self.epoch):
             evaluation_run_for_last_epoch = False
             # get batch data
@@ -346,6 +346,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                          self.supervised_loss],
                                                                                                         feed_dict=feed_dict
                                                                                                         )
+                supervised_loss_concepts_batch[batch] = supervised_loss_concepts
                 if self.exp_config.fully_convolutional:
                     if self.exp_config.uncorrelated_features:
                         print(
@@ -359,7 +360,7 @@ class SemiSupervisedClassifierMnist(VAE):
                 self.counter += 1
                 self.num_steps_completed = batch + 1
                 # self.writer.add_summary(summary_str, self.counter - 1)
-            print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss}")
+            print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss}, Superwise loss concept {np.sum(supervised_loss_concepts)}")
             self.num_training_epochs_completed = epoch + 1
             print(f"Completed {epoch} epochs")
             if self.exp_config.run_evaluation_during_training:
