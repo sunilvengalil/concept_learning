@@ -296,15 +296,15 @@ class SemiSupervisedClassifierMnist(VAE):
                         for layer_num in self.exp_config.concept_dict.keys():
                             for concept_no in self.unique_concepts[layer_num]:
                                 print("concept number", layer_num, concept_no)
-                                print(self.mask_for_concept_no[layer_num][concept_no])
-                                print(np.argmax(batch_labels))
+                                #print(self.mask_for_concept_no[layer_num][concept_no])
+                                #print(np.argmax(batch_labels))
                                 masks = np.zeros(self.exp_config.BATCH_SIZE)
                                 if concept_no == -1:
                                     masks[manual_labels[:, self.dao.num_classes + 1] <= 9] = 1
                                 else:
                                     masks[manual_labels[:, self.dao.num_classes + 1] == concept_no] = 1
-                                print("label", manual_labels[:, self.dao.num_classes + 1])
-                                print("masks", masks)
+                                #print("label", manual_labels[:, self.dao.num_classes + 1])
+                                #print("masks", masks)
 
                                 print(f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
                                 feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
