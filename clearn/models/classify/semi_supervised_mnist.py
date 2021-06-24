@@ -107,7 +107,6 @@ class SemiSupervisedClassifierMnist(VAE):
     def compute_and_optimize_loss(self):
         if self.exp_config.fully_convolutional :
             concepts_stride = 1
-
             z_reshaped = tf.reshape(self.z, [self.exp_config.BATCH_SIZE,
                                              self.image_sizes[len(self.exp_config.num_units)][0],
                                              self.image_sizes[len(self.exp_config.num_units)][0],
@@ -149,7 +148,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                  )
                     mse_for_all_images = tf.compat.v1.reduce_mean(mse, axis=(1, 2, 3))
                     #mse_for_all_images_masked = tf.math.multiply(mse_for_all_images, self.mask_for_concept_no[layer_num][concept_no])
-                    mse_for_all_images_masked= mse_for_all_images
+                    mse_for_all_images_masked = mse_for_all_images
                     self.supervised_loss_concepts_per_layer[layer_num][concept_no] = tf.compat.v1.reduce_mean(mse_for_all_images_masked)
 
                     self.supervised_loss_concepts += self.supervised_loss_concepts_per_layer[layer_num][concept_no]
@@ -219,10 +218,11 @@ class SemiSupervisedClassifierMnist(VAE):
         #     # Get the list of uniques concepts to be aplied on this layer
         #     labels = np.argmax(train_val_data_iterator.train_y)
         #     self.unique_concepts[layer_num] = np.unique(labels[train_val_data_iterator.manual_annotation[2] == layer_num])
-        supervised_loss_concepts_batch = []
         for epoch in range(start_epoch, self.epoch):
             evaluation_run_for_last_epoch = False
             # get batch data
+            supervised_loss_concepts_batch = []
+            supervised_loss_concepts_for_epoch = 0
             for batch in range(start_batch_id, self.num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
@@ -322,6 +322,8 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                             feed_dict=feed_dict
                                                                                                             )
                         print(supervised_loss_concepts_for_l3)
+                        for k, v in supervised_loss_concepts_for_l3.keys():
+                            supervised_loss_concepts_for_epoch += v
                 else:
                     feed_dict = {
                         self.inputs: batch_images,
@@ -359,11 +361,10 @@ class SemiSupervisedClassifierMnist(VAE):
 
                 else:
                     print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} ")
-
                 self.counter += 1
                 self.num_steps_completed = batch + 1
                 # self.writer.add_summary(summary_str, self.counter - 1)
-            print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss}, Superwise loss concept {sum(supervised_loss_concepts)}")
+            print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss},  Supervised loss concept {supervised_loss_concepts_for_epoch}")
             self.num_training_epochs_completed = epoch + 1
             print(f"Completed {epoch} epochs")
             if self.exp_config.run_evaluation_during_training:
