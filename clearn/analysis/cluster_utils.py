@@ -726,16 +726,14 @@ def location_description(h_extend, v_extend, image_shape):
 
 
 def cluster_gmm(cropped, num_clusters):
-    print("Inside cluster_gmm")
     gm = GaussianMixture(n_components=num_clusters, random_state=0)
-    print(cropped.shape)
     cropped_vectorized = cropped.reshape([cropped.shape[0], cropped.shape[1] * cropped.shape[2] ])
-    print(cropped_vectorized.shape)
     cluster_labels = gm.fit_predict(cropped_vectorized)
     cluster_centers = gm.means_
     posterior = gm.predict_proba(cropped_vectorized)
     cluster_center_image = cluster_centers.reshape([cluster_centers.shape[0], cropped.shape[1], cropped.shape[2] ])
     return cluster_labels,cluster_centers,posterior,cluster_center_image
+
 
 def segment(images, h_extend, v_extend, digit, num_clusters, exp_config, cluster, sample_index, display_image=True, epochs_completed=0):
     height, width = images[0].shape[0], images[0].shape[1]
