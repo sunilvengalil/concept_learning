@@ -1,0 +1,20 @@
+ 1000  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+ 1001  pwd
+ 1002  cd gitprojects
+ 1003  cd concept_learning
+ 1004  ls
+ 1005  cd notebooks
+ 1006  pwd
+ 1007  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning/concept_learning
+ 1008  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+ 1009  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+ 1010  python3
+ 1011  pip3 list |grep torch
+ 1012  pip3 list |grep configparser
+ 1013  history
+ 1014  history --help
+ 1015  history -h
+ 1016  man history
+ 1017  history -1000
+ 1018  history 1000
+ 1019  history 1000 | grep torch

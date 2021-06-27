@@ -1,0 +1,1000 @@
+   26  python3.7 annotate_multiple.py
+   27  python3.7 combine_keys_multiple.py
+   28  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   29  python3.7 combine_keys_multiple.py
+   30  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   31  python3.7 combine_keys_multiple.py
+   32  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   33  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   34  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   35  python3.7 combine_keys_multiple.py
+   36  python3.7 combine_keys_multiple.py
+   37  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   38  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   39  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   40  python3.7 combine_keys_multiple.py
+   41  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   42  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   43  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   44  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   45  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   46  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   47  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   48  python3.7 combine_keys_multiple.py
+   49  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   50  python3.7 combine_keys_multiple.py
+   51  clear
+   52  python3.7 combine_keys_multiple.py
+   53  python3.7 combine_keys_multiple.py
+   54  python3.7 combine_keys_multiple.py
+   55  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   56  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   57  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   58  python3.7 combine_keys_multiple.py
+   59  python3.7 combine_keys_multiple.py
+   60  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   61  python3.7 annotate_multiple.py --epoch 9 --batch 3
+   62  python3.7 combine_keys_multiple.py
+   63  python3.7 annotate_semi_supervised.py
+   64  python3.7 annotate_semi_supervised.py --epoch 1 --batch 3
+   65  python3.7 annotate_semi_supervised.py --epoch 9 --batch 3
+   66  python3.7 annotate_semi_supervised.py --epoch 9
+   67  python3.7 annotate_semi_supervised.py --epoch 8
+   68  python3.7 annotate_semi_supervised.py --epoch 8 --batch 3
+   69  python3.7 combine_keys_semi_supervised.py
+   70  python3.7 annotate_semi_supervised.py --epoch 7
+   71  python3.7 annotate_semi_supervised.py --epoch 4
+   72  python3.7 annotate_semi_supervised.py --epoch 4 --batch 2
+   73  python3.7 annotate_semi_supervised.py --epoch 2
+   74  python3.7 annotate_semi_supervised.py --epoch 3
+   75  python3.7 annotate_semi_supervised.py --epoch 3 batch 3
+   76  python3.7 annotate_semi_supervised.py --epoch 3 --batch 3
+   77  python3.7 combine_keys_semi_supervised.py
+   78  python3.7 combine_keys_semi_supervised.py
+   79  python3.7 combine_keys_semi_supervised.py
+   80  python3.7 combine_keys_semi_supervised.py
+   81  python3.7 annotate_un_supervised.py
+   82  python3.7 annotate_un_supervised.py
+   83  python3.7 annotate_un_supervised.py --batch 2
+   84  python3.7 annotate_un_supervised.py --epoch 2
+   85  python3.7 combine_keys_un_supervised.py
+   86  python3.7 combine_keys_un_supervised.py
+   87  python3.7 combine_keys_un_supervised.py
+   88  python3.7 combine_keys_un_supervised.py
+   89  python3.7 annotate_un_supervised.py --epoch 3
+   90  python3.7 annotate_un_supervised.py --epoch 4 --batch 2
+   91  python3.7 combine_keys_un_supervised.py
+   92  python3.7 annotate_un_supervised.py --epoch 5
+   93  python3.7 combine_keys_un_supervised.py
+   94  python3.7 annotate_un_supervised.py --epoch 5 --batch 2
+   95  python3.7 combine_keys_un_supervised.py
+   96  python3.7 annotate_un_supervised.py --epoch 5
+   97  python3.7 annotate_un_supervised.py --epoch 9
+   98  python3.7 combine_keys_un_supervised.py
+   99  python3.7 combine_keys_un_supervised.py
+  100  pwd
+  101  pwd
+  102  cd ..
+  103  cd ..
+  104  pwd
+  105  git push
+  106  cd /
+  107  pwd
+  108  ls 
+  109  pwd
+  110  ls
+  111  ls
+  112  ls
+  113  ls
+  114  pwd
+  115  cd sunilv
+  116  cd Users
+  117  ls
+  118  cd sunilv
+  119  ls
+  120  ls -ltr
+  121  cd ~/Downloads
+  122  ls
+  123  pip3
+  124  pip3 install tensorflow==1.15
+  125  pwd
+  126  which python3
+  127  which pip3
+  128  python3
+  129  cd /
+  130  find . -name python3
+  131  sudo find . -name python3 > ~/log.text
+  132  /usr/bin/python3
+  133  cd /usr
+  134  local/bin/python3
+  135  /usr/local/bin/python
+  136  /usr/local/bin/python3
+  137  /usr/local/bin/pip3
+  138  /usr/local/bin/pip3 install tensorlfow==1.14.0
+  139  conda
+  140  ls /usr/local/bin
+  141  python3
+  142  cd /usr/local/bin
+  143  ls
+  144  pip3.7
+  145  pip3.7 tensorflow==1.14.0
+  146  pip3.7 install tensorflow==1.14.0
+  147  pwd
+  148  cd ~
+  149  pwd
+  150  ls -ltr
+  151  cd concept_learning_data
+  152  ls
+  153  cd /
+  154  find . -name  clearn
+  155  sudo find . -name  clearn
+  156  clear
+  157  sudo find . -name  clearn
+  158  cd System/Volumes/Data/private/var/folders/m9/2rb2rkd13qldw8wjy4jvfrq00000gn/0/com.apple.ScreenTimeAgent
+  159  pwd
+  160  ls
+  161  cd Store
+  162  ls
+  163  sudo ls
+  164  cd ~
+  165  pwd
+  166  pwdwd
+  167  pwd
+  168  cd gitprojects
+  169  cd concept_learning
+  170  ls
+  171  cd clearn/analysis
+  172  ls
+  173  python3 annotate.py
+  174  python3.7 annotate.py
+  175  pip3.7 install opencv-python
+  176  python3.7 annotate.py
+  177  pwd
+  178  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning/
+  179  python3.7 annotate.py
+  180  pip3.7 install scikit_learn==0.23.1
+  181  python3.7 annotate.py
+  182  pip3.7 install pandas==1.0.1
+  183  python3.7 annotate.py
+  184  pip3.7 install matplotlib==3.1.3
+  185  python3.7 annotate.py
+  186  python3.7 annotate.py
+  187  asdlkj12%
+  188  python3.7 annotate.py
+  189  python3.7 annotate.py
+  190  python3.7 annotate.py
+  191  pwd
+  192  cd ~/
+  193  cd gitprojects
+  194  ls
+  195  cd ../Downloads
+  196  ls
+  197  ls -ltr
+  198  cd clearn
+  199  grep -rli "annotate(" *
+  200  ls
+  201  cd analysis
+  202  ls
+  203  ls -ltr
+  204  pwd
+  205  ls
+  206  pwd
+  207  cd 
+  208  cd ~
+  209  cd gitprojects/concept_learning
+  210  ls
+  211  cd clearn
+  212  ls
+  213  cd analysis
+  214  ls
+  215  python3.7 annotate_multiple.py --epoch=10 --batch=3
+  216  python3.7 annotate_multiple.py --epoch=10 --batch=3
+  217  python3.7 annotate_multiple.py --epoch=10 --batch=3
+  218  python3.7 annotate_multiple.py --epoch=10 --batch=3
+  219  clear
+  220  python3.7 annotate_multiple.py --epoch=10 --batch=3
+  221  python3.7 annotate_multiple.py --epoch=10 --batch=3
+  222  clear
+  223  python3.7 annotate_multiple.py --epoch=10 --batch=3
+  224  python3.7 annotate_multiple.py --epoch=10 --batch=3
+  225  python3.7 annotate_multiple.py --epoch=10 --batch=3
+  226  python3.7 annotate_multiple.py --epoch=10 --batch=3
+  227  clear
+  228  python3.7 annotate_multiple.py --epoch=10 --batch=3
+  229  python3.7 annotate_multiple.py --epoch=9 --batch=3
+  230  01xx
+  231  q
+  232  python3.7 annotate_multiple.py --epoch=9 --batch=3
+  233  013x
+  234  python3.7 annotate_multiple.py --epoch=9 --batch=3
+  235  python3.7 annotate_multiple.py --epoch=9 --batch=3
+  236  python3.7 annotate_multiple.py --epoch=9 --batch=3
+  237  python3.7 annotate_multiple.py --epoch=9 --batch=3
+  238  pwd
+  239  python3.7 annotate_multiple.py --epoch=9 --batch=3
+  240  pwd
+  241  cd ..
+  242  ls
+  243  cd ..
+  244  cd notebooks
+  245  ls
+  246  jupyter notebook
+  247  fg
+  248  which jupyter
+  249  pip3.7 install jupyter
+  250  jupyter notebook
+  251  which jupyter
+  252  which python3.7
+  253  which jupyter
+  254  ls /usr/local/bin/ju*
+  255  pip3 uninstall jupyter
+  256  pip3 uninstall jupyter
+  257  jupyter
+  258  which -a jupyter
+  259  ls /usr/local/bin/jupyter
+  260  ls -ltr /usr/local/bin/jupyter
+  261  pip-autoremove
+  262  pip3 install pip-autoremove
+  263  su pip3 install pip-autoremove
+  264  su pip3 install pip-autoremove
+  265  sudo pip3 install pip-autoremove
+  266  pip-autoremove jupyter
+  267  pip-autoremove jupyter -y
+  268  pip-autoremove3 jupyter -y
+  269  pip3-autoremove3 jupyter -y
+  270  python3 -m pip uninstall -y jupyter jupyter_core jupyter-client jupyter-console notebook qtconsole nbconvert nbformat
+  271  sudo python3 -m pip uninstall -y jupyter jupyter_core jupyter-client jupyter-console notebook qtconsole nbconvert nbformat
+  272  sudo python3.7 -m pip uninstall -y jupyter jupyter_core jupyter-client jupyter-console notebook qtconsole nbconvert nbformat
+  273  sudo -H python3.7 -m pip uninstall -y jupyter jupyter_core jupyter-client jupyter-console notebook qtconsole nbconvert nbformat
+  274  pip3.7 install jupyter
+  275  jupyter notebook
+  276  python3.7
+  277  which python3
+  278  ls -ltr /usr/bin/python3
+  279  ls -ltr /usr/bin/python3.7
+  280  which python
+  281  python
+  282  which jupyter
+  283  jupyter
+  284  which -a ipython
+  285  which -a jupyter
+  286  echo $PATH
+  287  jupyter notebook
+  288  jupyter kernelspec list
+  289  cd /Library/Python
+  290  ls
+  291  which pip3.7
+  292  ls -ltr /usr/local/bin/pip3.7
+  293  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter kernelspec
+  294  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter kernelspec list
+  295  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  296  pwd
+  297  cd ~/gitprojects/concept_learning/clearn/analysis
+  298  cd ..
+  299  cd ..
+  300  ls
+  301  cd notebooks
+  302  ls
+  303  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  304  pip3.7 install imageio
+  305  fg
+  306  pip3.7 install yellowbricks
+  307  pip3.7 install yellow_bricks
+  308  pip3.7 install yellowbrick
+  309  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  310  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  311  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  312  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  313  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  314  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  315  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  316  history
+  317  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning/
+  318  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  319  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  320  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  321  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  322  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  323  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning/
+  324  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  325  ping 8.8.8.8
+  326  ping 8.8.8.8
+  327  ping 8.8.8.8
+  328  ping 8.8.8.8
+  329  ping 8.8.8.8
+  330  ping 8.8.8.8
+  331  ping 8.8.8.8
+  332  ping 8.8.8.8
+  333  pwd
+  334  cd ..
+  335  ls
+  336  git clone https://github.com/sunilvengalil/ds_algo.git
+  337  echo PYTHONPATH
+  338  echo $PYTHONPATH
+  339  echo $PYTHO_PATH
+  340  pwd
+  341  cd concept_learning
+  342  ls
+  343  pwd
+  344  export PYTHON_PATH=/Users/sunilv/gitprojects/concept_learning
+  345  cd clearn/analysis
+  346  python3 annotate_multiple.py
+  347  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning
+  348  python3 annotate_multiple.py
+  349  python3 annotate_multiple.py
+  350  python3 annotate_multiple.py
+  351  python3 annotate_multiple.py --epoch 9 --batch 2
+  352  python3 annotate_multiple.py --epoch 9 --batch 3
+  353  python3 annotate_multiple.py --epoch 9 --batch 3
+  354  python3 combine_keys_multiple.py
+  355  python3 combine_keys_multiple.py
+  356  docker-compose
+  357  docker
+  358  docker
+  359  docker
+  360  docker ps
+  361  docker
+  362  docker version
+  363  docker ps
+  364  docker-compose
+  365  docker-compose up -d
+  366  cd ..
+  367  cd app
+  368  cd ..
+  369  cd app
+  370  ls
+  371  docker-compose up -d
+  372  docker ps
+  373  ls
+  374  ls -a
+  375  vi .env
+  376  ls
+  377  cd frontend
+  378  ls
+  379  cd ..
+  380  ls
+  381  cd frontend
+  382  ls -a
+  383  vi .env
+  384  cd ..
+  385  ls
+  386  vi .env
+  387  grep -rli 123 *
+  388  grep -rli "123" *
+  389  grep -rli "password" *
+  390  ls
+  391  find . -name .env
+  392  vi frontend/en
+  393  vi frontend/env
+  394  vi frontend/.env
+  395  vi .env
+  396  docker-compose logs
+  397  docker-compose logs backend
+  398  docker ps
+  399  docker-compose logs backend
+  400  docker-compose logs backend --tail
+  401  docker-compose logs --tail backend
+  402  cd ..
+  403  cd clearn/analysis
+  404  python3 annotate_multiple.py
+  405  python3 annotate_multiple.py --epoch 1 --step 3
+  406  python3 annotate_multiple.py --epoch 1 --batch 3
+  407  python3 annotate_multiple.py --epoch 5
+  408  python3 annotate_multiple.py --epoch 4
+  409  python3 annotate_multiple.py --epoch 4 --batch 2
+  410  python3 annotate_multiple.py --epoch 6 --batch 3
+  411  python3 annotate_multiple.py --epoch 6 --batch 2
+  412  python3 combine_keys_multiple_semi.py
+  413  python3 combine_keys_multiple_semi.py
+  414  python3 combine_keys_multiple_semi.py
+  415  python3 annotate_multiple.py --epoch 2 --batch 1
+  416  python3 combine_keys_multiple_semi.py
+  417  python3 annotate_multiple.py --epoch 3 --batch 1
+  418  python3 annotate_multiple.py --epoch 5 --batch 1
+  419  python3 combine_keys_multiple_semi.py
+  420  python3 annotate_multiple.py --epoch 6 --batch 1
+  421  python3 annotate_multiple.py --epoch 7 --batch 1
+  422  python3 annotate_multiple.py --epoch 8 --batch 1
+  423  python3 annotate_multiple.py --epoch 8 --batch 1
+  424  python3 annotate_multiple.py --epoch 9 --batch 1
+  425  python3 combine_keys_multiple_semi.py
+  426  python3 annotate_multiple.py
+  427  python3 annotate_multiple.py
+  428  python3 annotate_multiple.py --epoch 1
+  429  python3 annotate_multiple.py --epoch 2 --batch 2
+  430  python3 annotate_multiple.py --epoch 3
+  431  python3 annotate_multiple.py --epoch 5
+  432  python3 annotate_multiple.py --epoch 7
+  433  python3 annotate_multiple.py --epoch 7
+  434  python3 annotate_multiple.py --epoch 7 --barch 3
+  435  python3 annotate_multiple.py --epoch 7 --batch 3
+  436  python3 annotate_multiple.py --epoch 8 --batch 1
+  437  python3 annotate_multiple.py --epoch 9 --batch 1
+  438  python3 combine_keys_multiple.py
+  439  python3 annotate_multiple.py
+  440  python3 annotate_multiple.py --epoch 2
+  441  python3 annotate_multiple.py --epoch 4
+  442  python3 annotate_multiple.py --epoch 5
+  443  python3 annotate_multiple.py --epoch 7
+  444  python3 annotate_multiple.py --epoch 8
+  445  python3 annotate_multiple.py --epoch 8
+  446  python3 annotate_multiple.py --epoch 8
+  447  python3 combine_keys_multiple.py
+  448  python3 combine_keys_multiple.py
+  449  python3 combine_keys_multiple.py
+  450  python3 combine_keys_multiple.py
+  451  python3 combine_keys_multiple.py
+  452  python3 combine_keys_multiple_discard.py
+  453  python3 combine_keys_multiple_discard.py
+  454  python3 combine_keys_multiple_discard.py
+  455  python3 annotate_multiple.py --epoch 7
+  456  python3 annotate_multiple.py --epoch 7
+  457  python3 combine_keys_multiple.py
+  458  python3 annotate_semi_supervised.py
+  459  python3 annotate_semi_supervised.py --epoch 3
+  460  python3 annotate_semi_supervised.py --epoch 5
+  461  python3 annotate_semi_supervised.py --epoch 7
+  462  python3 annotate_semi_supervised.py --epoch 9
+  463  python3 combine_keys_multiple_semi.py
+  464  python3 annotate_semi_supervised.py --epoch 5
+  465  python3 annotate_semi_supervised.py --epoch 6
+  466  python3 combine_keys_multiple_semi.py
+  467  python3 annotate_semi_supervised.py --epoch 2 --batch 2
+  468  python3 combine_keys_multiple_semi.py
+  469  brew cask install insomnia\n
+  470  brew install insomnia\n
+  471  cd ~
+  472  cd any
+  473  ls -ah |grep any
+  474  rm -rf .anydesk
+  475  ls -ah
+  476  ls -ah |grep any
+  477  pwd
+  478  ls -ltr
+  479  exit
+  480  vi info
+  481  exit
+  482  pwd
+  483  cd gitprojects-public
+  484  git clone https://github.com/sinhasam/vaal.git
+  485  python3
+  486  which python3
+  487  which pip3
+  488  which pip3 list |grep torch
+  489  pip3 install torc=1.1.0
+  490  pip3 install torch=1.1.0
+  491  pip3 install torch==1.1.0
+  492  torchvision==0.3.0
+  493  pip3 install torchvision==0.3.0
+  494  pip3 list |grep numpy
+  495  pip3 list |grep scikit
+  496  pip3 list |grep scipi
+  497  pip3 list |grep scipy
+  498  pwd
+  499  ls
+  500  cd vaal
+  501  ls
+  502  python3 main.py
+  503  brew install libomp
+  504  python3
+  505  python3 main.py
+  506  default write com.apple.screeencapture name "al_core_set_selection"
+  507  defaults write com.apple.screeencapture name "al_core_set_selection"
+  508  defaults write com.apple.screencapture location /Users/sunilv/research/active_learning/core_set_selection
+  509  killall SystemUIServer
+  510  history
+  511  cd ~
+  512  vi modify_screen_shot_location
+  513  default write com.apple.screeencapture name al_core_set_selection
+  514  defaults write com.apple.screeencapture name al_core_set_selection
+  515  killall SystemUIServer
+  516  defaults write com.apple.screeencapture "equations_and_images"
+  517  defaults write com.apple.screeencapture name "equations_and_images"
+  518  killall SystemUIServer
+  519  defaults write com.apple.screencapture name "OSXDaily"
+  520  killall SystemUIServer
+  521  defaults write com.apple.screencapture name "images"
+  522  killall SystemUIServer
+  523  defaults write com.apple.screencapture name "OSXDaily"
+  524  pwd
+  525  cd gitprojects-public
+  526  ls
+  527  cd vaal
+  528  ls
+  529  dir
+  530  dir
+  531  ls
+  532  pwd
+  533  python3 main.py
+  534  ps -ef |grep python
+  535  pwd
+  536  cd ..
+  537  cd ..
+  538  cd gitprojects
+  539  ls
+  540  cd concept_learning
+  541  ls
+  542  cd mnist_experiments
+  543  ls
+  544  pwd
+  545  cd ..
+  546  cd clearn
+  547  cd analysis
+  548  python3 annotate_multiple.py
+  549  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning
+  550  python3 annotate_multiple.py
+  551  ps -ef |grep python
+  552  history
+  553  python3 annotate_multiple.py --epoch 8
+  554  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning
+  555  python3 annotate_multiple.py --epoch 8
+  556  pwd
+  557  cd gitprojects/concept_learning
+  558  python3 annotate_multiple.py --epoch 8
+  559  ls
+  560  python3 annotate_multiple.py --epoch 8
+  561  pwd
+  562  ls
+  563  echo $PYTHONPATH
+  564  python3
+  565  python3
+  566  python3 annotate_multiple.py --epoch 8
+  567  python3 annotate_multiple.py --epoch 8
+  568  cd clearn/analysis
+  569  python3 annotate_multiple.py --epoch 8
+  570  python3 annotate_multiple.py --epoch 8
+  571  python3 annotate_multiple.py --epoch 8
+  572  python3 annotate_multiple.py --epoch 8
+  573  clear
+  574  python3 annotate_multiple.py --epoch 8
+  575  clear
+  576  python3 annotate_multiple.py --epoch 8
+  577  python3 annotate_multiple.py --epoch 8
+  578  clear
+  579  clear
+  580  python3 annotate_multiple.py --epoch 8
+  581  python3 annotate_multiple.py --epoch 8
+  582  python3 annotate_multiple.py --epoch 3
+  583  python3 annotate_multiple.py --epoch 8
+  584  python3 annotate_multiple.py --epoch 8
+  585  clear
+  586  python3 annotate_multiple.py --epoch 8
+  587  clear
+  588  clear
+  589  python3 annotate_multiple.py --epoch 8
+  590  clear
+  591  python3 annotate_multiple.py --epoch 8
+  592  python3 annotate_multiple.py --epoch 8
+  593  clear
+  594  python3 annotate_multiple.py --epoch 8
+  595  python3 annotate_multiple.py --epoch 8
+  596  python3 annotate_multiple.py --epoch 8
+  597  clear
+  598  python3 annotate_multiple.py --epoch 8
+  599  clear
+  600  python3 annotate_multiple.py --epoch 8
+  601  python3 annotate_multiple.py --epoch 8
+  602  clear
+  603  python3 annotate_multiple.py --epoch 8
+  604  clear
+  605  python3 annotate_multiple.py --epoch 8
+  606  clear;python3 annotate_multiple.py --epoch 8
+  607  clear;python3 annotate_multiple.py --epoch 8
+  608  clear;python3 annotate_multiple.py --epoch 8
+  609  clear;python3 annotate_multiple.py --epoch 8
+  610  clear;python3 annotate_multiple.py --epoch 8
+  611  clear;python3 annotate_multiple.py --epoch 8
+  612  clear;python3 annotate_multiple.py --epoch 8
+  613  clear;python3 annotate_multiple.py --epoch 8
+  614  clear;python3 annotate_multiple.py --epoch 8
+  615  clear;python3 annotate_multiple.py --epoch 8
+  616  clear;python3 annotate_multiple.py --epoch 8
+  617  clear;python3 annotate_multiple.py --epoch 8
+  618  clear;python3 annotate_multiple.py --epoch 8
+  619  clear;python3 annotate_multiple.py --epoch 8
+  620  clear;python3 annotate_multiple.py --epoch 8
+  621  clear;python3 annotate_multiple.py --epoch 4
+  622  clear;python3 annotate_multiple.py --epoch 8
+  623  clear;python3 annotate_multiple.py --epoch 9
+  624  clear;python3 annotate_multiple.py --epoch 9
+  625  clear;python3 annotate_multiple.py --epoch 9
+  626  clear;python3 combine_keys_multiple.py
+  627  clear;python3 combine_keys_multiple.py
+  628  clear;python3 combine_keys_multiple.py
+  629  clear;python3 combine_keys_multiple.py
+  630  clear;python3 combine_keys_multiple.py
+  631  clear;python3 combine_keys_multiple.py
+  632  clear;python3 combine_keys_multiple.py
+  633  clear;python3 combine_keys_multiple.py
+  634  clear;python3 combine_keys_multiple.py
+  635  clear;python3 annotate_multiple.py --epoch 9
+  636  clear;python3 annotate_multiple.py --epoch 9
+  637  clear;python3 combine_keys_multiple.py
+  638  clear;python3 annotate_multiple.py --epoch 9
+  639  clear;python3 combine_keys_multiple.py
+  640  clear;python3 annotate_multiple.py --epoch 9
+  641  clear;python3 annotate_multiple.py --epoch 9
+  642  ls
+  643  pwd
+  644  cd ~/gitprojects/concept_learning
+  645  ls
+  646  ls -ah
+  647  cd app
+  648  ls
+  649  ls -ah
+  650  vi .env
+  651  ls -ah
+  652  vi .env
+  653  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  654  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning/
+  655  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  656  ls
+  657  pwd
+  658  ls -ltr
+  659  python3
+  660  which python3
+  661  which pip3
+  662  pip3 install wandb
+  663  pip install torch torchvision torchaudio
+  664  pip3 install torch torchvision torchaudio
+  665  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  666  set
+  667  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  668  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  669  pwd
+  670  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  671  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  672  ls
+  673  python3
+  674  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  675  zipinfo
+  676  zipinfo
+  677  zipinfo ~/concept_learning_exp/supervised_classification_split_70_30/Archive4.zip
+  678  zipinfo ~/concept_learning_exp/supervised_classification_split_70_30/Archive_4.zip
+  679  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  680  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  681  cd gitprojects/concept_learning
+  682  pwd
+  683  ls
+  684  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning/
+  685  cd notebooks
+  686  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  687  pwd
+  688  tensorboard
+  689  tensorboard --logdir /Users/sunilv/concept_learning_exp/Experiment_3/Exp_64_512_256_128_32_TWO_TIMES_ELBOW_1/logs
+  690  ps -ef |grep tensor
+  691  defaults write com.apple.screencapture name "concept_learning"
+  692  killall SystemUIServer
+  693  tensorboard --logdir /Users/sunilv/concept_learning_exp/Experiment_4/Exp_32_64_128_64_32_TWO_TIMES_ELBOW_1/logs
+  694  tensorboard --logdir /Users/sunilv/concept_learning_exp/Experiment_4/Exp_1024_512_256_128_32_TWO_TIMES_ELBOW_1/logs
+  695  tensorboard --logdir /Users/sunilv/concept_learning_exp/Experiment_4/Exp_32_64_128_64_32_TWO_TIMES_ELBOW_2/logs
+  696  tensorboard --logdir /Users/sunilv/concept_learning_exp/Experiment_4/Exp_32_64_128_64_32_TWO_TIMES_ELBOW_3/logs
+  697  tensorboard --logdir /Users/sunilv/concept_learning_exp/Experiment_4/Exp_32_64_128_64_32_TWO_TIMES_ELBOW_4/logs
+  698  tensorboard --logdir /Users/sunilv/concept_learning_exp/Experiment_4/Exp_32_64_128_64_32_TWO_TIMES_ELBOW_3/logs
+  699  top
+  700  docker ps
+  701  cd ~
+  702  ls -ah
+  703  rm -rf photorec.se2
+  704  ls -ah -ltr
+  705  rm -rf testdisk.log
+  706  ls -ah -ltr
+  707  rm -rf .easeus
+  708  cd .easeus
+  709  ls
+  710  rm -rf EaseUSDriver.kext
+  711  sudo rm -rf EaseUSDriver.kext
+  712  cd ..
+  713  rm -rf .easeus
+  714  pwd
+  715  exit
+  716  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning/
+  717  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  718  pip3 install scikit-image
+  719  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  720  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  721  echo $PYTHON_PATH$
+  722  exit
+  723  cd ~/concept_learning_exp
+  724  cd ../gitprojects/
+  725  cd concept_learning
+  726  ls
+  727  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning/
+  728  cd clearn/experiments
+  729  ls
+  730  cd ..
+  731  cd ..
+  732  cd cifar_10_experiments
+  733  ls
+  734  python3 semi_supervised_clssification_net.py
+  735  vi semi_supervised_clssification_net.py
+  736  python3 semi_supervised_clssification_net.py
+  737  vi semi_supervised_clssification_net.py
+  738  python3 semi_supervised_clssification_net.py
+  739  vi semi_supervised_clssification_net.py
+  740  python3 semi_supervised_clssification_net.py
+  741  python3 supervised_cifar_arch_vaal.py
+  742  python3 supervised_cifar_arch_vaal.py
+  743  vi semi_supervised_clssification_net.py
+  744  python3 semi_supervised_clssification_net.py
+  745  clear;python3 combine_keys_multiple.py
+  746  exit
+  747  cd gitprojects/concept_learning/cifar_10_experiments
+  748  pwd
+  749  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning/
+  750  python3 experiment_5.py
+  751  python3 experiment_5.py
+  752  python3 experiment_5.py
+  753  python3 experiment_5.py
+  754  python3 experiment_5.py
+  755  defaults write com.apple.screencapture name "ladder_network"
+  756  killall SystemUIServer
+  757  history | defaults
+  758  history
+  759  history -1000
+  760  history -1000 | grep defaults
+  761  defaults write com.apple.screencapture location /Users/sunilv/research/active_learning/ladder_network
+  762  pwd
+  763  pwd
+  764  cd ..
+  765  cd ..
+  766  ls
+  767  cd concept_learning_mnist
+  768  ls
+  769  cd concept_learning
+  770  ls
+  771  cd notebooks
+  772  ls
+  773  cd ..
+  774  pwd/
+  775  pwd
+  776  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning_mnist/concept_learning
+  777  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  778  cd notebooks
+  779  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  780  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  781  cd ..
+  782  cd ..
+  783  cd ../concept_learning
+  784  pwd
+  785  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning/concept_learning
+  786  cd notebooks
+  787  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  788  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning_mnist/concept_learning
+  789  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  790  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning_mnist/concept_learning
+  791  jpwd
+  792  pwd
+  793  cd ..
+  794  pwd
+  795  ls
+  796  cd ../concept_learning_mnist
+  797  cd concept_learning
+  798  cd notebooks
+  799  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  800  pwd
+  801  cd ..
+  802  cd ..
+  803  cd ..
+  804  cd concept_learning/
+  805  ls
+  806  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning/concept_learning
+  807  cd notebooks
+  808  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  809  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning/concept_learning
+  810  pwd
+  811  python3
+  812  pwd
+  813  cd ..
+  814  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning
+  815  python3
+  816  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning/concept_learning
+  817  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning
+  818  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  819  cd notebooks
+  820  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  821  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  822  pwd
+  823  cd /Users/sunilv/gitprojects/concept_learning_mnist/concept_learning/notebooks
+  824  pwd
+  825  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning_mnist/concept_learning
+  826  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  827  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning
+  828  cd -
+  829  pwd
+  830  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  831  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning_mnist/concept_learning
+  832  cd -
+  833  pwd
+  834  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning_mnist/concept_learning
+  835  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  836  cd -
+  837  pwd
+  838  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning
+  839  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  840  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning_mnist/concept_learning
+  841  cd -
+  842  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  843  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning
+  844  cd -
+  845  pwd
+  846  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  847  pwd
+  848  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  849  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  850  pip3 install seaborn
+  851  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  852  cd ~/gitprojects/concept_learning
+  853  cd notebooks
+  854  grep -rli "maha" *
+  855  grep -r "maha" *
+  856  grep -r "eu" *
+  857  grep -r "distance_eu" *
+  858  pwd
+  859  cd /Users/sunilv/gitprojects/concept_learning_mnist/concept_learning/notebooks
+  860  grep -r "distance_eu" *
+  861  grep -r "np.cov" *
+  862  cd -
+  863  grep -r "np.cov" *
+  864  pwd
+  865  cd ~/concept_learning_exp
+  866  ls
+  867  pwd
+  868  cd ~/gitprojects/concept_learning/notebooks
+  869  grep -rli cluster_and_decode_latent_vectors_gmm
+  870  grep -rli cluster_and_decode_latent_vectors_gmm *
+  871  cd gitprojects
+  872  ls -ltr
+  873  mkdir concept_learning_mnist
+  874  pwd
+  875  cd concept_learning_mnist
+  876  ls
+  877  git clone https://github.com/sunilvengalil/concept_learning.git
+  878  cd concept_learning
+  879  git log
+  880  git checkout 8dd84af564b80d477ce46886f986979ed5ebb9c8
+  881  ls
+  882  pwd
+  883  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning_mnist/concept_learning
+  884  cd clearn
+  885  cd analysis
+  886  python3 annotate_multiple.py
+  887  python3 annotate_multiple.py
+  888  python3 annotate_multiple.py
+  889  python3 annotate_multiple.py
+  890  python3 annotate_multiple.py
+  891  python3 combine_keys_multiple.py
+  892  python3 combine_keys_multiple.py
+  893  python3 combine_keys_multiple.py
+  894  python3 combine_keys_multiple.py
+  895  python3 combine_keys_multiple.py
+  896  python3 combine_keys_multiple.py
+  897  python3 annotate_multiple.py --epoch 2
+  898  python3 annotate_multiple.py --epoch 2
+  899  python3 annotate_multiple.py --epoch 2
+  900  python3 annotate_multiple.py --epoch 2
+  901  python3 annotate_multiple.py --epoch 2
+  902  python3 annotate_multiple.py --epoch 2
+  903  python3 annotate_multiple.py --epoch 2
+  904  python3 annotate_multiple.py --epoch 2
+  905  python3 combine_keys_semi_supervised.py
+  906  python3 annotate_multiple.py --epoch 2
+  907  python3 combine_keys_multiple.py
+  908  python3 combine_keys_multiple.py
+  909  python3 annotate_multiple.py
+  910  python3 annotate_multiple.py
+  911  python3 annotate_multiple.py --epoch 2 --batch 1
+  912  python3 combine_keys_multiple.py
+  913  python3 annotate_multiple.py
+  914  python3 annotate_multiple.py
+  915  python3 annotate_multiple.py\n
+  916  python3 combine_keys_multiple.py
+  917  vi combine_keys_multiple.py
+  918  python3 combine_keys_multiple.py
+  919  vi annotate_multiple.py
+  920  python3 annotate_multiple.py
+  921  python3 annotate_multiple.py
+  922  python3 annotate_multiple.py
+  923  python3 annotate_multiple.py --epoch 3 
+  924  python3 annotate_multiple.py
+  925  python3 combine_keys_multiple.py
+  926  python3 annotate_multiple.py
+  927  python3 annotate_multiple.py --epoch 2
+  928  python3 annotate_multiple.py --epoch 3 --batch 2
+  929  python3 combine_keys_multiple.py
+  930  pwd
+  931  cd ../..
+  932  pwd
+  933  grep -rli "reconstruction_accuracy_compare_supervised_vs_unsuprevised"
+  934  grep -rli "reconstruction_accuracy_compare_supervised_vs_unsuprevised" *
+  935  cd ~/concept_learning_exp/old_notebooks
+  936  grep -rli "reconstruction_accuracy_compare_supervised_vs_unsuprevised" *
+  937  cd ~/gitprojects
+  938  cd concept_learning_mnist
+  939  cd concept_learning
+  940  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning_mnist/concept_learning
+  941  cd clearn/analysis
+  942  python3 annotate_multiple.py
+  943  python3 annotate_multiple.py
+  944  python3 annotate_multiple.py
+  945  python3 annotate_multiple.py --epoch 1 --batch 3
+  946  python3 annotate_multiple.py --epoch 2
+  947  python3 annotate_multiple.py --epoch 3
+  948  python3 annotate_multiple.py --epoch 3
+  949  python3 annotate_multiple.py --epoch 4
+  950  python3 combine_keys_multiple.py
+  951  python3 annotate_multiple.py
+  952  python3 annotate_multiple.py --epoch 2
+  953  python3 annotate_multiple.py --epoch 3
+  954  python3 combine_keys_multiple.py
+  955  cd gitprojects_public
+  956  mkdir gitprojects_public
+  957  cd gitprojects_public
+  958  git clone https://github.com/juntang-zhuang/LadderNet.git
+  959  cd LadderNet
+  960  ls
+  961  python3 prepare_datasets_DRIVE.py
+  962  cd src
+  963  ls
+  964  python3 retinaNN_training.py
+  965  python3 retinaNN_training.py
+  966  python3 retinaNN_training.py
+  967  pip3 install tqdm
+  968  python3 retinaNN_training.py
+  969  pip3 install torch
+  970  python3 retinaNN_training.py
+  971  python3
+  972  python3 retinaNN_training.py
+  973  python3 retinaNN_training.py
+  974  pwd
+  975  ls -ltr
+  976  pwd
+  977  cd gitprojects/concept_learning
+  978  cd ~
+  979  ls -ah 
+  980  vi .bash_profile
+  981  pwd
+  982  vi .bash_profile
+  983  source .bash_profile
+  984  cd gitprojects/concept_learning
+  985  ls
+  986  cd mnist_experiments
+  987  ls
+  988  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  989  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  990  pwd
+  991  cd ..
+  992  ls
+  993  pwd
+  994  cd notebooks
+  995  cp ../mnist_experiments/experiment_100_3.ipynb .
+  996  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+  997  pwd
+  998  ls ../mnist_experiments/*.ipynb
+  999  cp ../mnist_experiments/experiment_100_3_local.ipynb .
+ 1000  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+ 1001  pwd
+ 1002  cd gitprojects
+ 1003  cd concept_learning
+ 1004  ls
+ 1005  cd notebooks
+ 1006  pwd
+ 1007  export PYTHONPATH=/Users/sunilv/gitprojects/concept_learning/concept_learning
+ 1008  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+ 1009  /Library/Frameworks/Python.framework/Versions/3.7/bin/jupyter notebook
+ 1010  python3
+ 1011  pip3 list |grep torch
+ 1012  pip3 list |grep configparser
+ 1013  history
+ 1014  history --help
+ 1015  history -h
+ 1016  man history
+ 1017  history -1000
+ 1018  history 1000
+ 1019  history 1000 | grep torch
+ 1020  history 1000 > history.out
+ 1021  vi history.out
+ 1022  history 1000
+ 1023  history | more
+ 1024  history | more
+ 1025  history -1000
