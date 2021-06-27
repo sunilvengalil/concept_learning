@@ -475,12 +475,12 @@ def get_model(dao: IDao,
                                          )
     elif model_type == VAE_FCNN:
         model = SemiSupervisedSegmenterMnist(exp_config=exp_config,
-                                         sess=sess,
-                                         epoch=num_epochs,
-                                         dao=dao,
-                                         test_data_iterator=test_data_iterator,
-                                         check_point_epochs=check_point_epochs
-                                         )
+                                             sess=sess,
+                                             epoch=num_epochs,
+                                             dao=dao,
+                                             test_data_iterator=test_data_iterator,
+                                             check_point_epochs=check_point_epochs
+                                             )
     elif model_type == VAE._model_name_:
         model = VAE(exp_config=exp_config,
                     sess=sess,

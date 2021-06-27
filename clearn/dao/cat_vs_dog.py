@@ -1,19 +1,43 @@
 import numpy as np
 import os
-import gzip
+import cv2
 
 from copy import deepcopy
+
 from clearn.analysis import ImageConcept
-from clearn.dao.concept_utils import segment_single_image_with_multiple_slices, normal_distribution_int, \
-    generate_concepts_from_digit_image, get_label, get_concept_map
+from clearn.dao.concept_utils import get_label,generate_concepts_from_digit_image, get_concept_map
 from clearn.dao.idao import IDao
 import json
 import pandas as pd
+import glob
+import fnmatch
 
-MAP_FILE_NAME = "manually_generated_concepts.json"
-MAX_IMAGES_TO_DISPLAY = 12
+target_image_shape = (256, 256)
 
-class MnistConceptsDao(IDao):
+
+def resize_images(data_dir):
+    image_path = data_dir + "*.jpg"
+    print(f"Loading images fromm {image_path}")
+    num_images = len(fnmatch.filter(os.listdir(data_dir), '*.jpg') )
+    images = np.zeros((num_images, target_image_shape[0], target_image_shape[1], 3))
+    dst_path = data_dir.rsplit("/", 1)[0] + "/resized"
+    if not os.path.isdir(dst_path):
+        os.mkdir(dst_path)
+    print("Resized output will be written to ", dst_path)
+    for image_num, file in enumerate(glob.glob(image_path)):
+        im = cv2.imread(file)
+        im = cv2.resize(im, target_image_shape)
+        dst_file = dst_path + "/" + file.rsplit("/", 1)[1]
+        print("saving resized image to", dst_file)
+        cv2.imwrite(dst_file, im)
+        # print(im.shape)
+
+    return images, None
+
+
+class CatVsDogDao(IDao):
+    MAP_FILE_NAME = "manually_generated_concepts.json"
+
     def __init__(self,
                  dataset_name: str,
                  split_name: str,
@@ -21,33 +45,39 @@ class MnistConceptsDao(IDao):
                  dataset_path:str,
                  concept_id:int
                  ):
-        self.dataset_name:str = "mnist_concepts"
+        self.dataset_name:str = "cat_vs_dog"
         self.dataset_path = dataset_path
         self.split_name:str = split_name
         self.num_validation_samples:int = num_validation_samples
         self.num_concepts_label_generated = 0
         self.concept_id = concept_id
-        print(self.dataset_path, self.split_name, MAP_FILE_NAME)
-        map_filename = self.dataset_path + "/" + dataset_name+"/" + self.split_name + "/" + MAP_FILE_NAME
-        print(f"Reading concepts map from {map_filename}")
-        self.concepts_dict = get_concept_map(map_filename)
+        print(self.dataset_path, self.split_name, CatVsDogDao.MAP_FILE_NAME)
+        map_filename = self.dataset_path + "/" + dataset_name+"/" + self.split_name + "/" + CatVsDogDao.MAP_FILE_NAME
 
-        label_start = 10
+        self.concepts_dict = None
+        if os.path.isfile(map_filename):
+            print(f"Reading concepts map from {map_filename}")
+            self.concepts_dict = get_concept_map(map_filename)
+        else:
+            print(f"Map filename {map_filename}  does not exist. No concepts will be generated")
+
         self.label_key_to_label_map = dict()
-        for digit, list_of_concept_dict in self.concepts_dict.items():
-            for image_concept_dict in list_of_concept_dict:
-                concept_image = ImageConcept.fromdict(image_concept_dict)
-                v_extend = concept_image.v_extend
-                h_extend = concept_image.h_extend
-                if len(v_extend) == 0:
-                    v_extend = [0, 28]
-                if len(h_extend) == 0:
-                    h_extend = [0, 28]
+        if self.concepts_dict is not None:
+            for digit, list_of_concept_dict in self.concepts_dict.items():
+                for image_concept_dict in list_of_concept_dict:
+                    concept_image = ImageConcept.fromdict(image_concept_dict)
+                    v_extend = concept_image.v_extend
+                    h_extend = concept_image.h_extend
+                    if len(v_extend) == 0:
+                        v_extend = [0, 28]
+                    if len(h_extend) == 0:
+                        h_extend = [0, 28]
+                    self.label_key_to_label_map[f"{digit}_{h_extend[0]}_{h_extend[1]}_{v_extend[0]}_{v_extend[1]}"] = self.label_key_to_label_map + self.num_concepts_label_generated
+                    self.num_concepts_label_generated = self.num_concepts_label_generated + 1
 
-                self.label_key_to_label_map[f"{digit}_{h_extend[0]}_{h_extend[1]}_{v_extend[0]}_{v_extend[1]}"] = label_start + self.num_concepts_label_generated
-                self.num_concepts_label_generated = self.num_concepts_label_generated + 1
+        self.orig_train_images, self.orig_train_labels =  self.load_orig_train_images_and_labels(dataset_path + "/" +dataset_name)
+        print(f"Images loaded  Image shape {self.orig_train_images}  Label shape {self.orig_train_labels.shape}")
 
-        self.orig_train_images, self.orig_train_labels =  self.load_orig_train_images_and_labels(dataset_path+"mnist")
         self.images_by_label = dict()
         for i in range(10):
             self.images_by_label[i] = self.orig_train_images[self.orig_train_labels == i]
@@ -55,15 +85,16 @@ class MnistConceptsDao(IDao):
         self.image_set_dict = dict()
         self.level2_manual_annotations_good_cluster = dict()
         level2_manual_annotations_good_cluster_filename = self.dataset_path + "/" + dataset_name+"/" + self.split_name + "/" + "level2_manual_annotations_good_cluster.json"
-        with open(level2_manual_annotations_good_cluster_filename) as json_file:
-            level2_manual_annotations_good_cluster = json.load(json_file)
-        print([k for k in level2_manual_annotations_good_cluster.keys()])
-        for cluster_id in range(10):
-            self.image_set_dict[f"level_2_cluster_centers_{cluster_id}"] = np.asarray(
-                level2_manual_annotations_good_cluster[str(cluster_id)]["decoded_images"])
-            self.image_set_dict[f"training_set_{cluster_id}"] = self.images_by_label[cluster_id]
-        self.data_dict = None
 
+        if os.path.isfile(level2_manual_annotations_good_cluster_filename):
+            with open(level2_manual_annotations_good_cluster_filename) as json_file:
+                level2_manual_annotations_good_cluster = json.load(json_file)
+            print([k for k in level2_manual_annotations_good_cluster.keys()])
+            for cluster_id in range(10):
+                self.image_set_dict[f"level_2_cluster_centers_{cluster_id}"] = np.asarray(
+                    level2_manual_annotations_good_cluster[str(cluster_id)]["decoded_images"])
+                self.image_set_dict[f"training_set_{cluster_id}"] = self.images_by_label[cluster_id]
+        self.data_dict = None
 
     @property
     def number_of_training_samples(self):
@@ -72,10 +103,9 @@ class MnistConceptsDao(IDao):
         else:
             return self.data_dict["TRAIN_INDICES"].shape[0]
 
-
     @property
     def num_concepts(self):
-        return 20
+        return 0
 
     @property
     def number_of_testing_samples(self):
@@ -91,7 +121,7 @@ class MnistConceptsDao(IDao):
 
     @property
     def num_original_classes(self):
-        return 10
+        return 2
 
     @property
     def num_classes(self):
@@ -111,7 +141,7 @@ class MnistConceptsDao(IDao):
     def load_train(self, data_dir, shuffle, split_location=None):
         if self.concept_id is None:
             raise Exception("Pass an integer for parameter concept_id while creating the MnistConceptsDao instance ")
-        tr_x, tr_y = self.load_train_images_and_label(data_dir, split_location + MAP_FILE_NAME)
+        tr_x, tr_y = self.load_train_images_and_label(data_dir, split_location + CatVsDogDao.MAP_FILE_NAME)
         if shuffle:
             seed = 547
             np.random.seed(seed)
@@ -122,22 +152,8 @@ class MnistConceptsDao(IDao):
         y_vec = np.eye(self.num_classes)[tr_y]
         return tr_x / self.max_value, y_vec
 
-    def extract_data(self, filename, num_data, head_size, data_size):
-        with gzip.open(filename) as bytestream:
-            bytestream.read(head_size)
-            buf = bytestream.read(data_size * num_data)
-            _data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
-        return _data
-
     def load_orig_train_images_and_labels(self, data_dir):
-        data_dir = os.path.join(data_dir, "images/")
-        data = self.extract_data(data_dir + 'train-images-idx3-ubyte.gz',
-                                 60000,
-                                 16,
-                                 28 * 28)
-        orig_train_images = data.reshape((60000, 28, 28, 1))
-        data = self.extract_data(data_dir + '/train-labels-idx1-ubyte.gz', self.number_of_training_samples, 8, 1)
-        orig_train_labels = np.asarray(data.reshape(60000)).astype(np.int)
+        orig_train_images, orig_train_labels = resize_images(data_dir + "/train/")
         return orig_train_images, orig_train_labels
 
     def load_train_images_and_label(self, data_dir, map_filename=None):
@@ -226,3 +242,12 @@ class MnistConceptsDao(IDao):
                 num_samples_generated += image_for_concept.shape[0]
         return concepts_for_digit[0:num_samples_generated], labels[0:num_samples_generated]
 
+if __name__ == "__main__":
+    dao = CatVsDogDao( dataset_name="cat_vs_dog",
+                       dataset_path = "/Users/sunilv/concept_learning_exp/datasets",
+                       split_name="split_70_30",
+                       num_validation_samples=-1,
+                       concept_id=1
+                       )
+
+    print(dao.orig_train_images.shape)
