@@ -33,5 +33,5 @@ class GenerativeModel(Model):
     def encode_and_get_features(self, images: np.ndarray):
         pass
 
-    def decode_and_get_features(self, z: np.ndarray):
+    def decode_and_get_features(self, z: np.ndarray, layer_num=None, feature_num = None):
         pass

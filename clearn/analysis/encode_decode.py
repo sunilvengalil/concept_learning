@@ -107,15 +107,15 @@ def encode(model, images, batch_size, z_dim):
     return latent_vectors
 
 
-def decode_and_get_features(model: GenerativeModel, z: np.ndarray, batch_size: int):
+def decode_and_get_features(model: GenerativeModel, z: np.ndarray, batch_size: int, layer_num=None, feature_num=None):
     feature_dimension = [len(z), model.dao.image_shape[0], model.dao.image_shape[1], model.dao.image_shape[2]]
     reconstructed_images = np.zeros(feature_dimension)
     num_latent_vectors = z.shape[0]
     num_batches = num_latent_vectors // batch_size
-
     features_dict = dict()
     for batch_num in range(num_batches):
-        feature_names, decoded_images_and_features = model.decode_and_get_features(z[batch_num * batch_size: (batch_num + 1) * batch_size])
+        feature_names, decoded_images_and_features = model.decode_and_get_features(z[batch_num * batch_size: (batch_num + 1) * batch_size],
+                                                                                   layer_num, feature_num)
         reconstructed_images[batch_num * batch_size: (batch_num + 1) * batch_size] = decoded_images_and_features[0]
         for i, feature_name in enumerate(feature_names):
             if feature_name not in features_dict:
@@ -131,7 +131,7 @@ def decode_and_get_features(model: GenerativeModel, z: np.ndarray, batch_size: i
     if left_out > 0:
         last_batch = np.zeros([batch_size, z.shape[1]])
         last_batch[0:left_out, :] = z[num_batches * batch_size:]
-        feature_names, decoded_images_and_features = model.decode_and_get_features(last_batch)
+        feature_names, decoded_images_and_features = model.decode_and_get_features(last_batch, layer_num, feature_num)
         reconstructed_images[num_batches * batch_size:] = decoded_images_and_features[0][0:left_out]
         for i, feature_name in enumerate(feature_names):
             if feature_name not in features_dict:
@@ -153,34 +153,45 @@ def encode_and_get_features(model: GenerativeModel,
     mus = np.zeros([len(images), z_dim])
     sigmas = np.zeros([len(images), z_dim])
     latent_vectors = np.zeros([len(images), z_dim])
-    dense2_ens = np.zeros([len(images), model.exp_config.num_units[2]])
-    reshapeds = []
-    conv2_ens = []
-    conv1_ens = []
+    features_dict = dict()
 
     for batch_num in range(num_batches):
-        mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en = model.encode_and_get_features(
+        feature_names, mu, sigma, z, encoded_features = model.encode_and_get_features(
             images[batch_num * batch_size: (batch_num + 1) * batch_size])
         mus[batch_num * batch_size: (batch_num + 1) * batch_size] = mu
         sigmas[batch_num * batch_size: (batch_num + 1) * batch_size] = sigma
         latent_vectors[batch_num * batch_size: (batch_num + 1) * batch_size] = z
-        dense2_ens[batch_num * batch_size: (batch_num + 1) * batch_size] = dense2_en
-        reshapeds.append(reshaped)
-        conv2_ens.append(conv2_en)
-        conv1_ens.append(conv1_en)
+        for i, feature_name in enumerate(feature_names):
+            if feature_name not in features_dict:
+                print(encoded_features[i].shape)
+                features_dict[feature_name] = np.zeros([len(z),
+                                                       encoded_features[i].shape[1],
+                                                       encoded_features[i].shape[2],
+                                                       encoded_features[i].shape[3]]
+                                                       )
+            features_dict[feature_name][batch_num * batch_size: (batch_num + 1) * batch_size] = encoded_features[i]
+
 
     left_out = num_images % batch_size
     if left_out > 0:
         feature_dimension = [batch_size, model.dao.image_shape[0], model.dao.image_shape[1], model.dao.image_shape[2]]
         last_batch = np.zeros(feature_dimension)
         last_batch[0:left_out] = images[num_batches * batch_size:]
-        mu, sigma, z, dense2_en, reshaped, conv2_en, conv1_en = model.encode_and_get_features(last_batch)
+        feature_names, mu, sigma, z, encoded_features = model.encode_and_get_features(last_batch)
         mus[num_batches * batch_size:] = mu[0:left_out]
         sigmas[num_batches * batch_size:] = sigma[0:left_out]
         latent_vectors[num_batches * batch_size:] = z[0:left_out]
-        dense2_ens[num_batches * batch_size:] = dense2_en[0:left_out]
-        reshapeds.append(reshaped)
-        conv2_ens.append(conv2_en)
-        conv1_ens.append(conv1_en)
+        for i, feature_name in enumerate(feature_names):
+            if feature_name not in features_dict:
+                print(encoded_features[i].shape)
+                features_dict[feature_name] = np.zeros([len(z),
+                                                       encoded_features[i].shape[1],
+                                                       encoded_features[i].shape[2],
+                                                       encoded_features[i].shape[3]]
+                                                       )
+            features_dict[feature_name][num_batches * batch_size:] = encoded_features[i]
 
-    return mus, sigmas, latent_vectors, dense2_ens, reshapeds, conv2_ens, conv1_ens
+
+
+    return mus, sigmas, latent_vectors, features_dict
+

@@ -107,7 +107,6 @@ class SemiSupervisedClassifierMnist(VAE):
     def compute_and_optimize_loss(self):
         if self.exp_config.fully_convolutional :
             concepts_stride = 1
-
             z_reshaped = tf.reshape(self.z, [self.exp_config.BATCH_SIZE,
                                              self.image_sizes[len(self.exp_config.num_units)][0],
                                              self.image_sizes[len(self.exp_config.num_units)][0],
@@ -148,18 +147,17 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                  reduction=tf.compat.v1.losses.Reduction.NONE
                                                                  )
                     mse_for_all_images = tf.compat.v1.reduce_mean(mse, axis=(1, 2, 3))
-                    mse_for_all_images_masked = tf.math.multiply(mse_for_all_images, self.mask_for_concept_no[layer_num][concept_no])
+                    #mse_for_all_images_masked = tf.math.multiply(mse_for_all_images, self.mask_for_concept_no[layer_num][concept_no])
+                    mse_for_all_images_masked = mse_for_all_images
                     self.supervised_loss_concepts_per_layer[layer_num][concept_no] = tf.compat.v1.reduce_mean(mse_for_all_images_masked)
 
                     self.supervised_loss_concepts += self.supervised_loss_concepts_per_layer[layer_num][concept_no]
-
 
         self.y_pred = linear(self.z, self.dao.num_classes)
         self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
                                                                          logits=self.y_pred,
                                                                          weights=self.is_manual_annotated
                                                                          )
-
 
         if self.exp_config.fully_convolutional:
             self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
@@ -180,7 +178,6 @@ class SemiSupervisedClassifierMnist(VAE):
         #
         #     self.corr_loss = tf.norm(corr - identity)
         #     self.loss = self.loss + self.corr_loss
-
 
         """ Training """
         # optimizers
@@ -221,15 +218,15 @@ class SemiSupervisedClassifierMnist(VAE):
         #     # Get the list of uniques concepts to be aplied on this layer
         #     labels = np.argmax(train_val_data_iterator.train_y)
         #     self.unique_concepts[layer_num] = np.unique(labels[train_val_data_iterator.manual_annotation[2] == layer_num])
-
-
         for epoch in range(start_epoch, self.epoch):
             evaluation_run_for_last_epoch = False
             # get batch data
+            supervised_loss_concepts_batch = []
+            supervised_loss_concepts_for_epoch = 0
             for batch in range(start_batch_id, self.num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
-                batch_images, _, manual_labels, manual_labels_concepts = train_val_data_iterator.get_next_batch("train")
+                batch_images, batch_labels, manual_labels, manual_labels_concepts = train_val_data_iterator.get_next_batch("train")
                 if num_images_to_save > images_saved:
                     save_images(batch_images[0:64],
                                 [manifold_h, manifold_w],
@@ -298,30 +295,35 @@ class SemiSupervisedClassifierMnist(VAE):
                             self.is_concepts_annotated: is_concepts_annotated
                         }
                         for layer_num in self.exp_config.concept_dict.keys():
-                            # print(self.mask_for_concept_no[layer_num])
                             for concept_no in self.unique_concepts[layer_num]:
-                                #print("concept number", concept_no)
+                                #print("concept number", layer_num, concept_no)
                                 #print(self.mask_for_concept_no[layer_num][concept_no])
-
+                                #print(np.argmax(batch_labels))
                                 masks = np.zeros(self.exp_config.BATCH_SIZE)
                                 if concept_no == -1:
                                     masks[manual_labels[:, self.dao.num_classes + 1] <= 9] = 1
                                 else:
-                                    masks[manual_labels[:, self.dao.num_classes + 1] == layer_num] = 1
-                                #print(
-                                #    f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
+                                    masks[manual_labels[:, self.dao.num_classes + 1] == concept_no] = 1
+                                #print("label", manual_labels[:, self.dao.num_classes + 1])
+                                #print("masks", masks)
+
+                                #print(f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
                                 feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
 
-                        _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts = self.sess.run([self.optim,
+                        _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts, supervised_loss_concepts_for_l3 = self.sess.run([self.optim,
                                                                                                              self.merged_summary_op,
                                                                                                              self.loss,
                                                                                                              self.neg_loglikelihood,
                                                                                                              self.marginal_likelihood,
                                                                                                              self.KL_divergence,
                                                                                                              self.supervised_loss,
-                                                                                                             self.supervised_loss_concepts],
+                                                                                                             self.supervised_loss_concepts,
+                                                                                                             self.supervised_loss_concepts_per_layer[3]],
                                                                                                             feed_dict=feed_dict
                                                                                                             )
+                        print(supervised_loss_concepts_for_l3)
+                        for k, v in supervised_loss_concepts_for_l3.keys():
+                            supervised_loss_concepts_for_epoch += v
                 else:
                     feed_dict = {
                         self.inputs: batch_images,
@@ -329,12 +331,12 @@ class SemiSupervisedClassifierMnist(VAE):
                         self.is_manual_annotated: manual_labels[:, self.dao.num_classes],
                     }
                     for layer_num in self.exp_config.concept_dict.keys():
-                        for concept_no in self.unique_concepts:
+                        print(f"Generating mask for layer {layer_num} features {self.unique_concepts[layer_num]} ")
+                        for concept_no in self.unique_concepts[layer_num]:
                             masks = np.zeros(self.exp_config.BATCH_SIZE)
                             if concept_no == -1 :
                                 # special case for handling samples from the original classes
                                 masks[manual_labels[:, self.dao.num_classes + 1]  <=9 ] = 1
-
                             else:
                                 masks[manual_labels[:, self.dao.num_classes + 1] == layer_num] = 1
                             print(f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
@@ -349,6 +351,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                          self.supervised_loss],
                                                                                                         feed_dict=feed_dict
                                                                                                         )
+                supervised_loss_concepts_batch.append(supervised_loss_concepts)
                 if self.exp_config.fully_convolutional:
                     if self.exp_config.uncorrelated_features:
                         print(
@@ -358,11 +361,10 @@ class SemiSupervisedClassifierMnist(VAE):
 
                 else:
                     print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} ")
-
                 self.counter += 1
                 self.num_steps_completed = batch + 1
                 # self.writer.add_summary(summary_str, self.counter - 1)
-            print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss}")
+            print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss},  Supervised loss concept {supervised_loss_concepts_for_epoch}")
             self.num_training_epochs_completed = epoch + 1
             print(f"Completed {epoch} epochs")
             if self.exp_config.run_evaluation_during_training:

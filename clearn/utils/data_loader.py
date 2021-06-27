@@ -46,7 +46,7 @@ def load_images(_config, train_val_data_iterator, dataset_type="train"):
     train_images = np.zeros(feature_shape)
     i = 0
     train_labels = np.zeros([num_images, dao.num_classes])
-    manual_annotations = np.zeros([num_images, dao.num_classes + 1])
+    manual_annotations = np.zeros([num_images, dao.num_classes + 2])
     train_val_data_iterator.reset_counter(dataset_type)
     while train_val_data_iterator.has_next(dataset_type):
         batch_images, batch_labels, batch_annotations, _ = train_val_data_iterator.get_next_batch(dataset_type)
