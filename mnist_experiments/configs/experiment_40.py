@@ -35,7 +35,7 @@ _exp_config = ExperimentConfig(root_path=None,
                                dataset_name="mnist",
                                split_name="Split_1",
                                model_name="VAE",
-                               batch_size=64,
+                               batch_size=128,
                                eval_interval_in_epochs=1,
                                name=experiment_name,
                                num_val_samples=128,
@@ -49,7 +49,8 @@ _exp_config = ExperimentConfig(root_path=None,
                                num_concepts=num_concepts,
                                num_dense_layers=num_dense_layers,
                                fully_convolutional=fully_convolutional,
-                               uncorrelated_features=True
+                               uncorrelated_features=False,
+                               translate_image=False
                                )
 _exp_config.set_root_path(env)
 _exp_config.check_and_create_directories(run_id)

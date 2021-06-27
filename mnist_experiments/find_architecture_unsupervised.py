@@ -15,7 +15,7 @@ num_unit_list = [[64, 32],
                       [4, 32],
                       [2, 32],
                       ]
-for num_unit in num_unit_list:
+for num_unit in num_unit_list[5:]:
     for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
         initialize_model_train_and_get_features(experiment_name=experiment_name,
                                                 num_units=num_unit,

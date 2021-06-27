@@ -369,7 +369,7 @@ class SemiSupervisedSegmenterMnist(VAE):
                     for rp in retention_policies:
                         rp.update_heap(cost=nll_batch,
                                        exp_config=self.exp_config,
-                                       data=[reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch])
+                                       data=[reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch, batch_images])
                 except:
                     print(f"Shape of mse is {nll_batch.shape}")
                     traceback.print_exc()

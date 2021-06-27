@@ -25,6 +25,7 @@ if __name__ == '__main__':
                                             model_save_interval=1,
                                             model_type=MODEL_TYPE_VAE_SEMI_SUPERVISED_MNIST,
                                             strides=[2, 1, 1],
-                                            num_dense_layers=1
+                                            num_dense_layers=1,
+                                            translate_image=True
                                             )
     tf.reset_default_graph()
