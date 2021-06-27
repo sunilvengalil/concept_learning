@@ -10,7 +10,7 @@ MAP_FILE_NAME = "manually_generated_concepts.json"
 MAX_IMAGES_TO_DISPLAY = 12
 
 
-def get_concept_map(self, file_name):
+def get_concept_map(file_name):
     with open(file_name) as json_file:
         concept_map = json.load(json_file)
     return concept_map
