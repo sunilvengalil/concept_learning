@@ -229,6 +229,10 @@ class SemiSupervisedClassifierMnist(VAE):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
                 batch_images, batch_labels, manual_labels, manual_labels_concepts = train_val_data_iterator.get_next_batch("train")
+                print("labels",np.argmax(batch_labels, axis=1))
+                print("apply in layer",manual_labels[:, self.dao.num_classes + 1])
+                print("manual confidence",manual_labels[:, self.dao.num_classes])
+
                 if num_images_to_save > images_saved:
                     save_images(batch_images[0:64],
                                 [manifold_h, manifold_w],
@@ -307,7 +311,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                 else:
                                     masks[manual_labels[:, self.dao.num_classes + 1] == concept_no] = 1
                                 #print("label", manual_labels[:, self.dao.num_classes + 1])
-                                print("concept no, masks",concept_no, masks)
+                                print("concept no, masks", concept_no, masks)
 
                                 #print(f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
                                 feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
