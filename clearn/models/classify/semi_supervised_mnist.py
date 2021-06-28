@@ -330,7 +330,7 @@ class SemiSupervisedClassifierMnist(VAE):
 
                                                                                                             feed_dict=feed_dict
                                                                                                             )
-                        print(supervised_loss_concepts_for_l3)
+                        # print(supervised_loss_concepts_for_l3)
                         # print("mse_for_all_images",mse_for_all_images)
                         # print("mse_for_all_images_masked", mse_for_all_images_masked)
                         # print("labels", labels_categorical)
@@ -366,15 +366,15 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                         feed_dict=feed_dict
                                                                                                         )
                 supervised_loss_concepts_batch.append(supervised_loss_concepts)
-                if self.exp_config.fully_convolutional:
-                    if self.exp_config.uncorrelated_features:
-                        print(
-                            f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}  ccrrelation loss:{correlation_loss}")
-                    else:
-                        print(f"Epoch: {epoch}/{batch}, Loss:{loss} Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}")
-
-                else:
-                    print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} ")
+                # if self.exp_config.fully_convolutional:
+                #     if self.exp_config.uncorrelated_features:
+                #         print(
+                #             f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}  ccrrelation loss:{correlation_loss}")
+                #     else:
+                #         print(f"Epoch: {epoch}/{batch}, Loss:{loss} Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}")
+                #
+                # else:
+                #     print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} ")
                 self.counter += 1
                 self.num_steps_completed = batch + 1
                 # self.writer.add_summary(summary_str, self.counter - 1)
