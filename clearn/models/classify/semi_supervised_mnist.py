@@ -148,7 +148,6 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                  )
                     mse_for_all_images = tf.compat.v1.reduce_mean(mse, axis=(1, 2, 3))
                     mse_for_all_images_masked = tf.math.multiply(mse_for_all_images, self.mask_for_concept_no[layer_num][concept_no])
-                    mse_for_all_images_masked = mse_for_all_images
                     self.supervised_loss_concepts_per_layer[layer_num][concept_no] = tf.compat.v1.reduce_mean(mse_for_all_images_masked)
 
                     self.supervised_loss_concepts += self.supervised_loss_concepts_per_layer[layer_num][concept_no]
