@@ -382,6 +382,9 @@ class TrainValDataIterator:
                     """
                     _manual_annotation = np.random.choice(self.unique_labels,
                                                           len(self.train_x))
+                    _manual_annotation_val = np.random.choice(self.unique_labels,
+                                                          len(self.val_x))
+
 
             _manual_annotation_concepts = None
             if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
