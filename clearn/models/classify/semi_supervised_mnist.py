@@ -229,7 +229,8 @@ class SemiSupervisedClassifierMnist(VAE):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
                 batch_images, batch_labels, manual_labels, manual_labels_concepts = train_val_data_iterator.get_next_batch("train")
-                print("labels",np.argmax(batch_labels, axis=1))
+                labels_categorical = np.argmax(batch_labels, axis=1)
+                print("labels", labels_categorical)
                 print("apply in layer",manual_labels[:, self.dao.num_classes + 1])
                 print("manual confidence",manual_labels[:, self.dao.num_classes])
 
@@ -302,15 +303,15 @@ class SemiSupervisedClassifierMnist(VAE):
                         }
                         for layer_num in self.exp_config.concept_dict.keys():
                             for concept_no in self.unique_concepts[layer_num]:
-                                #print("concept number", layer_num, concept_no)
-                                #print(self.mask_for_concept_no[layer_num][concept_no])
-                                #print(np.argmax(batch_labels))
+                                # print("concept number", layer_num, concept_no)
+                                # print(self.mask_for_concept_no[layer_num][concept_no])
+                                # print(np.argmax(batch_labels))
                                 masks = np.zeros(self.exp_config.BATCH_SIZE)
                                 if concept_no == -1:
-                                    masks[manual_labels[:, self.dao.num_classes + 1] <= 9] = 1
+                                    masks[labels_categorical[:, self.dao.num_classes + 1] <= 9] = 1
                                 else:
-                                    masks[manual_labels[:, self.dao.num_classes + 1] == concept_no] = 1
-                                #print("label", manual_labels[:, self.dao.num_classes + 1])
+                                    masks[labels_categorical[:, self.dao.num_classes + 1] == concept_no] = 1
+                                # print("label", manual_labels[:, self.dao.num_classes + 1])
                                 print("concept no, masks", concept_no, masks)
 
                                 #print(f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
@@ -334,7 +335,7 @@ class SemiSupervisedClassifierMnist(VAE):
                         print(supervised_loss_concepts_for_l3)
                         print("mse_for_all_images",mse_for_all_images)
                         print("mse_for_all_images_masked", mse_for_all_images_masked)
-                        print("labels", np.argmax(batch_labels, axis=1))
+                        print("labels", labels_categorical)
                         print("manual_label", manual_labels[:, self.dao.num_classes + 1] )
 
                         for k, v in supervised_loss_concepts_for_l3.items():
@@ -351,7 +352,7 @@ class SemiSupervisedClassifierMnist(VAE):
                             masks = np.zeros(self.exp_config.BATCH_SIZE)
                             if concept_no == -1 :
                                 # special case for handling samples from the original classes
-                                masks[manual_labels[:, self.dao.num_classes + 1]  <=9 ] = 1
+                                masks[manual_labels[:, self.dao.num_classes + 1] <= 9] = 1
                             else:
                                 masks[manual_labels[:, self.dao.num_classes + 1] == layer_num] = 1
                             print(f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
