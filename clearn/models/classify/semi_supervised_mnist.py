@@ -136,7 +136,8 @@ class SemiSupervisedClassifierMnist(VAE):
                 print(f.shape)
                 num_concepts = len(self.exp_config.concept_dict[layer_num]["unique_concepts"])
                 self.supervised_loss_concepts_per_layer[layer_num] = dict()
-
+                self.mse_for_all_images = dict()
+                self.mse_for_all_images_masked = dict()
                 for concept_no in self.unique_concepts[layer_num]:
                     print("feature shape",f.shape)
                     print(f"Computing loss for {layer_num} concept {concept_no}")
@@ -146,11 +147,11 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                  input_resized,
                                                                  reduction=tf.compat.v1.losses.Reduction.NONE
                                                                  )
-                    mse_for_all_images = tf.compat.v1.reduce_mean(mse, axis=(1, 2, 3))
-                    mse_for_all_images_masked = tf.math.multiply(mse_for_all_images, self.mask_for_concept_no[layer_num][concept_no])
+                    self.mse_for_all_images[concept_no] = tf.compat.v1.reduce_mean(mse, axis=(1, 2, 3))
+                    self.mse_for_all_images_masked[concept_no] = tf.math.multiply(self.mse_for_all_images[concept_no], self.mask_for_concept_no[layer_num][concept_no])
 
                     #mse_for_all_images_masked = mse_for_all_images
-                    self.supervised_loss_concepts_per_layer[layer_num][concept_no] = tf.compat.v1.reduce_mean(mse_for_all_images_masked)
+                    self.supervised_loss_concepts_per_layer[layer_num][concept_no] = tf.compat.v1.reduce_mean(self.mse_for_all_images_masked[concept_no])
 
                     self.supervised_loss_concepts += self.supervised_loss_concepts_per_layer[layer_num][concept_no]
 
@@ -306,12 +307,12 @@ class SemiSupervisedClassifierMnist(VAE):
                                 else:
                                     masks[manual_labels[:, self.dao.num_classes + 1] == concept_no] = 1
                                 #print("label", manual_labels[:, self.dao.num_classes + 1])
-                                #print("masks", masks)
+                                print("masks", masks)
 
                                 #print(f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
                                 feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
 
-                        _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts, supervised_loss_concepts_for_l3 = self.sess.run([self.optim,
+                        _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts, supervised_loss_concepts_for_l3, mse_for_all_images, = self.sess.run([self.optim,
                                                                                                              self.merged_summary_op,
                                                                                                              self.loss,
                                                                                                              self.neg_loglikelihood,
@@ -319,10 +320,17 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                              self.KL_divergence,
                                                                                                              self.supervised_loss,
                                                                                                              self.supervised_loss_concepts,
-                                                                                                             self.supervised_loss_concepts_per_layer[3]],
+                                                                                                             self.supervised_loss_concepts_per_layer[3],
+                                                                                                                                                                                             self.mse_for_all_images,
+                                                                                                                                                                                             self.mse_for_all_images_masked
+                                                                                                                                                                                            ],
+
                                                                                                             feed_dict=feed_dict
                                                                                                             )
                         print(supervised_loss_concepts_for_l3)
+                        print(self.mse_for_all_images)
+                        print(self.mse_for_all_images_masked)
+                        print()
                         for k, v in supervised_loss_concepts_for_l3.items():
                             supervised_loss_concepts_for_epoch += v
                 else:
