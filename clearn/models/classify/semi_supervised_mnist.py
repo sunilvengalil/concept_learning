@@ -230,9 +230,9 @@ class SemiSupervisedClassifierMnist(VAE):
                 # and next value is confidence
                 batch_images, batch_labels, manual_labels, manual_labels_concepts = train_val_data_iterator.get_next_batch("train")
                 labels_categorical = np.argmax(batch_labels, axis=1)
-                print("labels", labels_categorical)
-                print("apply in layer",manual_labels[:, self.dao.num_classes + 1])
-                print("manual confidence",manual_labels[:, self.dao.num_classes])
+                # print("labels", labels_categorical)
+                # print("apply in layer",manual_labels[:, self.dao.num_classes + 1])
+                # print("manual confidence",manual_labels[:, self.dao.num_classes])
 
                 if num_images_to_save > images_saved:
                     save_images(batch_images[0:64],
@@ -310,9 +310,9 @@ class SemiSupervisedClassifierMnist(VAE):
                                 if concept_no != -1:
                                     masks[( manual_labels[:, self.dao.num_classes + 1] == layer_num) * (labels_categorical == concept_no) ] = 1
                                 # print("label", manual_labels[:, self.dao.num_classes + 1])
-                                print("concept no, masks", concept_no, masks)
+                                # print("concept no, masks", concept_no, masks)
 
-                                #print(f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
+                                # print(f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
                                 feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
 
                         _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts, supervised_loss_concepts_for_l3, mse_for_all_images,mse_for_all_images_masked = self.sess.run([self.optim,
@@ -331,10 +331,10 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                             feed_dict=feed_dict
                                                                                                             )
                         print(supervised_loss_concepts_for_l3)
-                        print("mse_for_all_images",mse_for_all_images)
-                        print("mse_for_all_images_masked", mse_for_all_images_masked)
-                        print("labels", labels_categorical)
-                        print("manual_label", manual_labels[:, self.dao.num_classes + 1] )
+                        # print("mse_for_all_images",mse_for_all_images)
+                        # print("mse_for_all_images_masked", mse_for_all_images_masked)
+                        # print("labels", labels_categorical)
+                        # print("manual_label", manual_labels[:, self.dao.num_classes + 1] )
 
                         for k, v in supervised_loss_concepts_for_l3.items():
                             supervised_loss_concepts_for_epoch += v
