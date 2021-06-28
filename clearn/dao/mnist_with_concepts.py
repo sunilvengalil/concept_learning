@@ -4,8 +4,7 @@ import gzip
 
 from copy import deepcopy
 from clearn.analysis import ImageConcept
-from clearn.dao.concept_utils import segment_single_image_with_multiple_slices, normal_distribution_int, \
-    generate_concepts_from_digit_image, get_label, get_concept_map
+from clearn.dao.concept_utils import generate_concepts_from_digit_image, get_label, get_concept_map
 from clearn.dao.idao import IDao
 import json
 import pandas as pd
@@ -13,24 +12,26 @@ import pandas as pd
 MAP_FILE_NAME = "manually_generated_concepts.json"
 MAX_IMAGES_TO_DISPLAY = 12
 
+
 class MnistConceptsDao(IDao):
+    NUM_IMAGES_PER_CONCEPT = 3000
     def __init__(self,
                  dataset_name: str,
                  split_name: str,
                  num_validation_samples: int,
-                 dataset_path:str,
-                 concept_id:int
+                 dataset_path: str,
+                 concept_id: int
                  ):
         self.data_dict = None
 
-        self.dataset_name:str = "mnist_concepts"
+        self.dataset_name: str = "mnist_concepts"
         self.dataset_path = dataset_path
-        self.split_name:str = split_name
-        self.num_validation_samples:int = num_validation_samples
+        self.split_name: str = split_name
+        self.num_validation_samples: int = num_validation_samples
         self.num_concepts_label_generated = 0
         self.concept_id = concept_id
         print(self.dataset_path, self.split_name, MAP_FILE_NAME)
-        map_filename = self.dataset_path + "/" + dataset_name+"/" + self.split_name + "/" + MAP_FILE_NAME
+        map_filename = self.dataset_path + "/" + dataset_name + "/" + self.split_name + "/" + MAP_FILE_NAME
         print(f"Reading concepts map from {map_filename}")
         self.concepts_dict = get_concept_map(map_filename)
 
@@ -46,17 +47,18 @@ class MnistConceptsDao(IDao):
                 if len(h_extend) == 0:
                     h_extend = [0, 28]
 
-                self.label_key_to_label_map[f"{digit}_{h_extend[0]}_{h_extend[1]}_{v_extend[0]}_{v_extend[1]}"] = label_start + self.num_concepts_label_generated
+                self.label_key_to_label_map[
+                    f"{digit}_{h_extend[0]}_{h_extend[1]}_{v_extend[0]}_{v_extend[1]}"] = label_start + self.num_concepts_label_generated
                 self.num_concepts_label_generated = self.num_concepts_label_generated + 1
 
-        self.orig_train_images, self.orig_train_labels =  self.load_orig_train_images_and_labels(dataset_path+"mnist")
+        self.orig_train_images, self.orig_train_labels = self.load_orig_train_images_and_labels(dataset_path + "mnist")
         self.images_by_label = dict()
         for i in range(10):
             self.images_by_label[i] = self.orig_train_images[self.orig_train_labels == i]
 
         self.image_set_dict = dict()
         self.level2_manual_annotations_good_cluster = dict()
-        level2_manual_annotations_good_cluster_filename = self.dataset_path + "/" + dataset_name+"/" + self.split_name + "/" + "level2_manual_annotations_good_cluster.json"
+        level2_manual_annotations_good_cluster_filename = self.dataset_path + "/" + dataset_name + "/" + self.split_name + "/" + "level2_manual_annotations_good_cluster.json"
         with open(level2_manual_annotations_good_cluster_filename) as json_file:
             level2_manual_annotations_good_cluster = json.load(json_file)
         print([k for k in level2_manual_annotations_good_cluster.keys()])
@@ -65,14 +67,12 @@ class MnistConceptsDao(IDao):
                 level2_manual_annotations_good_cluster[str(cluster_id)]["decoded_images"])
             self.image_set_dict[f"training_set_{cluster_id}"] = self.images_by_label[cluster_id]
 
-
     @property
     def number_of_training_samples(self):
         if self.data_dict is None:
             return self.orig_train_images.shape[0]
         else:
             return self.data_dict["TRAIN_INDICES"].shape[0]
-
 
     @property
     def num_concepts(self):
@@ -155,38 +155,36 @@ class MnistConceptsDao(IDao):
             concepts_df = pd.read_csv(concept_image_filename)
             x = concepts_df.values[:, 0:feature_dim]
             y = concepts_df.values[:, feature_dim]
-            _x = x.reshape((x.shape[0], self.image_shape[0], self.image_shape[1], self.image_shape[2] ))
+            _x = x.reshape((x.shape[0], self.image_shape[0], self.image_shape[1], self.image_shape[2]))
 
         else:
-            concepts, concept_labels = self.generate_concepts(map_filename, num_images_per_concept=3000)
+            concepts, concept_labels = self.generate_concepts(map_filename,
+                                                              MnistConceptsDao.NUM_IMAGES_PER_CONCEPT)
             # TODO verify the concepts once
             print(self.orig_train_images.shape, concepts.shape)
             _x = np.vstack([self.orig_train_images, concepts])
-            print(self.orig_train_labels.shape, concept_labels.shape)
             y = np.hstack([self.orig_train_labels, concept_labels])
-            print("After hstack and vstack", _x.shape, y.shape)
             x = deepcopy(_x).reshape(_x.shape[0], feature_dim)
             image_df = pd.DataFrame(x)
             image_df["label"] = y
             image_df.to_csv(concept_image_filename, index=False)
-            print("Just before returning",_x.shape, x.shape)
         return _x, y
 
     def generate_concepts(self, map_filename, num_images_per_concept):
-        concepts_dict = self.get_concept_map(map_filename)
-        print(self.num_concepts_label_generated)
+        concepts_dict = get_concept_map(map_filename)
         # Change 8 to 12 below . 10 + 2 (4 and 9 has bimodal distribution)
         concepts = np.zeros((num_images_per_concept * self.num_concepts, 28, 28, 1))
         labels = np.zeros((num_images_per_concept * self.num_concepts), np.int8)
         num_concepts_generated = 0
         for digit, list_of_concept_dict in concepts_dict.items():
             concepts_for_digit, labels_for_concepts_for_digit = self.generate_concepts_for_digit(digit,
-                                                                  list_of_concept_dict,
-                                                                  num_images_per_concept,
-                                                                          self.label_key_to_label_map
-                                                                  )
+                                                                                                 list_of_concept_dict,
+                                                                                                 num_images_per_concept,
+                                                                                                 self.label_key_to_label_map
+                                                                                                 )
             concepts[num_concepts_generated: num_concepts_generated + concepts_for_digit.shape[0]] = concepts_for_digit
-            labels[num_concepts_generated: num_concepts_generated + concepts_for_digit.shape[0]] = labels_for_concepts_for_digit
+            labels[num_concepts_generated: num_concepts_generated + concepts_for_digit.shape[
+                0]] = labels_for_concepts_for_digit
             num_concepts_generated = num_concepts_generated + concepts_for_digit.shape[0]
 
         return concepts[0:num_concepts_generated], labels[0:num_concepts_generated]
@@ -213,17 +211,31 @@ class MnistConceptsDao(IDao):
             label = get_label(digit, h_extend, v_extend, label_key_to_label_map)
             for digit_image in digit_images:
                 image_for_concept = generate_concepts_from_digit_image(digit_image,
-                                                                            num_images_per_concept // num_images,
-                                                                            h_extend,
-                                                                            v_extend,
-                                                                            digit,
-                                                                            concept_image.cluster_name,
-                                                                            concept_image.sample_index,
-                                                                            concept_image.epochs_completed
-                                                                            )
+                                                                       num_images_per_concept // num_images,
+                                                                       h_extend,
+                                                                       v_extend,
+                                                                       digit,
+                                                                       concept_image.cluster_name,
+                                                                       concept_image.sample_index,
+                                                                       concept_image.epochs_completed
+                                                                       )
 
-                concepts_for_digit[num_samples_generated:num_samples_generated+image_for_concept.shape[0]] = image_for_concept
-                labels[num_samples_generated:num_samples_generated+image_for_concept.shape[0]] = label
+                concepts_for_digit[
+                num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = image_for_concept
+                labels[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = label
                 num_samples_generated += image_for_concept.shape[0]
         return concepts_for_digit[0:num_samples_generated], labels[0:num_samples_generated]
 
+
+if __name__ == "__main__":
+    dao = MnistConceptsDao(dataset_name="mnist_concepts",
+                           dataset_path="/Users/sunilv/concept_learning_exp/datasets/",
+                           split_name="split_70_30",
+                           num_validation_samples=-1,
+                           concept_id=1
+                           )
+    map_filename = "/Users/sunilv/concept_learning_exp/datasets/mnist_concepts/split_70_30/manually_generated_concepts.json"
+    dao.load_train_images_and_label("/Users/sunilv/concept_learning_exp/datasets/mnist_concepts/",
+                                    map_filename=map_filename)
+    print("Concept key to label map",dao.label_key_to_label_map)
+    print(dao.orig_train_images.shape)
