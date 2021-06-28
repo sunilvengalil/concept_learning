@@ -312,7 +312,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                 #print(f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
                                 feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
 
-                        _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts, supervised_loss_concepts_for_l3, mse_for_all_images, = self.sess.run([self.optim,
+                        _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts, supervised_loss_concepts_for_l3, mse_for_all_images,mse_for_all_images_masked = self.sess.run([self.optim,
                                                                                                              self.merged_summary_op,
                                                                                                              self.loss,
                                                                                                              self.neg_loglikelihood,
@@ -328,9 +328,9 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                             feed_dict=feed_dict
                                                                                                             )
                         print(supervised_loss_concepts_for_l3)
-                        print(self.mse_for_all_images)
-                        print(self.mse_for_all_images_masked)
-                        print()
+                        print(mse_for_all_images)
+                        print(mse_for_all_images_masked)
+                        print("labels", batch_labels)
                         for k, v in supervised_loss_concepts_for_l3.items():
                             supervised_loss_concepts_for_epoch += v
                 else:
