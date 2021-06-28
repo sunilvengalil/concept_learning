@@ -307,10 +307,8 @@ class SemiSupervisedClassifierMnist(VAE):
                                 # print(self.mask_for_concept_no[layer_num][concept_no])
                                 # print(np.argmax(batch_labels))
                                 masks = np.zeros(self.exp_config.BATCH_SIZE)
-                                if concept_no == -1:
-                                    masks[labels_categorical[:, self.dao.num_classes + 1] <= 9] = 1
-                                else:
-                                    masks[labels_categorical[:, self.dao.num_classes + 1] == concept_no] = 1
+                                if concept_no != -1:
+                                    masks[( manual_labels[:, self.dao.num_classes + 1] == layer_num) * (labels_categorical == concept_no) ] = 1
                                 # print("label", manual_labels[:, self.dao.num_classes + 1])
                                 print("concept no, masks", concept_no, masks)
 
