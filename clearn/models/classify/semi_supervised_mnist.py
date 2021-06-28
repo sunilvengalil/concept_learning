@@ -328,9 +328,11 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                             feed_dict=feed_dict
                                                                                                             )
                         print(supervised_loss_concepts_for_l3)
-                        print(mse_for_all_images)
-                        print(mse_for_all_images_masked)
-                        print("labels", batch_labels)
+                        print("mse_for_all_images",mse_for_all_images)
+                        print("mse_for_all_images_masked", mse_for_all_images_masked)
+                        print("labels", np.argmax(batch_labels, axis=1))
+                        print("manual_label", manual_labels[:, self.dao.num_classes + 1] )
+
                         for k, v in supervised_loss_concepts_for_l3.items():
                             supervised_loss_concepts_for_epoch += v
                 else:
