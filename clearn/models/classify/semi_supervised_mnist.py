@@ -148,6 +148,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                  )
                     mse_for_all_images = tf.compat.v1.reduce_mean(mse, axis=(1, 2, 3))
                     mse_for_all_images_masked = tf.math.multiply(mse_for_all_images, self.mask_for_concept_no[layer_num][concept_no])
+
                     #mse_for_all_images_masked = mse_for_all_images
                     self.supervised_loss_concepts_per_layer[layer_num][concept_no] = tf.compat.v1.reduce_mean(mse_for_all_images_masked)
 
@@ -364,7 +365,7 @@ class SemiSupervisedClassifierMnist(VAE):
                 self.counter += 1
                 self.num_steps_completed = batch + 1
                 # self.writer.add_summary(summary_str, self.counter - 1)
-            print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss},  Supervised loss concept {supervised_loss_concepts_for_epoch}")
+            print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss},  Supervised loss concept {sum(supervised_loss_concepts_batch)}")
             self.num_training_epochs_completed = epoch + 1
             print(f"Completed {epoch} epochs")
             if self.exp_config.run_evaluation_during_training:
