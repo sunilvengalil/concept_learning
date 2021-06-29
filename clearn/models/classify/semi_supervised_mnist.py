@@ -125,7 +125,7 @@ class SemiSupervisedClassifierMnist(VAE):
             self.supervised_loss_concepts_per_layer = dict()
             if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                 for layer_num in list(self.exp_config.concept_dict.keys()):
-                    if layer_num == len(self.exp_config.num_units):
+                    if layer_num == len(self.exp_config.num_units + 1):
                         continue
                     decoder_feature = f"de_conv_{layer_num}"
                     print("layer_num", layer_num, decoder_feature)
@@ -226,6 +226,8 @@ class SemiSupervisedClassifierMnist(VAE):
             supervised_loss_concepts_epoch = dict()
             if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                 for layer_num in self.exp_config.concept_dict.keys():
+                    if layer_num == len(self.exp_config.num_units + 1):
+                        continue
                     supervised_loss_concepts_epoch[layer_num] = []
             for batch in range(start_batch_id, self.num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
@@ -278,7 +280,7 @@ class SemiSupervisedClassifierMnist(VAE):
                     else:
                         if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                             for layer_num in self.exp_config.concept_dict.keys():
-                                if layer_num != len(self.exp_config.num_units):
+                                if layer_num != len(self.exp_config.num_units + 1):
                                     tensor_list.append(self.supervised_loss_concepts_per_layer[layer_num])
                                 for concept_no in self.unique_concepts[layer_num]:
                                     # print("concept number", layer_num, concept_no)
@@ -304,6 +306,8 @@ class SemiSupervisedClassifierMnist(VAE):
                         supervised_loss_concepts_total = dict()
                         if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                             for i, layer_num in enumerate(self.exp_config.concept_dict.keys()):
+                                if layer_num == len(self.exp_config.num_units + 1):
+                                    continue
                                 supervised_loss_concepts[layer_num] = return_list[6 + i]
                                 supervised_loss_concepts_total[layer_num] = 0
                                 for k, v in supervised_loss_concepts[layer_num].items():
@@ -332,6 +336,8 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                         )
                 if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                     for i, layer_num in enumerate(self.exp_config.concept_dict.keys()):
+                        if layer_num == len(self.exp_config.num_units ) + 1:
+                            continue
                         supervised_loss_concepts_epoch[layer_num].append(supervised_loss_concepts_total[layer_num])
                 # if self.exp_config.fully_convolutional:
                 #     if self.exp_config.uncorrelated_features:
@@ -349,6 +355,8 @@ class SemiSupervisedClassifierMnist(VAE):
             print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss}")
             if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                 for layer_num in self.exp_config.concept_dict.keys():
+                    if layer_num == len(self.exp_config.num_units) + 1:
+                        continue
                     print(f"Supervised loss concept Layer {layer_num} {sum(supervised_loss_concepts_epoch[layer_num])}")
 
             self.num_training_epochs_completed = epoch + 1
