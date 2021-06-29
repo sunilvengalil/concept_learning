@@ -226,7 +226,7 @@ class SemiSupervisedClassifierMnist(VAE):
             supervised_loss_concepts_epoch = dict()
             if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                 for layer_num in self.exp_config.concept_dict.keys():
-                    if layer_num == len(self.exp_config.num_units + 1):
+                    if layer_num == len(self.exp_config.num_units) + 1:
                         continue
                     supervised_loss_concepts_epoch[layer_num] = []
             for batch in range(start_batch_id, self.num_batches_train):
