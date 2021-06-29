@@ -64,17 +64,17 @@ class SemiSupervisedClassifierMnist(VAE):
             else:
                 self.num_concpets_per_col = (latent_image_dim[1] // self.concepts_stride) + 1
 
-            self.is_concepts_annotated = placeholder(tf.float32,
-                                                     [exp_config.BATCH_SIZE,
-                                                      self.num_concpets_per_row,
-                                                      self.num_concpets_per_col],
-                                                     name="is_concepts_annotated")
-            self.concepts_labels = placeholder(tf.float32,
-                                               [exp_config.BATCH_SIZE,
-                                                self.num_concpets_per_row,
-                                                self.num_concpets_per_col,
-                                                exp_config.dao.num_classes],
-                                               name='manual_label_concepts')
+            # self.is_concepts_annotated = placeholder(tf.float32,
+            #                                          [exp_config.BATCH_SIZE,
+            #                                           self.num_concpets_per_row,
+            #                                           self.num_concpets_per_col],
+            #                                          name="is_concepts_annotated")
+            # self.concepts_labels = placeholder(tf.float32,
+            #                                    [exp_config.BATCH_SIZE,
+            #                                     self.num_concpets_per_row,
+            #                                     self.num_concpets_per_col,
+            #                                     exp_config.dao.num_classes],
+            #                                    name='manual_label_concepts')
         if exp_config.concept_dict is not None and len(exp_config.concept_dict) > 0 :
             self.layers_to_apply_concept_loss = []
             self.unique_concepts:Dict[int, List] = dict()
@@ -244,13 +244,13 @@ class SemiSupervisedClassifierMnist(VAE):
                     break
                 batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
                 if self.exp_config.fully_convolutional:
-
-                    concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.dao.num_classes],
-                                                (self.exp_config.BATCH_SIZE,
-                                                self.num_concpets_per_row,
-                                                self.num_concpets_per_col,
-                                                self.exp_config.dao.num_classes)
-                                                )
+                    #
+                    # concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.dao.num_classes],
+                    #                             (self.exp_config.BATCH_SIZE,
+                    #                             self.num_concpets_per_row,
+                    #                             self.num_concpets_per_col,
+                    #                             self.exp_config.dao.num_classes)
+                    #                             )
                     # is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts],
                     #                                   (self.exp_config.BATCH_SIZE,
                     #                                     self.num_concpets_per_row,
@@ -285,8 +285,6 @@ class SemiSupervisedClassifierMnist(VAE):
                                 self.is_manual_annotated: manual_labels[
                                                           :,
                                                           self.dao.num_classes],
-                                self.concepts_labels: concepts_label,
-                                self.is_concepts_annotated: is_concepts_annotated
                             }
                             )
                     else:
@@ -298,8 +296,6 @@ class SemiSupervisedClassifierMnist(VAE):
                             self.is_manual_annotated: manual_labels[
                                                       :,
                                                       self.dao.num_classes],
-                            self.concepts_labels: concepts_label,
-                            self.is_concepts_annotated: is_concepts_annotated
                         }
                         if self.exp_config is not None and len(self.exp_config.concept_dict) > 0:
                             for layer_num in self.exp_config.concept_dict.keys():
@@ -509,27 +505,12 @@ class SemiSupervisedClassifierMnist(VAE):
             if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                 data_iterator.reset_counter(dataset_type)
                 break
-            batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
-            if self.exp_config.fully_convolutional:
-                concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.dao.num_classes],
-                                            (self.exp_config.BATCH_SIZE,
-                                            self.num_concpets_per_row,
-                                            self.num_concpets_per_col,
-                                            self.exp_config.dao.num_classes)
-                                            )
-                is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.dao.num_classes],
-                                                  (self.exp_config.BATCH_SIZE,
-                                                    self.num_concpets_per_row,
-                                                    self.num_concpets_per_col)
-                                                  )
 
             if self.exp_config.fully_convolutional:
                 feed_dict = {
                     self.inputs: batch_images,
                     self.labels: manual_labels[:, :self.dao.num_classes],
-                    self.is_manual_annotated: manual_labels[:, self.dao.num_classes],
-                    self.concepts_labels: concepts_label,
-                    self.is_concepts_annotated: is_concepts_annotated
+                    self.is_manual_annotated: manual_labels[:, self.dao.num_classes]
                 }
 
                 for layer_num in self.exp_config.concept_dict.keys():
