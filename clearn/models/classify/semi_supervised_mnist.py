@@ -280,7 +280,7 @@ class SemiSupervisedClassifierMnist(VAE):
                     else:
                         if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                             for layer_num in self.exp_config.concept_dict.keys():
-                                if layer_num != len(self.exp_config.num_units + 1):
+                                if layer_num != len(self.exp_config.num_units) + 1:
                                     tensor_list.append(self.supervised_loss_concepts_per_layer[layer_num])
                                 for concept_no in self.unique_concepts[layer_num]:
                                     # print("concept number", layer_num, concept_no)
@@ -306,7 +306,7 @@ class SemiSupervisedClassifierMnist(VAE):
                         supervised_loss_concepts_total = dict()
                         if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                             for i, layer_num in enumerate(self.exp_config.concept_dict.keys()):
-                                if layer_num == len(self.exp_config.num_units + 1):
+                                if layer_num == len(self.exp_config.num_units) + 1:
                                     continue
                                 supervised_loss_concepts[layer_num] = return_list[6 + i]
                                 supervised_loss_concepts_total[layer_num] = 0
