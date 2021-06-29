@@ -151,16 +151,17 @@ class SemiSupervisedClassifierMnist(VAE):
                             self.mse_for_all_images[concept_no], self.mask_for_concept_no[layer_num][concept_no])
 
                         # mse_for_all_images_masked = mse_for_all_images
-                        self.supervised_loss_concepts_per_layer[layer_num][concept_no] =  tf.math.divide(tf.compat.v1.reduce_sum(
-                            self.mse_for_all_images_masked[concept_no]), tf.compat.v1.reduce_sum(self.mask_for_concept_no[layer_num[concept_no]]))
+                        self.supervised_loss_concepts_per_layer[layer_num][concept_no] =  tf.math.divide_no_nan(tf.compat.v1.reduce_sum(
+                            self.mse_for_all_images_masked[concept_no]), tf.compat.v1.reduce_sum(self.mask_for_concept_no[layer_num][concept_no]))
 
                         self.supervised_loss_concepts += self.supervised_loss_concepts_per_layer[layer_num][concept_no]
 
-                        # # Make sure all other feature maps are zero for this activation
+                        # Make sure all other feature maps are zero for this activation
                         # mse_other_layers = tf.compat.v1.losses.mean_squared_error(f[:, :, :, 0:concept_no],
                         #                                                           tf.zeros_like(f[:, :, :, 0:concept_no]),
                         #                                                           reduction=tf.compat.v1.losses.Reduction.NONE
                         #                                                           )
+                        #
                         # self.mse_for_all_images[concept_no] = tf.compat.v1.reduce_mean(mse_other_layers, axis=(1, 2, 3))
 
 
