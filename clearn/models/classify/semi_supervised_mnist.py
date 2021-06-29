@@ -125,7 +125,7 @@ class SemiSupervisedClassifierMnist(VAE):
             self.supervised_loss_concepts_per_layer = dict()
             if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                 for layer_num in list(self.exp_config.concept_dict.keys()):
-                    if layer_num == 6:
+                    if layer_num == len(self.exp_config.num_units):
                         continue
                     decoder_feature = f"de_conv_{layer_num}"
                     print("layer_num", layer_num, decoder_feature)
@@ -278,7 +278,8 @@ class SemiSupervisedClassifierMnist(VAE):
                     else:
                         if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                             for layer_num in self.exp_config.concept_dict.keys():
-                                tensor_list.append(self.supervised_loss_concepts_per_layer[layer_num])
+                                if layer_num != len(self.exp_config.num_units):
+                                    tensor_list.append(self.supervised_loss_concepts_per_layer[layer_num])
                                 for concept_no in self.unique_concepts[layer_num]:
                                     # print("concept number", layer_num, concept_no)
                                     # print(self.mask_for_concept_no[layer_num][concept_no])
