@@ -15,7 +15,7 @@ from clearn.dao.idao import IDao
 from clearn.models.classify.classifier import ClassifierModel
 from clearn.models.vae import VAE
 from clearn.utils.retention_policy.policy import RetentionPolicy
-from clearn.utils.utils import get_latent_vector_column, get_padding_info, save_images, get_layer_num
+from clearn.utils.utils import get_latent_vector_column, get_padding_info, save_images
 from scipy.special import softmax
 from sklearn.metrics import accuracy_score
 
@@ -29,7 +29,7 @@ class SemiSupervisedClassifierMnist(VAE):
     _model_name_ = "SemiSupervisedClassifierMnist"
 
     def __init__(self,
-                 exp_config:ExperimentConfig,
+                 exp_config: ExperimentConfig,
                  sess,
                  epoch,
                  dao: IDao,
@@ -521,21 +521,21 @@ class SemiSupervisedClassifierMnist(VAE):
                     self.labels: manual_labels[:, :self.dao.num_classes],
                     self.is_manual_annotated: manual_labels[:, self.dao.num_classes]
                 }
+                if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+                    for layer_num in self.exp_config.concept_dict.keys():
+                        # print(self.mask_for_concept_no[layer_num])
+                        for concept_no in self.unique_concepts[layer_num]:
+                            # print("concept number", concept_no)
+                            # print(self.mask_for_concept_no[layer_num][concept_no])
 
-                for layer_num in self.exp_config.concept_dict.keys():
-                    # print(self.mask_for_concept_no[layer_num])
-                    for concept_no in self.unique_concepts[layer_num]:
-                        # print("concept number", concept_no)
-                        # print(self.mask_for_concept_no[layer_num][concept_no])
-
-                        masks = np.zeros(self.exp_config.BATCH_SIZE)
-                        if concept_no == -1:
-                            masks[manual_labels[:, self.dao.num_classes + 1] <= 9] = 1
-                        else:
-                            masks[manual_labels[:, self.dao.num_classes + 1] == layer_num] = 1
-                        # print(
-                        #    f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
-                        feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
+                            masks = np.zeros(self.exp_config.BATCH_SIZE)
+                            if concept_no == -1:
+                                masks[manual_labels[:, self.dao.num_classes + 1] <= 9] = 1
+                            else:
+                                masks[manual_labels[:, self.dao.num_classes + 1] == layer_num] = 1
+                            # print(
+                            #    f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
+                            feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
 
                 reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, y_pred, nll, nll_batch = self.sess.run([self.out,
                                                                                                                                   self.merged_summary_op,
