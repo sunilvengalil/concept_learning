@@ -14,7 +14,6 @@ from clearn.config.common_path import get_encoded_csv_file
 from clearn.dao.idao import IDao
 from clearn.models.classify.classifier import ClassifierModel
 from clearn.models.vae import VAE
-from clearn.utils import prior_factory as prior
 from clearn.utils.retention_policy.policy import RetentionPolicy
 from clearn.utils.utils import get_latent_vector_column, get_padding_info, save_images, get_layer_num
 from scipy.special import softmax
@@ -242,8 +241,7 @@ class SemiSupervisedClassifierMnist(VAE):
 
                 if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                     break
-                batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
-                if self.exp_config.fully_convolutional:
+#                if self.exp_config.fully_convolutional:
                     #
                     # concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.dao.num_classes],
                     #                             (self.exp_config.BATCH_SIZE,
@@ -256,12 +254,6 @@ class SemiSupervisedClassifierMnist(VAE):
                     #                                     self.num_concpets_per_row,
                     #                                     self.num_concpets_per_col)
                     #                                   )
-
-                    is_concepts_annotated = np.zeros(
-                                  (self.exp_config.BATCH_SIZE,
-                                    self.num_concpets_per_row,
-                                    self.num_concpets_per_col)
-                                  )
 
                 # update autoencoder and classifier parameters
                 if self.exp_config.fully_convolutional:
