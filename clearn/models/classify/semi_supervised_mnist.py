@@ -289,7 +289,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                                       :,
                                                       self.dao.num_classes],
                         }
-                        if self.exp_config is not None and len(self.exp_config.concept_dict) > 0:
+                        if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                             for layer_num in self.exp_config.concept_dict.keys():
                                 for concept_no in self.unique_concepts[layer_num]:
                                     # print("concept number", layer_num, concept_no)
