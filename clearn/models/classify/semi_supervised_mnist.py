@@ -131,7 +131,6 @@ class SemiSupervisedClassifierMnist(VAE):
                     print("layer_num", layer_num, decoder_feature)
                     f = self.decoder_dict[decoder_feature]
                     print(f.shape)
-                    print(f.shape)
                     num_concepts = len(self.exp_config.concept_dict[layer_num]["unique_concepts"])
                     self.supervised_loss_concepts_per_layer[layer_num] = dict()
                     self.mse_for_all_images = dict()
@@ -150,11 +149,26 @@ class SemiSupervisedClassifierMnist(VAE):
                         self.mse_for_all_images_masked[concept_no] = tf.math.multiply(
                             self.mse_for_all_images[concept_no], self.mask_for_concept_no[layer_num][concept_no])
 
-                        # mse_for_all_images_masked = mse_for_all_images
                         self.supervised_loss_concepts_per_layer[layer_num][concept_no] =  tf.math.divide_no_nan(tf.compat.v1.reduce_sum(
                             self.mse_for_all_images_masked[concept_no]), tf.compat.v1.reduce_sum(self.mask_for_concept_no[layer_num][concept_no]))
 
                         self.supervised_loss_concepts += self.supervised_loss_concepts_per_layer[layer_num][concept_no]
+
+                        mse_other_images = tf.compat.v1.norm(f[:, :, :, concept_no:concept_no + 1], axis=(1,2,3))
+                        print(" shape mse_other_images", mse_other_images.shape)
+                        #mse_for_all_images_other = tf.compat.v1.reduce_mean(mse_other_images, axis=(1, 2, 3))
+
+                        inverted_mask = tf.math.subtract(tf.ones_like(self.mask_for_concept_no[layer_num][concept_no]),
+                                                    self.mask_for_concept_no[layer_num][concept_no])
+                        mse_for_other_images_masked= tf.math.multiply(mse_other_images, inverted_mask)
+
+                        supervised_loss_concepts_per_layer_other = tf.math.divide_no_nan(tf.compat.v1.reduce_sum(mse_for_other_images_masked),
+                                                                                                                tf.compat.v1.reduce_sum(inverted_mask))
+
+                        self.supervised_loss_concepts += supervised_loss_concepts_per_layer_other
+
+
+
 
                         # Make sure all other feature maps are zero for this activation
                         # mse_other_layers = tf.compat.v1.losses.mean_squared_error(f[:, :, :, 0:concept_no],
