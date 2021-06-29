@@ -234,8 +234,10 @@ if __name__ == "__main__":
                            num_validation_samples=-1,
                            concept_id=1
                            )
+
     map_filename = "/Users/sunilv/concept_learning_exp/datasets/mnist_concepts/split_70_30/manually_generated_concepts.json"
     dao.load_train_images_and_label("/Users/sunilv/concept_learning_exp/datasets/mnist_concepts/",
                                     map_filename=map_filename)
-    print("Concept key to label map",dao.label_key_to_label_map)
+    for k, v in dao.label_key_to_label_map.items():
+        print(k, v)
     print(dao.orig_train_images.shape)
