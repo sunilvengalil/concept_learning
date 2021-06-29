@@ -154,9 +154,9 @@ class SemiSupervisedClassifierMnist(VAE):
 
                         self.supervised_loss_concepts += self.supervised_loss_concepts_per_layer[layer_num][concept_no]
 
-                        mse_other_images = tf.compat.v1.norm(f[:, :, :, concept_no:concept_no + 1], axis=(1,2,3))
+                        mse_other_images = tf.math.l2_normalize(f[:, :, :, concept_no:concept_no + 1], axis=(1,2,3))
                         print(" shape mse_other_images", mse_other_images.shape)
-                        #mse_for_all_images_other = tf.compat.v1.reduce_mean(mse_other_images, axis=(1, 2, 3))
+                        # mse_for_all_images_other = tf.compat.v1.reduce_mean(mse_other_images, axis=(1, 2, 3))
 
                         inverted_mask = tf.math.subtract(tf.ones_like(self.mask_for_concept_no[layer_num][concept_no]),
                                                     self.mask_for_concept_no[layer_num][concept_no])
