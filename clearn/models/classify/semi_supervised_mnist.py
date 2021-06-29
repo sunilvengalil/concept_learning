@@ -75,15 +75,15 @@ class SemiSupervisedClassifierMnist(VAE):
                                                 self.num_concpets_per_col,
                                                 exp_config.dao.num_classes],
                                                name='manual_label_concepts')
-
-        self.layers_to_apply_concept_loss = []
-        self.unique_concepts:Dict[int, List] = dict()
-        self.mask_for_concept_no = dict()
-        for layer_num in exp_config.concept_dict.keys():
-            self.unique_concepts[layer_num] = concept_dict[layer_num]["unique_concepts"]
-            self.mask_for_concept_no[layer_num] = dict()
-            for concept_no in self.unique_concepts[layer_num]:
-                self.mask_for_concept_no[layer_num][concept_no] = placeholder(tf.float32, exp_config.BATCH_SIZE)
+        if exp_config.concept_dict is not None and len(exp_config.concept_dict) > 0 :
+            self.layers_to_apply_concept_loss = []
+            self.unique_concepts:Dict[int, List] = dict()
+            self.mask_for_concept_no = dict()
+            for layer_num in exp_config.concept_dict.keys():
+                self.unique_concepts[layer_num] = concept_dict[layer_num]["unique_concepts"]
+                self.mask_for_concept_no[layer_num] = dict()
+                for concept_no in self.unique_concepts[layer_num]:
+                    self.mask_for_concept_no[layer_num][concept_no] = placeholder(tf.float32, exp_config.BATCH_SIZE)
 
 
         super().__init__(exp_config=exp_config,
