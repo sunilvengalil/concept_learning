@@ -60,7 +60,7 @@ class IdentityOperator(Operator):
         from_index_h = (28 - concept_1_image.shape[0]) // 2
         to_index_h = from_index_h + concept_1_image.shape[0]
         from_index_v = (28 - concept_1_image.shape[1]) // 2
-        to_index_v = from_index_h + concept_1_image.shape[1]
+        to_index_v = from_index_v + concept_1_image.shape[1]
         print(from_index_h, to_index_h, from_index_v, to_index_v)
         masked_image[0, from_index_h:to_index_h, from_index_v:to_index_v, 0] = concept_1_image
         return masked_image
