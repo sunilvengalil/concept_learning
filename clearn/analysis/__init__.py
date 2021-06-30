@@ -161,7 +161,7 @@ class ImageConcept:
         return cropped[from_row:to_row, :]
 
     @staticmethod
-    def tight_bould_v(cropped):
+    def tight_bound_v(cropped):
         width = cropped.shape[1]
         height = cropped.shape[0]
         col = 0
@@ -174,7 +174,7 @@ class ImageConcept:
             col += 1
         from_col = col - 1
 
-        col = width - 1
+        col = height - 1
         non_zero_pixels_in_row = np.sum(cropped[col, :])
         print(col, non_zero_pixels_in_row)
 
