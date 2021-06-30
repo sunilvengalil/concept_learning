@@ -227,7 +227,7 @@ class MnistConceptsDao(IDao):
         if self.concept_id is None:
             raise Exception("Pass an integer for parameter concept_id while creating the instance of MnistConceptsDao")
 
-        concept_image_filename = data_dir + f"concept_{self.concept_id}.csv"
+        concept_image_filename = data_dir + "mnist_concepts/ " + f"concept_{self.concept_id}.csv"
         feature_dim = self.image_shape[0] * self.image_shape[1] * self.image_shape[2]
 
         if os.path.isfile(concept_image_filename):
