@@ -227,7 +227,9 @@ class MnistConceptsDao(IDao):
         if self.concept_id is None:
             raise Exception("Pass an integer for parameter concept_id while creating the instance of MnistConceptsDao")
 
-        concept_image_filename = data_dir + "mnist_concepts/ " + f"concept_{self.concept_id}.csv"
+        concept_image_filename = data_dir + self.dataset_name + f"/concept_{self.concept_id}.csv"
+        derived_images_filename = data_dir + self.dataset_name + f"/derived_{self.concept_id}.csv"
+
         feature_dim = self.image_shape[0] * self.image_shape[1] * self.image_shape[2]
 
         if os.path.isfile(concept_image_filename):
@@ -245,7 +247,14 @@ class MnistConceptsDao(IDao):
             y = np.hstack([self.orig_train_labels, concept_labels])
 
             # Generate derived images
-            derived_images, derived_labels = self.generate_derived_images(map_filename, MnistConceptsDao.NUM_IMAGES_PER_CONCEPT)
+            concept_1, concept_2, derived_images, derived_labels = self.generate_derived_images(map_filename, MnistConceptsDao.NUM_IMAGES_PER_CONCEPT)
+
+            image_df = pd.DataFrame(concept_1, columns=["concept_1"])
+            image_df["derived_label"] = derived_labels
+            image_df["concept_2"] = concept_2
+            image_df.to_csv(derived_images_filename, index=False)
+
+
             _x = np.vstack([_x, derived_images])
             y = np.hstack([y, derived_labels])
 
@@ -273,7 +282,7 @@ class MnistConceptsDao(IDao):
                                                         self.key_to_label_map,
                                                         self.num_original_classes + self.num_concepts_label_generated)
 
-        return derived_images, derived_labels
+        return concepts_to_use_1, concepts_to_use_1, derived_images, derived_labels
 
     def generate_concepts(self, map_filename, num_images_per_concept):
         concepts_dict = get_concept_map(map_filename)
