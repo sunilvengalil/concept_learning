@@ -149,7 +149,7 @@ class ImageConcept:
             row += 1
         from_row = row - 1
 
-        row = height - 1
+        row = width - 1
         non_zero_pixels_in_col = np.sum(cropped[:, row])
         print(row, non_zero_pixels_in_col)
 
@@ -174,7 +174,7 @@ class ImageConcept:
             col += 1
         from_col = col - 1
 
-        col = width - 1
+        col = height - 1
         non_zero_pixels_in_row = np.sum(cropped[col, :])
         print(col, non_zero_pixels_in_row)
 
