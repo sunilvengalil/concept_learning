@@ -254,7 +254,6 @@ class MnistConceptsDao(IDao):
             image_df["concept_2"] = concept_2
             image_df.to_csv(derived_images_filename, index=False)
 
-
             _x = np.vstack([_x, derived_images])
             y = np.hstack([y, derived_labels])
 
@@ -282,7 +281,7 @@ class MnistConceptsDao(IDao):
                                                         self.key_to_label_map,
                                                         self.num_original_classes + self.num_concepts_label_generated)
 
-        return concepts_to_use_1, concepts_to_use_1, derived_images, derived_labels
+        return concepts_to_use_1, concepts_to_use_2, derived_images, derived_labels
 
     def generate_concepts(self, map_filename, num_images_per_concept):
         concepts_dict = get_concept_map(map_filename)
