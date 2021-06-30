@@ -128,7 +128,7 @@ class ImageConcept:
             v_extend = [0, 28]
         if len(h_extend) == 0:
             h_extend = [0, 28]
-        return self.digit_image[v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]]
+        return np.asndarray(self.digit_image)[v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]]
 
     def get_cropped_and_stripped(self):
         cropped = self.get_cropped_image()
