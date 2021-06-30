@@ -90,7 +90,7 @@ class ConcatenateVerticalOperator(Operator):
         from_index_h = (28 - combined.shape[0]) // 2
         to_index_h = from_index_h + combined.shape[0]
         from_index_v = (28 - combined.shape[1]) // 2
-        to_index_v = from_index_h + combined.shape[1]
+        to_index_v = from_index_v + combined.shape[1]
         masked_image[0, from_index_h:to_index_h, from_index_v:to_index_v, 0 ] = combined
         return masked_image
 
