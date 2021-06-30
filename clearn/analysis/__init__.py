@@ -129,10 +129,10 @@ class ImageConcept:
         if len(h_extend) == 0:
             h_extend = [0, 28]
         cropped = np.asarray(self.digit_image)
-        return cropped[v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]]
+        return cropped[0, v_extend[0]:v_extend[1], h_extend[0]:h_extend[1], 0]
 
     def get_cropped_and_stripped(self):
-        cropped = self.get_cropped_image()
+        cropped = np.squeeze(self.get_cropped_image())
         return ImageConcept.tight_bould_v(ImageConcept.tight_bound_h(cropped))
 
     @staticmethod
