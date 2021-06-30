@@ -154,17 +154,18 @@ class SemiSupervisedClassifierMnist(VAE):
 
                         self.supervised_loss_concepts += self.supervised_loss_concepts_per_layer[layer_num][concept_no]
 
-                        mse_other_images = tf.compat.v1.losses.mean_squared_error(f[:, :, :, concept_no:concept_no + 1],
-                                                                                  tf.zeros_like(f[:, :, :, concept_no:concept_no + 1]),
-                                                                                  reduction=tf.compat.v1.losses.Reduction.NONE)
-                        print("Shape mse_other_images", mse_other_images.shape)
-                        inverted_mask = tf.math.subtract(tf.ones_like(self.mask_for_concept_no[layer_num][concept_no]),
-                                                    self.mask_for_concept_no[layer_num][concept_no])
-                        mse_for_other_images_masked= tf.math.multiply(tf.compat.v1.reduce_mean(mse_other_images,axis=(1, 2, 3)),
-                                                                      inverted_mask)
-                        supervised_loss_concepts_per_layer_other = tf.math.divide_no_nan(tf.compat.v1.reduce_sum(mse_for_other_images_masked),
-                                                                                                                tf.compat.v1.reduce_sum(inverted_mask))
-                        self.supervised_loss_concepts += supervised_loss_concepts_per_layer_other
+                        # Make response for other images zero
+                        # mse_other_images = tf.compat.v1.losses.mean_squared_error(f[:, :, :, concept_no:concept_no + 1],
+                        #                                                           tf.zeros_like(f[:, :, :, concept_no:concept_no + 1]),
+                        #                                                           reduction=tf.compat.v1.losses.Reduction.NONE)
+                        # print("Shape mse_other_images", mse_other_images.shape)
+                        # inverted_mask = tf.math.subtract(tf.ones_like(self.mask_for_concept_no[layer_num][concept_no]),
+                        #                             self.mask_for_concept_no[layer_num][concept_no])
+                        # mse_for_other_images_masked= tf.math.multiply(tf.compat.v1.reduce_mean(mse_other_images,axis=(1, 2, 3)),
+                        #                                               inverted_mask)
+                        # supervised_loss_concepts_per_layer_other = tf.math.divide_no_nan(tf.compat.v1.reduce_sum(mse_for_other_images_masked),
+                        #                                                                                         tf.compat.v1.reduce_sum(inverted_mask))
+                        # self.supervised_loss_concepts += supervised_loss_concepts_per_layer_other
                         # Make sure all other feature maps are zero for this activation
                         # mse_other_layers = tf.compat.v1.losses.mean_squared_error(f[:, :, :, 0:concept_no],
                         #                                                           tf.zeros_like(f[:, :, :, 0:concept_no]),
@@ -172,9 +173,6 @@ class SemiSupervisedClassifierMnist(VAE):
                         #                                                           )
                         #
                         # self.mse_for_all_images[concept_no] = tf.compat.v1.reduce_mean(mse_other_layers, axis=(1, 2, 3))
-
-
-
 
         self.y_pred = linear(self.z, self.dao.num_classes)
         self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
@@ -210,10 +208,6 @@ class SemiSupervisedClassifierMnist(VAE):
                                                           beta1=self.exp_config.beta1_adam) \
                 .minimize(self.loss, var_list=t_vars)
 
-        """" Testing """
-        # for test
-        # self.fake_images = self._decoder(self.standard_normal, reuse=True)
-
         """ Summary """
         tf.compat.v1.summary.scalar("Negative Log Likelihood", self.neg_loglikelihood)
         tf.compat.v1.summary.scalar("K L Divergence", self.KL_divergence)
@@ -235,12 +229,6 @@ class SemiSupervisedClassifierMnist(VAE):
         manifold_w = 4
         manifold_h = num_samples_per_image // manifold_w
 
-        # self.layers_to_apply_concept_loss = np.unique(train_val_data_iterator.manual_annotation[2], return_counts=False)
-        # self.unique_concepts = dict()
-        # for layer_num in self.layers_to_apply_concept_loss:
-        #     # Get the list of uniques concepts to be aplied on this layer
-        #     labels = np.argmax(train_val_data_iterator.train_y)
-        #     self.unique_concepts[layer_num] = np.unique(labels[train_val_data_iterator.manual_annotation[2] == layer_num])
         for epoch in range(start_epoch, self.epoch):
             evaluation_run_for_last_epoch = False
             supervised_loss_concepts_epoch = dict()
@@ -255,10 +243,6 @@ class SemiSupervisedClassifierMnist(VAE):
                 batch_images, batch_labels, manual_labels, manual_labels_concepts = train_val_data_iterator.get_next_batch(
                     "train")
                 labels_categorical = np.argmax(batch_labels, axis=1)
-                # print("labels", labels_categorical)
-                # print("apply in layer",manual_labels[:, self.dao.num_classes + 1])
-                # print("manual confidence",manual_labels[:, self.dao.num_classes])
-
                 if num_images_to_save > images_saved:
                     save_images(batch_images[0:64],
                                 [manifold_h, manifold_w],
@@ -303,17 +287,10 @@ class SemiSupervisedClassifierMnist(VAE):
                                 if layer_num != len(self.exp_config.num_units) + 1:
                                     tensor_list.append(self.supervised_loss_concepts_per_layer[layer_num])
                                 for concept_no in self.unique_concepts[layer_num]:
-                                    # print("concept number", layer_num, concept_no)
-                                    # print(self.mask_for_concept_no[layer_num][concept_no])
-                                    # print(np.argmax(batch_labels))
                                     masks = np.zeros(self.exp_config.BATCH_SIZE)
                                     if concept_no != -1:
                                         masks[(manual_labels[:, self.dao.num_classes + 1] == layer_num) * (
                                                     labels_categorical == concept_no)] = 1
-                                    # print("label", manual_labels[:, self.dao.num_classes + 1])
-                                    # print("concept no, masks", concept_no, masks)
-
-                                    # print(f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
                                     feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
                         return_list = self.sess.run(tensor_list,
                                                     feed_dict=feed_dict)
