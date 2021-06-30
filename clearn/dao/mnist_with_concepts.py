@@ -127,6 +127,9 @@ class MnistConceptsDao(IDao):
         self.key_to_label_map = dict()
         for key in self.label_key_to_label_map.keys():
             self.key_to_label_map[self.label_key_to_label_map[key]] = key
+
+        self.num_derived_images_generated = len(OPERATORS)
+
         self.orig_train_images, self.orig_train_labels = self.load_orig_train_images_and_labels(dataset_path + "mnist")
         self.images_by_label = dict()
         for i in range(10):
@@ -152,7 +155,7 @@ class MnistConceptsDao(IDao):
 
     @property
     def num_concepts(self):
-        return 20
+        return self.num_concepts_label_generated
 
     @property
     def number_of_testing_samples(self):
@@ -172,7 +175,7 @@ class MnistConceptsDao(IDao):
 
     @property
     def num_classes(self):
-        return self.num_original_classes + self.num_concepts_label_generated
+        return self.num_original_classes + self.num_concepts_label_generated + self.num_derived_images_generated
 
     def load_test_1(self, data_dir):
         data_dir = os.path.join(data_dir, "images/")
