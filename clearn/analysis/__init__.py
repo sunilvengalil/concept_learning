@@ -140,11 +140,9 @@ class ImageConcept:
         width = cropped.shape[1]
         row = 0
         non_zero_pixels_in_col = np.sum(cropped[:, row])
-        print(row, non_zero_pixels_in_col)
         if non_zero_pixels_in_col == 0 :
             while non_zero_pixels_in_col == 0 and row <= width:
                 non_zero_pixels_in_col = np.sum(cropped[:, row])
-                print(row, non_zero_pixels_in_col)
                 row += 1
             from_row = row - 1
         else:
@@ -152,11 +150,9 @@ class ImageConcept:
 
         row = width - 1
         non_zero_pixels_in_col = np.sum(cropped[:, row])
-        print(row, non_zero_pixels_in_col)
         if non_zero_pixels_in_col == 0 :
             while non_zero_pixels_in_col == 0 and row > from_row:
                 non_zero_pixels_in_col = np.sum(cropped[:, row])
-                print(row, non_zero_pixels_in_col)
                 row -= 1
             to_row = row + 1
         else:
@@ -168,11 +164,9 @@ class ImageConcept:
         height = cropped.shape[0]
         col = 0
         non_zero_pixels_in_row = np.sum(cropped[col, :])
-        print(col, non_zero_pixels_in_row)
         if non_zero_pixels_in_row == 0:
             while non_zero_pixels_in_row == 0 and col <= height:
                 non_zero_pixels_in_row = np.sum(cropped[col, :])
-                print(col, non_zero_pixels_in_row)
                 col += 1
             from_col = col - 1
         else:
@@ -180,11 +174,9 @@ class ImageConcept:
 
         col = height - 1
         non_zero_pixels_in_row = np.sum(cropped[col, :])
-        print(col, non_zero_pixels_in_row)
         if non_zero_pixels_in_row == 0 :
             while non_zero_pixels_in_row == 0 and col > from_col:
                 non_zero_pixels_in_row = np.sum(cropped[col, :])
-                print(col, non_zero_pixels_in_row)
                 col -= 1
             to_col = col + 1
         else:
