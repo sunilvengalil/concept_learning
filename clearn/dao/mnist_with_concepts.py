@@ -271,7 +271,7 @@ class MnistConceptsDao(IDao):
                                                         operator_to_use,
                                                         self.key_to_image_concept_map,
                                                         self.key_to_label_map,
-                                                        self.num_classes)
+                                                        self.num_original_classes + self.num_concepts_label_generated)
 
         return derived_images, derived_labels
 
