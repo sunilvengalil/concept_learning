@@ -138,32 +138,34 @@ class ImageConcept:
     @staticmethod
     def tight_bound_h(cropped):
         width = cropped.shape[1]
-        height = cropped.shape[0]
         row = 0
         non_zero_pixels_in_col = np.sum(cropped[:, row])
         print(row, non_zero_pixels_in_col)
-
-        while non_zero_pixels_in_col == 0 and row <= width:
-            non_zero_pixels_in_col = np.sum(cropped[:, row])
-            print(row, non_zero_pixels_in_col)
-            row += 1
-        from_row = row - 1
+        if non_zero_pixels_in_col == 0 :
+            while non_zero_pixels_in_col == 0 and row <= width:
+                non_zero_pixels_in_col = np.sum(cropped[:, row])
+                print(row, non_zero_pixels_in_col)
+                row += 1
+            from_row = row - 1
+        else:
+            from_row = row
 
         row = width - 1
         non_zero_pixels_in_col = np.sum(cropped[:, row])
         print(row, non_zero_pixels_in_col)
-
-        while non_zero_pixels_in_col == 0 and row > from_row:
-            non_zero_pixels_in_col = np.sum(cropped[:, row])
-            print(row, non_zero_pixels_in_col)
-            row -= 1
-        to_row = row + 1
+        if non_zero_pixels_in_col == 0 :
+            while non_zero_pixels_in_col == 0 and row > from_row:
+                non_zero_pixels_in_col = np.sum(cropped[:, row])
+                print(row, non_zero_pixels_in_col)
+                row -= 1
+            to_row = row + 1
+        else:
+            to_row = row
         return cropped[:, from_row:to_row]
 
     @staticmethod
     def tight_bound_v(cropped):
         height = cropped.shape[0]
-        width = cropped.shape[1]
         col = 0
         non_zero_pixels_in_row = np.sum(cropped[col, :])
         print(col, non_zero_pixels_in_row)
