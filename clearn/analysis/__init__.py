@@ -133,7 +133,7 @@ class ImageConcept:
 
     def get_cropped_and_stripped(self):
         cropped = np.squeeze(self.get_cropped_image())
-        return ImageConcept.tight_bould_v(ImageConcept.tight_bound_h(cropped))
+        return ImageConcept.tight_bound_v(ImageConcept.tight_bound_h(cropped))
 
     @staticmethod
     def tight_bound_h(cropped):
