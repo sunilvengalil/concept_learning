@@ -167,22 +167,26 @@ class ImageConcept:
         col = 0
         non_zero_pixels_in_row = np.sum(cropped[col, :])
         print(col, non_zero_pixels_in_row)
-
-        while non_zero_pixels_in_row == 0 and col <= height:
-            non_zero_pixels_in_row = np.sum(cropped[col, :])
-            print(col, non_zero_pixels_in_row)
-            col += 1
-        from_col = col - 1
+        if non_zero_pixels_in_row == 0:
+            while non_zero_pixels_in_row == 0 and col <= height:
+                non_zero_pixels_in_row = np.sum(cropped[col, :])
+                print(col, non_zero_pixels_in_row)
+                col += 1
+            from_col = col - 1
+        else:
+            from_col = col
 
         col = height - 1
         non_zero_pixels_in_row = np.sum(cropped[col, :])
         print(col, non_zero_pixels_in_row)
-
-        while non_zero_pixels_in_row == 0 and col > from_col:
-            non_zero_pixels_in_row = np.sum(cropped[col, :])
-            print(col, non_zero_pixels_in_row)
-            col -= 1
-        to_col = col + 1
+        if non_zero_pixels_in_row == 0 :
+            while non_zero_pixels_in_row == 0 and col > from_col:
+                non_zero_pixels_in_row = np.sum(cropped[col, :])
+                print(col, non_zero_pixels_in_row)
+                col -= 1
+            to_col = col + 1
+        else:
+            to_col = col
 
         return cropped[from_col:to_col, :]
 
