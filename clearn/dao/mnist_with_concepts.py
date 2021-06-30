@@ -12,9 +12,80 @@ import pandas as pd
 MAP_FILE_NAME = "manually_generated_concepts.json"
 MAX_IMAGES_TO_DISPLAY = 12
 
+OPERATORS = ["IDENTITY", "PUT_BOTH"]
+
+
+def apply_operator(concepts_to_use_1,
+                   concepts_to_use_2,
+                   operators_to_use,
+                   key_image_concept_map,
+                   key_to_label_map,
+                   label_start):
+
+    derived_images = np.zeros((concepts_to_use_1.shape[0], 28, 28, 1))
+    derived_labels = np.zeros((concepts_to_use_1.shape[0] ), np.int8)
+    image_index = 0
+    image_shape = [28, 28]
+    height = image_shape[0]
+    width = image_shape[0]
+    print(key_to_label_map)
+    print("Total number of images to generate", concepts_to_use_1.shape[0])
+    for concept_to_use_1, concept_to_use_2, operator_to_use in zip(concepts_to_use_1, concepts_to_use_2, operators_to_use):
+        image_concept_1:ImageConcept = key_image_concept_map[key_to_label_map[concept_to_use_1]]
+        h_extend_1 = image_concept_1.h_extend
+        v_extend_1 = image_concept_1.v_extend
+        if len(v_extend_1) == 0:
+            v_extend_1 = [0, height]
+        if len(h_extend_1) == 0:
+            h_extend_1 = [0, width]
+
+        digit_image_1 = np.squeeze(np.asarray(image_concept_1.digit_image))
+        image_concept_2:ImageConcept = key_image_concept_map[key_to_label_map[concept_to_use_2]]
+        h_extend_2 = image_concept_1.h_extend
+        v_extend_2 = image_concept_1.v_extend
+        if len(v_extend_2) == 0:
+            v_extend_2 = [0, height]
+        if len(h_extend_2) == 0:
+            h_extend_2 = [0, width]
+
+        digit_image_2 = np.squeeze(np.asarray(image_concept_2.digit_image))
+        cropped_1 = digit_image_1[ v_extend_1[0]:v_extend_1[1], h_extend_1[0]:h_extend_1[1]]
+        cropped_2 = digit_image_2[ v_extend_2[0]:v_extend_2[1], h_extend_2[0]:h_extend_2[1]]
+
+        masked_image = np.zeros([
+            1,
+            image_shape[0],
+            image_shape[1],
+            1
+        ])
+
+        if operator_to_use == 0:
+            masked_image[0, v_extend_1[0]:v_extend_1[1], h_extend_1[0]:h_extend_1[1], 0] = cropped_1
+            derived_images[image_index] = masked_image
+        if operator_to_use == 1:
+            masked_image[0, v_extend_1[0]:v_extend_1[1], h_extend_1[0]:h_extend_1[1], 0] = cropped_1
+            masked_image[0, v_extend_2[0]:v_extend_2[1], h_extend_2[0]:h_extend_2[1], 0] = cropped_2
+        derived_images[image_index] = masked_image
+        derived_labels[image_index] = label_start + operator_to_use
+        image_index += 1
+        if image_index % 1000 == 0:
+            print(f"Generated {image_index} out of {concepts_to_use_1.shape[0]} images")
+
+    return derived_images, derived_labels
+
+
+def get_key(digit, h_extend, v_extend):
+    return f"{digit}_{h_extend[0]}_{h_extend[1]}_{v_extend[0]}_{v_extend[1]}"
+
+
+def get_params(key):
+    p = key.split("_")
+    return int(p[0]), (int(p[1]), int(p[2])), (int(p[3]), int(p[4]))
+
 
 class MnistConceptsDao(IDao):
     NUM_IMAGES_PER_CONCEPT = 3000
+
     def __init__(self,
                  dataset_name: str,
                  split_name: str,
@@ -35,8 +106,9 @@ class MnistConceptsDao(IDao):
         print(f"Reading concepts map from {map_filename}")
         self.concepts_dict = get_concept_map(map_filename)
 
-        label_start = 10
+        label_start = self.num_original_classes
         self.label_key_to_label_map = dict()
+        self.key_to_image_concept_map = dict()
         for digit, list_of_concept_dict in self.concepts_dict.items():
             for image_concept_dict in list_of_concept_dict:
                 concept_image = ImageConcept.fromdict(image_concept_dict)
@@ -47,10 +119,14 @@ class MnistConceptsDao(IDao):
                 if len(h_extend) == 0:
                     h_extend = [0, 28]
 
-                self.label_key_to_label_map[
-                    f"{digit}_{h_extend[0]}_{h_extend[1]}_{v_extend[0]}_{v_extend[1]}"] = label_start + self.num_concepts_label_generated
+                key = get_key(digit, h_extend, v_extend)
+                self.label_key_to_label_map[key] = label_start + self.num_concepts_label_generated
+                self.key_to_image_concept_map[key] = concept_image
                 self.num_concepts_label_generated = self.num_concepts_label_generated + 1
 
+        self.key_to_label_map = dict()
+        for key in self.label_key_to_label_map.keys():
+            self.key_to_label_map[self.label_key_to_label_map[key]] = key
         self.orig_train_images, self.orig_train_labels = self.load_orig_train_images_and_labels(dataset_path + "mnist")
         self.images_by_label = dict()
         for i in range(10):
@@ -164,11 +240,37 @@ class MnistConceptsDao(IDao):
             print(self.orig_train_images.shape, concepts.shape)
             _x = np.vstack([self.orig_train_images, concepts])
             y = np.hstack([self.orig_train_labels, concept_labels])
+
+            # Generate derived images
+            derived_images, derived_labels = self.generate_derived_images(map_filename, MnistConceptsDao.NUM_IMAGES_PER_CONCEPT)
+            _x = np.vstack([_x, derived_images])
+            y = np.hstack([y, derived_labels])
+
             x = deepcopy(_x).reshape(_x.shape[0], feature_dim)
             image_df = pd.DataFrame(x)
             image_df["label"] = y
             image_df.to_csv(concept_image_filename, index=False)
+
         return _x, y
+
+    def generate_derived_images(self, map_filename, num_images_per_concept):
+        concepts_dict = get_concept_map(map_filename)
+        for k in concepts_dict.keys():
+            print(k, [k1 for k1 in concepts_dict[k][0].keys()])
+        operator_to_use = np.random.choice([0, 1],num_images_per_concept * len(OPERATORS))
+        concepts_to_use_1 = np.random.choice(list(self.key_to_label_map.keys()),
+                                             num_images_per_concept * len(OPERATORS))
+        concepts_to_use_2 = np.random.choice(list(self.key_to_label_map.keys()),
+                                             num_images_per_concept * len(OPERATORS))
+
+        derived_images, derived_labels = apply_operator(concepts_to_use_1,
+                                                        concepts_to_use_2,
+                                                        operator_to_use,
+                                                        self.key_to_image_concept_map,
+                                                        self.key_to_label_map,
+                                                        self.num_classes)
+
+        return derived_images, derived_labels
 
     def generate_concepts(self, map_filename, num_images_per_concept):
         concepts_dict = get_concept_map(map_filename)
@@ -229,15 +331,18 @@ class MnistConceptsDao(IDao):
 
 if __name__ == "__main__":
     dao = MnistConceptsDao(dataset_name="mnist_concepts",
-                           dataset_path="/Users/sunilv/concept_learning_exp/datasets/",
+                           dataset_path="C:/concept_learning_exp/datasets/",
                            split_name="split_70_30",
                            num_validation_samples=-1,
                            concept_id=1
                            )
 
-    map_filename = "/Users/sunilv/concept_learning_exp/datasets/mnist_concepts/split_70_30/manually_generated_concepts.json"
-    dao.load_train_images_and_label("/Users/sunilv/concept_learning_exp/datasets/mnist_concepts/",
+    map_filename = "C:\concept_learning_exp\datasets/mnist_concepts/split_70_30/manually_generated_concepts.json"
+    print(dao.label_key_to_label_map)
+    images,labels = dao.load_train_images_and_label("C:\concept_learning_exp\datasets/",
                                     map_filename=map_filename)
-    for k, v in dao.label_key_to_label_map.items():
-        print(k, v)
+
+    # for k, v in dao.label_key_to_label_map.items():
+    #     print(k, v)
     print(dao.orig_train_images.shape)
+    print(images.shape, labels.shape)
