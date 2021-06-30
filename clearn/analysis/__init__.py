@@ -158,12 +158,12 @@ class ImageConcept:
             print(row, non_zero_pixels_in_col)
             row -= 1
         to_row = row + 1
-        return cropped[from_row:to_row, :]
+        return cropped[:, from_row:to_row]
 
     @staticmethod
     def tight_bound_v(cropped):
-        width = cropped.shape[1]
         height = cropped.shape[0]
+        width = cropped.shape[1]
         col = 0
         non_zero_pixels_in_row = np.sum(cropped[col, :])
         print(col, non_zero_pixels_in_row)
@@ -174,7 +174,7 @@ class ImageConcept:
             col += 1
         from_col = col - 1
 
-        col = height - 1
+        col = width - 1
         non_zero_pixels_in_row = np.sum(cropped[col, :])
         print(col, non_zero_pixels_in_row)
 
@@ -184,7 +184,7 @@ class ImageConcept:
             col -= 1
         to_col = col + 1
 
-        return cropped[:, from_col:to_col]
+        return cropped[from_col:to_col, :]
 
     def todict(self):
         concept_dict = dict()
