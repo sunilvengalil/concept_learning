@@ -203,7 +203,7 @@ class MnistConceptsDao(IDao):
             image_df.to_csv(concept_image_filename, index=False)
 
         if training_phase == "CONCEPTS":
-            _x = x[(y >= self.num_original_classes) & (y < self.num_original_classes + self.num_concepts_label_generated)]
+            _x = _x[(y >= self.num_original_classes) & (y < self.num_original_classes + self.num_concepts_label_generated)]
             y = y[(y >= self.num_original_classes) & (y < self.num_original_classes + self.num_concepts_label_generated)]
         return _x, y
 
