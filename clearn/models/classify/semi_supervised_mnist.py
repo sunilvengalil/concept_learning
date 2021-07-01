@@ -127,6 +127,8 @@ class SemiSupervisedClassifierMnist(VAE):
                 for layer_num in list(self.exp_config.concept_dict.keys()):
                     if layer_num >= len(self.exp_config.num_units) + 1:
                         continue
+                    if self.dao.training_phase == "CONCEPTS" and layer_num > len(self.exp_config.num_units) - 1:
+                        continue
                     decoder_feature = f"de_conv_{layer_num}"
                     print("layer_num", layer_num, decoder_feature)
                     f = self.decoder_dict[decoder_feature]
@@ -284,8 +286,10 @@ class SemiSupervisedClassifierMnist(VAE):
                     else:
                         if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                             for layer_num in self.exp_config.concept_dict.keys():
-                                if layer_num < len(self.exp_config.num_units) + 1:
-                                    tensor_list.append(self.supervised_loss_concepts_per_layer[layer_num])
+                                if layer_num >= len(self.exp_config.num_units) + 1:
+                                    continue
+                                if self.dao.training_phase == "CONCEPTS" and layer_num > len(self.exp_config.num_units) - 1:
+                                    continue
                                 for concept_no in self.unique_concepts[layer_num]:
                                     masks = np.zeros(self.exp_config.BATCH_SIZE)
                                     if concept_no != -1:
@@ -304,6 +308,9 @@ class SemiSupervisedClassifierMnist(VAE):
                         if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                             for i, layer_num in enumerate(self.exp_config.concept_dict.keys()):
                                 if layer_num >= len(self.exp_config.num_units) + 1:
+                                    continue
+                                if self.dao.training_phase == "CONCEPTS" and layer_num > len(
+                                        self.exp_config.num_units) - 1:
                                     continue
                                 supervised_loss_concepts[layer_num] = return_list[6 + i]
                                 supervised_loss_concepts_total[layer_num] = 0
