@@ -125,7 +125,7 @@ class SemiSupervisedClassifierMnist(VAE):
             self.supervised_loss_concepts_per_layer = dict()
             if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                 for layer_num in list(self.exp_config.concept_dict.keys()):
-                    if layer_num == len(self.exp_config.num_units) + 1:
+                    if layer_num >= len(self.exp_config.num_units) + 1:
                         continue
                     decoder_feature = f"de_conv_{layer_num}"
                     print("layer_num", layer_num, decoder_feature)
@@ -284,7 +284,7 @@ class SemiSupervisedClassifierMnist(VAE):
                     else:
                         if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                             for layer_num in self.exp_config.concept_dict.keys():
-                                if layer_num != len(self.exp_config.num_units) + 1:
+                                if layer_num < len(self.exp_config.num_units) + 1:
                                     tensor_list.append(self.supervised_loss_concepts_per_layer[layer_num])
                                 for concept_no in self.unique_concepts[layer_num]:
                                     masks = np.zeros(self.exp_config.BATCH_SIZE)
@@ -303,7 +303,7 @@ class SemiSupervisedClassifierMnist(VAE):
                         supervised_loss_concepts_total = dict()
                         if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                             for i, layer_num in enumerate(self.exp_config.concept_dict.keys()):
-                                if layer_num == len(self.exp_config.num_units) + 1:
+                                if layer_num >= len(self.exp_config.num_units) + 1:
                                     continue
                                 supervised_loss_concepts[layer_num] = return_list[6 + i]
                                 supervised_loss_concepts_total[layer_num] = 0
