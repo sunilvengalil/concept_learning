@@ -521,7 +521,6 @@ class VAE(GenerativeModel):
                                          )
         if layer_num is not None:
             for decoded_feature, f in zip( decoded_features[1:], hidden_feature_names):
-                print(f, decoded_feature.shape)
                 if feature_num is not None:
                     if str(layer_num) in f:
                         if isinstance(feature_num, Tuple) or isinstance(feature_num, List):
