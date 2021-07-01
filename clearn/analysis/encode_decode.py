@@ -119,7 +119,6 @@ def decode_and_get_features(model: GenerativeModel, z: np.ndarray, batch_size: i
         reconstructed_images[batch_num * batch_size: (batch_num + 1) * batch_size] = decoded_images_and_features[0]
         for i, feature_name in enumerate(feature_names):
             if feature_name not in features_dict:
-                print(decoded_images_and_features[i + 1].shape)
                 features_dict[feature_name] = np.zeros([len(z),
                                                        decoded_images_and_features[i + 1].shape[1],
                                                        decoded_images_and_features[i + 1].shape[2],
@@ -163,7 +162,6 @@ def encode_and_get_features(model: GenerativeModel,
         latent_vectors[batch_num * batch_size: (batch_num + 1) * batch_size] = z
         for i, feature_name in enumerate(feature_names):
             if feature_name not in features_dict:
-                print(encoded_features[i].shape)
                 features_dict[feature_name] = np.zeros([len(z),
                                                        encoded_features[i].shape[1],
                                                        encoded_features[i].shape[2],
@@ -183,7 +181,6 @@ def encode_and_get_features(model: GenerativeModel,
         latent_vectors[num_batches * batch_size:] = z[0:left_out]
         for i, feature_name in enumerate(feature_names):
             if feature_name not in features_dict:
-                print(encoded_features[i].shape)
                 features_dict[feature_name] = np.zeros([len(z),
                                                        encoded_features[i].shape[1],
                                                        encoded_features[i].shape[2],
