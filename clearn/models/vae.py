@@ -492,7 +492,6 @@ class VAE(GenerativeModel):
             feature_list.append(value)
         return feature_names, feature_list
 
-
     def encode_and_get_features(self, images: np.ndarray):
         features_list = [self.mu, self.sigma, self.z]
         hidden_feature_names, hidden_features = self.get_encoder_features_list()
@@ -520,7 +519,6 @@ class VAE(GenerativeModel):
                                          feed_dict={self.z: z
                                                     }
                                          )
-        print(" Returned from sess run", len(decoded_features), type(decoded_features))
         if layer_num is not None:
             for decoded_feature, f in zip( decoded_features[1:], hidden_feature_names):
                 print(f, decoded_feature.shape)
@@ -544,7 +542,6 @@ class VAE(GenerativeModel):
         return images
 
     def decode_layer1(self, z):
-        batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
         dense1_de = self.sess.run(self.dense1_de, feed_dict={self.z: z
                                                              })
         return dense1_de
