@@ -136,11 +136,11 @@ class SemiSupervisedClassifierMnist(VAE):
                     self.mse_for_all_images = dict()
                     self.mse_for_all_images_masked = dict()
                     for concept_no in self.unique_concepts[layer_num]:
-                        print("feature shape", f.shape)
-                        print(f"Computing loss for {layer_num} concept {concept_no}")
+                        # print("feature shape", f.shape)
+                        # print(f"Computing loss for {layer_num} concept {concept_no}")
                         input_resized = tf.image.resize(self.inputs, [f.shape[1], f.shape[2]],
                                                         preserve_aspect_ratio=True)
-                        print("input shape ", input_resized.shape)
+                        #print("input shape ", input_resized.shape)
                         mse = tf.compat.v1.losses.mean_squared_error(f[:, :, :, concept_no:concept_no + 1],
                                                                      input_resized,
                                                                      reduction=tf.compat.v1.losses.Reduction.NONE
@@ -498,29 +498,31 @@ class SemiSupervisedClassifierMnist(VAE):
                         for concept_no in self.unique_concepts[layer_num]:
                             # print("concept number", concept_no)
                             # print(self.mask_for_concept_no[layer_num][concept_no])
-
                             masks = np.zeros(self.exp_config.BATCH_SIZE)
                             if concept_no == -1:
                                 masks[manual_labels[:, self.dao.num_classes + 1] <= 9] = 1
                             else:
                                 masks[manual_labels[:, self.dao.num_classes + 1] == layer_num] = 1
-                            # print(
-                            #    f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
                             feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
 
-                reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, y_pred, nll, nll_batch = self.sess.run(
-                    [self.out,
-                     self.merged_summary_op,
-                     self.mu,
-                     self.sigma,
-                     self.z,
-                     self.y_pred,
-                     self.neg_loglikelihood,
-                     self.marginal_likelihood],
-                    feed_dict=feed_dict
-                    )
+                return_list = self.sess.run([self.out,
+                                             self.merged_summary_op,
+                                             self.mu,
+                                             self.sigma,
+                                             self.z,
+                                             self.y_pred,
+                                             self.neg_loglikelihood,
+                                             self.marginal_likelihood],
+                                            feed_dict=feed_dict)
+                reconstructed_image = return_list[0]
+                mu_for_batch = return_list[2]
+                sigma_for_batch = return_list[3]
+                z_for_batch = return_list[4]
+                y_pred = return_list[5]
+                nll = return_list[6]
+                nll_batch = return_list[7]
             else:
-                reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, y_pred, nll, nll_batch = self.sess.run(
+                return_list = self.sess.run(
                     [self.out,
                      self.merged_summary_op,
                      self.mu,
@@ -534,6 +536,14 @@ class SemiSupervisedClassifierMnist(VAE):
                         self.labels: manual_labels[:, :10],
                         self.is_manual_annotated: manual_labels[:, 10]
                     })
+                reconstructed_image = return_list[0]
+                mu_for_batch = return_list[2]
+                sigma_for_batch = return_list[3]
+                z_for_batch = return_list[4]
+                y_pred = return_list[5]
+                nll = return_list[6]
+                nll_batch = return_list[7]
+
             nll_batch = -nll_batch
             if len(nll_batch.shape) == 0:
                 data_iterator.reset_counter(dataset_type)
