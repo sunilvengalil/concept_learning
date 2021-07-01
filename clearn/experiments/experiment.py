@@ -223,7 +223,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             uncorrelated_features=False,
                                             translate_image=False,
                                             concept_id = -1,
-                                            concept_dict=None
+                                            concept_dict=None,
+                                            training_phase=None
                                             ):
     if concept_id == -1 and dataset_name == "mnist_concepts":
         raise Exception("Parameter concept_id should be non-negative")
@@ -316,7 +317,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                                          dao,
                                                          exp_config,
                                                          num_epochs_completed,
-                                                         split_name
+                                                         split_name,
+                                                         training_phase=training_phase
                                                          )
 
     if test_data_iterator is None:
@@ -374,7 +376,9 @@ def get_train_val_iterator(create_split: bool,
                            dao: IDao,
                            exp_config: ExperimentConfig,
                            num_epochs_completed: int,
-                           split_name: str):
+                           split_name: str,
+                           training_phase=None
+                           ):
     split_filename = exp_config.DATASET_PATH + split_name + ".json"
     manual_annotation_file_name = f"manual_annotation.csv"
 
@@ -411,7 +415,8 @@ def get_train_val_iterator(create_split: bool,
                                                        seed=exp_config.seed,
                                                        budget=exp_config.budget,
                                                        num_concepts_per_image_row=num_concepts_per_row,
-                                                       num_concepts_per_image_col=num_concepts_per_col
+                                                       num_concepts_per_image_col=num_concepts_per_col,
+                                                       training_phase=training_phase
                                                        )
     else:
         raise Exception(f"File does not exists {split_filename}")

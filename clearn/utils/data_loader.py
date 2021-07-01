@@ -1,12 +1,10 @@
 import os
 import gzip
-from copy import deepcopy
 
 import numpy as np
 import pandas as pd
 import json
 import imageio
-from sklearn.model_selection import train_test_split
 
 from clearn.config import ExperimentConfig
 from clearn.dao.dao_factory import get_dao
@@ -22,22 +20,21 @@ def translate_random(im, max_pixels):
     if num_pixels > 0:
         if direction == 0:
             # move down
-            im = np.pad(im, pad_width=((num_pixels,0), (0, 0)), mode="edge")[0:-num_pixels]
+            im = np.pad(im, pad_width=((num_pixels, 0), (0, 0)), mode="edge")[0:-num_pixels]
         elif direction == 1:
             # move up
             im = np.pad(im, pad_width=((0, num_pixels), (0, 0)), mode="edge")[num_pixels:]
         elif direction == 2:
             # move left
-            im = np.pad(im, pad_width=( (0, 0), (0, num_pixels)), mode="edge")[:, num_pixels:]
+            im = np.pad(im, pad_width=((0, 0), (0, num_pixels)), mode="edge")[:, num_pixels:]
         elif direction == 3:
-            im = np.pad(im, pad_width=( (0, 0), (num_pixels, 0)), mode="edge")[:, 0:-num_pixels]
+            im = np.pad(im, pad_width=((0, 0), (num_pixels, 0)), mode="edge")[:, 0:-num_pixels]
     im = im.reshape(1, 784)
     return im
 
 
-
 def load_images(_config, train_val_data_iterator, dataset_type="train"):
-    #dao = get_dao(_config.dataset_name, _config.split_name, _config.num_val_samples)
+    # dao = get_dao(_config.dataset_name, _config.split_name, _config.num_val_samples)
     dao = _config.dao
     num_images = train_val_data_iterator.get_num_samples(dataset_type)
     feature_shape = list(train_val_data_iterator.get_feature_shape())
@@ -59,40 +56,14 @@ def load_images(_config, train_val_data_iterator, dataset_type="train"):
     return train_images, train_labels, manual_annotations
 
 
-def generate_concepts(train_x_in, train_y, concept_map, percentage_concepts):
-    train_y, test_y, indices_train, indices_test, train_x, test_x = train_test_split(train_y,
-                                list(range(train_y.shape[0])),
-                                train_x_in,
-                                test_size=percentage_concepts,
-                                stratify=train_y,
-                                shuffle=True
-                                )
-    for i in test_y:
-        v_extend = concept_map[i]["v_extend"]
-        h_extend = concept_map[i]["h_extend"]
-
-        cropped = train_x[i, v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]]
-        masked_images = np.zeros([
-            1,
-            train_x.shape[1],
-            train_x.shape[2],
-            1
-        ]
-        )
-        masked_images[:, v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]] = cropped
-
-        train_x[i] = masked_images
-
-    return train_x, train_y
-
-
 class TrainValDataIterator:
     VALIDATION_Y_RAW = "validation_y_raw"
     VALIDATION_Y_ONE_HOT = "validation_y"
     VALIDATION_X = "validation_x"
     TRAIN_Y = "train_y"
     TRAIN_X = "train_x"
-#    num_concepts = 20
+
+    #    num_concepts = 20
     num_concepts_per_image_row: int
     num_concepts_per_image_col: int
 
@@ -225,8 +196,6 @@ class TrainValDataIterator:
             #                                                    )
 
             _manual_annotation_concepts = np.zeros((len(instance.train_x), 13))
-
-
         instance.manual_annotation = instance.get_manual_annotation(manual_annotation_file,
                                                                     _manual_annotation,
                                                                     dao.num_classes,
@@ -237,12 +206,7 @@ class TrainValDataIterator:
                                                                                       instance.dao.num_classes,
                                                                                       instance.concepts_gt
                                                                                       )
-
         print(f"Total Manual annotation confidence {np.sum(instance.manual_annotation[:, 10])}")
-
-        if percentage_concepts > 0:
-            instance.train_x_orig = deepcopy(instance.train_x)
-            instance.train_x = generate_concepts(instance.train_x_orig, instance.train_y, percentage_concepts)
         if instance.translate_image:
             translated = np.apply_along_axis(translate_random, 1,
                                              instance.train_x.reshape(instance.train_x.shape[0], 784),
@@ -330,8 +294,10 @@ class TrainValDataIterator:
                  manual_annotation_file_concepts=None,
                  num_concepts_per_image_row=7,
                  num_concepts_per_image_col=7,
-                 translate_image=False
+                 translate_image=False,
+                 training_phase=None
                  ):
+        self.training_phase = training_phase
         TrainValDataIterator.num_concepts_per_image_row = num_concepts_per_image_row
         TrainValDataIterator.num_concepts_per_image_col = num_concepts_per_image_col
         self.translate_image = translate_image
@@ -342,11 +308,10 @@ class TrainValDataIterator:
         self.batch_size = batch_size
         self.dao = dao
         if dataset_path is not None:
-            self.entire_data_x, self.entire_data_y = load_train(dataset_path, dao=dao, split_location=split_location)
             if validation_samples == -1:
                 percentage_to_be_sampled = 0.3
             else:
-                percentage_to_be_sampled = validation_samples / len(self.entire_data_y)
+                percentage_to_be_sampled = None
 
             self.dataset_dict = load_train_val(dataset_path,
                                                shuffle=shuffle,
@@ -355,7 +320,9 @@ class TrainValDataIterator:
                                                split_location=split_location,
                                                split_names=split_names,
                                                dao=dao,
-                                               seed=seed)
+                                               seed=seed,
+                                               num_val_samples=validation_samples,
+                                               training_phase=self.training_phase)
             self.train_x = self.dataset_dict[TrainValDataIterator.TRAIN_X]
             self.train_y = self.dataset_dict[TrainValDataIterator.TRAIN_Y]
             self.val_x = self.dataset_dict[TrainValDataIterator.VALIDATION_X]
@@ -388,8 +355,7 @@ class TrainValDataIterator:
                     _manual_annotation = np.random.choice(self.unique_labels,
                                                           len(self.train_x))
                     _manual_annotation_val = np.random.choice(self.unique_labels,
-                                                          len(self.val_x))
-
+                                                              len(self.val_x))
 
             _manual_annotation_concepts = None
             if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
@@ -416,10 +382,9 @@ class TrainValDataIterator:
                                                                 dao.num_classes,
                                                                 self.train_y)
             self.val_manual_annotation = self.get_manual_annotation(manual_annotation_file,
-                                                                _manual_annotation_val,
-                                                                dao.num_classes,
-                                                                self.val_y)
-
+                                                                    _manual_annotation_val,
+                                                                    dao.num_classes,
+                                                                    self.val_y)
 
             self.manual_annotation_concepts = self.get_manual_annotation_concepts(manual_annotation_file_concepts,
                                                                                   _manual_annotation_concepts,
@@ -575,15 +540,19 @@ def load_train_val(data_dir,
                    percentage_to_be_sampled=0.7,
                    split_location=None,
                    split_names=[],
-                   seed=547):
-
+                   seed=547,
+                   num_val_samples=None,
+                   training_phase=None):
     return dao.load_train_val(data_dir,
                               shuffle,
                               stratified,
                               percentage_to_be_sampled,
                               split_location,
                               split_names,
-                              seed=seed)
+                              seed=seed,
+                              num_val_samples=num_val_samples,
+                              training_phase=training_phase
+                              )
 
 
 def load_test(data_dir,
@@ -596,7 +565,8 @@ class DataIterator:
     Y_RAW = "test_y"
     Y_ONE_HOT = "test_y_one_hot"
     X = "test_x"
-    #num_concepts = 20
+
+    # num_concepts = 20
 
     def __init__(self,
                  dao: IDao,

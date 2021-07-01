@@ -42,7 +42,7 @@ class IDao(ABC):
         pass
 
     @abstractmethod
-    def load_train_images_and_label(self, data_dir, map_filename=None):
+    def load_train_images_and_label(self, data_dir, map_filename=None, training_phase=None):
         pass
 
     @abstractmethod
@@ -63,8 +63,14 @@ class IDao(ABC):
                        percentage_to_be_sampled=0.7,
                        split_location=None,
                        split_names=[],
-                       seed=547):
-        x, y = self.load_train_images_and_label(data_dir,  split_location + MAP_FILE_NAME)
+                       seed=547,
+                       num_val_samples=None,
+                       training_phase=None):
+        x, y = self.load_train_images_and_label(data_dir,  split_location + MAP_FILE_NAME, training_phase=training_phase)
+        if percentage_to_be_sampled is None:
+            if num_val_samples is None:
+                raise Exception("Parameters percentage_to_be_sampled and num_val_samples both can not be None")
+            percentage_to_be_sampled = num_val_samples / y.shape[0]
         y = y.astype(int)
         _stratify = None
         if stratified:
