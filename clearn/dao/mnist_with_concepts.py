@@ -204,6 +204,7 @@ class MnistConceptsDao(IDao):
 
         if training_phase == "CONCEPTS":
             _x = x[(y >= self.num_original_classes) & (y < self.num_original_classes + self.num_concepts_label_generated)]
+            y = y[(y >= self.num_original_classes) & (y < self.num_original_classes + self.num_concepts_label_generated)]
         return _x, y
 
     def generate_derived_images(self, map_filename, num_images_per_concept):
