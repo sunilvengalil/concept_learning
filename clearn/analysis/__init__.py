@@ -157,7 +157,7 @@ class ImageConcept:
             to_row = row + 1
         else:
             to_row = row
-        return cropped[:, from_row:to_row]
+        return cropped[:, from_row-1:to_row+1]
 
     @staticmethod
     def tight_bound_v(cropped):
@@ -182,7 +182,7 @@ class ImageConcept:
         else:
             to_col = col
 
-        return cropped[from_col:to_col, :]
+        return cropped[from_col - 1:to_col + 1, :]
 
     def todict(self):
         concept_dict = dict()
