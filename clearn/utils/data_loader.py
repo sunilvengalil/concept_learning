@@ -1,5 +1,7 @@
 import os
 import gzip
+from copy import deepcopy
+
 import numpy as np
 import pandas as pd
 import json
@@ -8,6 +10,31 @@ import imageio
 from clearn.config import ExperimentConfig
 from clearn.dao.dao_factory import get_dao
 from clearn.dao.idao import IDao
+from random import randint
+
+
+def translate_random(im, max_pixels, image_shape):
+    im = im.reshape(image_shape[0], image_shape[1], image_shape[2])
+    num_pixels = randint(0, max_pixels)
+    direction = randint(0, 3)
+    if num_pixels > 0:
+        if direction == 0:
+            # move down
+            im = np.pad(im, pad_width=((num_pixels,0), (0, 0)), mode="edge")[0:-num_pixels]
+        elif direction == 1:
+            # move up
+            im = np.pad(im, pad_width=((0, num_pixels), (0, 0)), mode="edge")[num_pixels:]
+        elif direction == 2:
+            # move left
+            im = np.pad(im, pad_width=( (0, 0), (0, num_pixels)), mode="edge")[:, num_pixels:]
+        elif direction == 3:
+            im = np.pad(im, pad_width=( (0, 0), (num_pixels, 0)), mode="edge")[:, 0:-num_pixels]
+    im = im.reshape(1, image_shape[0] * image_shape[1] * image_shape[2])
+    return im
+
+def generate_concepts(im):
+    pass
+
 
 
 def load_images(_config, train_val_data_iterator, dataset_type="train"):
@@ -22,7 +49,7 @@ def load_images(_config, train_val_data_iterator, dataset_type="train"):
     manual_annotations = np.zeros([num_images, dao.num_classes + 1])
     train_val_data_iterator.reset_counter(dataset_type)
     while train_val_data_iterator.has_next(dataset_type):
-        batch_images, batch_labels, batch_annotations = train_val_data_iterator.get_next_batch(dataset_type)
+        batch_images, batch_labels, batch_annotations, _ = train_val_data_iterator.get_next_batch(dataset_type)
         if batch_images.shape[0] < _config.BATCH_SIZE:
             break
         train_images[i * _config.BATCH_SIZE:(i + 1) * _config.BATCH_SIZE, :] = batch_images
@@ -38,11 +65,14 @@ class TrainValDataIterator:
     VALIDATION_X = "validation_x"
     TRAIN_Y = "train_y"
     TRAIN_X = "train_x"
+    num_concepts = 20
+    num_concepts_per_image_row:int
+    num_concepts_per_image_col:int
 
     @classmethod
     def load_manual_annotation(cls, manual_annotation_file):
         df = pd.read_csv(manual_annotation_file)
-        return df.values
+        return df[["manual_annotation", "manual_annotation_confidence"]].values
 
     def load_train_val_existing_split(self, split_name, split_location):
         with open(split_location + split_name + ".json") as fp:
@@ -95,11 +125,16 @@ class TrainValDataIterator:
     @classmethod
     def from_existing_split(cls,
                             dao: IDao,
-                            split_name,
-                            split_location,
-                            batch_size=None,
-                            manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
-                            manual_annotation_file=None
+                            split_name:str,
+                            split_location:str,
+                            batch_size: int = 64,
+                            manual_labels_config = ExperimentConfig.USE_CLUSTER_CENTER,
+                            manual_annotation_file: str = None,
+                            budget=1,
+                            manual_annotation_file_concepts=None,
+                            num_concepts_per_image_row = 7,
+                            num_concepts_per_image_col = 7,
+                            translate_image = False
                             ):
         """
         Creates and initialize an instance of TrainValDataIterator
@@ -109,6 +144,13 @@ class TrainValDataIterator:
         @param: manual_labels_config:
         """
         instance = cls(batch_size=batch_size, dao=dao)
+        instance.translate_image = translate_image
+        instance.max_pixels_to_translate = 4
+
+        TrainValDataIterator.num_concepts_per_image_row = num_concepts_per_image_row
+        TrainValDataIterator.num_concepts_per_image_col = num_concepts_per_image_col
+
+        instance.concepts_gt = None
         # TODO convert this to lazy loading/use generator
         instance.dataset_dict = dao.load_train_val_existing_split(split_name, split_location)
 
@@ -120,6 +162,7 @@ class TrainValDataIterator:
         instance.unique_labels = np.unique(instance.dataset_dict[TrainValDataIterator.VALIDATION_Y_RAW])
         instance.manual_labels_config = manual_labels_config
         _manual_annotation = None
+        instance.budget = budget
         if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
             if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
                 _manual_annotation = cls.load_manual_annotation(manual_annotation_file)
@@ -134,27 +177,102 @@ class TrainValDataIterator:
                 # with uniform probability distribution for each label. i.e in case of MNIST each row will be set as one of the symbol
                 # {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
                 _manual_annotation = np.random.choice(instance.unique_labels, len(instance.train_x))
-        instance.get_manual_annotation(manual_annotation_file, _manual_annotation=_manual_annotation)
+
+        if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
+            if manual_annotation_file_concepts is not None and os.path.isfile(manual_annotation_file_concepts):
+                _manual_annotation_concepts = cls.load_manual_annotation(manual_annotation_file_concepts)
+                print("Loaded manual annotation concepts")
+                print(f"Number of samples with manual confidence {sum(_manual_annotation_concepts[:, 1] > 0)}")
+            else:
+                # TODO if we are using random prior with uniform distribution, do we need to keep
+                # manual confidence as 0.5 or 0
+                print("Warning", "{} path does not exist. Creating random prior with uniform distribution".
+                      format(manual_annotation_file_concepts))
+                # create a numpy array of dimension (num_training_samples, num_unique_labels) and  set the one-hot encoded label
+                # with uniform probability distribution for each label. i.e in case of MNIST each row will be set as one of the symbol
+                # {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
+                _manual_annotation_concepts = np.random.choice(TrainValDataIterator.num_concepts,
+                                                               size=(len(instance.train_x), TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col)
+                                                               )
+
+        instance.manual_annotation = instance.get_manual_annotation(manual_annotation_file,
+                                                                    _manual_annotation,
+                                                                    dao.num_classes,
+                                                                    instance.train_y)
+
+        instance.manual_annotation_concepts = instance.get_manual_annotation_concepts(manual_annotation_file_concepts,
+                                                                             _manual_annotation_concepts,
+                                                                             TrainValDataIterator.num_concepts,
+                                                                             instance.concepts_gt
+                                                                             )
+
+        print(f"Total Manual annotation confidence {np.sum(instance.manual_annotation[:, 10])}")
+        if instance.translate_image:
+            instance.orig_train_x = deepcopy(instance.train_x)
+            translated = np.apply_along_axis(translate_random,
+                                             1,
+                                             instance.orig_train_x.reshape(instance.orig_train_x.shape[0],
+                                                                           dao.image_shape[0] * dao.image_shape[1]) * dao.image_shape[2],
+                                             max_pixels=instance.max_pixels_to_translate,
+                                             image_shape=dao.image_shape)
+            instance.train_x = translated.reshape((instance.orig_train_x.shape[0],
+                                                   dao.image_shape[0],
+                                                   dao.image_shape[1],
+                                                   dao.image_shape[2]))
 
         instance.train_idx = 0
         instance.val_idx = 0
         return instance
 
-    def get_manual_annotation(self, manual_annotation_file, _manual_annotation):
+    def get_manual_annotation_concepts(self, manual_annotation_file, _manual_annotation, num_labels, actual_labels):
         if self.manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
-            self.manual_annotation = np.zeros((len(_manual_annotation), 11), dtype=np.float)
+            manual_annotation = np.zeros((len(_manual_annotation), TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col, num_labels + 1), dtype=np.float)
             if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
-                for i, label in enumerate(_manual_annotation):
-                    self.manual_annotation[i, int(_manual_annotation[i, 0])] = 1.0
-                    self.manual_annotation[i, 10] = _manual_annotation[i, 1]
+                for i in range(len(_manual_annotation)):
+                    for j in range(TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col):
+                        manual_annotation[i, j, int(_manual_annotation[i, j])] = 1.0
+                        manual_annotation[i, j, num_labels] = _manual_annotation[i, TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col + j]
             else:
                 for i, label in enumerate(_manual_annotation):
-                    self.manual_annotation[i, _manual_annotation[i]] = 1.0
-                    self.manual_annotation[i, 10] = 0  # set manual annotation confidence as 0
+                    for j in range(TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col):
+                        manual_annotation[i, j, _manual_annotation[i, j]] = 1.0
+                        manual_annotation[i, j, num_labels] = 0  # set manual annotation confidence as 0
         elif self.manual_labels_config == ExperimentConfig.USE_ACTUAL:
-            self.manual_annotation = np.zeros((len(self.train_x), 11), dtype=np.float)
-            self.manual_annotation[:, 0:10] = self.train_y
-            self.manual_annotation[:, 10] = 1  # set manual annotation confidence as 1
+            if actual_labels is not None and actual_labels.shape[0] == len(self.train_x):
+                manual_annotation = np.zeros((len(self.train_x), TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col, num_labels + 1), dtype=np.float)
+                manual_annotation[:, :, 0:num_labels] = actual_labels
+                manual_annotation[:, :, num_labels] = 1  # set manual annotation confidence as 1
+            else:
+                raise Exception("Grount truth not set")
+        return manual_annotation
+
+    def get_manual_annotation(self, manual_annotation_file, _manual_annotation, num_labels, actual_labels):
+        if self.manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
+            manual_annotation = np.zeros((len(_manual_annotation), num_labels + 1), dtype=np.float)
+            if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
+                for i, label in enumerate(_manual_annotation):
+                    manual_annotation[i, int(_manual_annotation[i, 0])] = 1.0
+                    manual_annotation[i, num_labels] = _manual_annotation[i, 1]
+            else:
+                for i, label in enumerate(_manual_annotation):
+                    manual_annotation[i, _manual_annotation[i]] = 1.0
+                    manual_annotation[i, num_labels] = 0  # set manual annotation confidence as 0
+        elif self.manual_labels_config == ExperimentConfig.USE_ACTUAL:
+            if actual_labels is not None and actual_labels.shape[0] == len(self.trai_xn):
+                manual_annotation = np.zeros((len(self.train_x), num_labels + 1), dtype=np.float)
+                if self.budget < 1:
+                    indices = np.random.choice(len(self.train_x), int(self.budget * len(self.train_x)), replace=False)
+                    print(f"Using labels of {len(indices)} samples")
+                    manual_annotation[indices, 0:num_labels] = actual_labels[indices]
+                    manual_annotation[indices, num_labels] = 1  # set manual annotation confidence as 1
+                else:
+                    manual_annotation[:, 0:num_labels] = actual_labels
+                    manual_annotation[:, num_labels] = 1  # set manual annotation confidence as 1
+            else:
+                raise Exception("Grount truth not set")
+        return manual_annotation
+
+
 
     def __init__(self,
                  dao: IDao,
@@ -167,7 +285,17 @@ class TrainValDataIterator:
                  batch_size=None,
                  manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
                  manual_annotation_file=None,
-                 seed=547):
+                 budget=1,
+                 seed=547,
+                 manual_annotation_file_concepts=None,
+                 num_concepts_per_image_row=7,
+                 num_concepts_per_image_col=7,
+                 translate_image=False
+                 ):
+        TrainValDataIterator.num_concepts_per_image_row = num_concepts_per_image_row
+        TrainValDataIterator.num_concepts_per_image_col = num_concepts_per_image_col
+        self.translate_image = translate_image
+        self.budget = budget
         self.train_idx = 0
         self.val_idx = 0
         self.dataset_path = dataset_path
@@ -180,7 +308,8 @@ class TrainValDataIterator:
             else:
                 percentage_to_be_sampled = validation_samples / len(self.entire_data_y)
 
-            self.dataset_dict = load_train_val(dataset_path, shuffle=shuffle,
+            self.dataset_dict = load_train_val(dataset_path,
+                                               shuffle=shuffle,
                                                stratified=stratified,
                                                percentage_to_be_sampled=percentage_to_be_sampled,
                                                split_location=split_location,
@@ -193,6 +322,7 @@ class TrainValDataIterator:
             self.val_y = self.dataset_dict[TrainValDataIterator.VALIDATION_Y_ONE_HOT]
             self.unique_labels = np.unique(self.dataset_dict["validation_y_raw"])
             self.manual_labels_config = manual_labels_config
+            self.concepts_gt = None
             _manual_annotation = None
             if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
                 if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
@@ -208,10 +338,51 @@ class TrainValDataIterator:
                     Create a numpy array of dimension (num_training_samples, num_unique_labels) and  set the one-hot encoded label with uniform probability distribution for each label.
                     In case of MNIST each row will be set as one of the symbol {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
                     """
-                    _manual_annotation = np.random.choice(self.unique_labels, len(self.train_x))
+                    _manual_annotation = np.random.choice(self.unique_labels,
+                                      len(self.train_x))
 
-            self.get_manual_annotation(manual_annotation_file, _manual_annotation=_manual_annotation)
+            _manual_annotation_concepts = None
+            if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
+                if manual_annotation_file_concepts is not None and os.path.isfile(manual_annotation_file_concepts):
+                    _manual_annotation_concepts = TrainValDataIterator.load_manual_annotation(manual_annotation_file_concepts)
+                    print("Loaded manual annotation concepts")
+                    print(f"Number of samples with manual confidence {sum(_manual_annotation_concepts[:, 1] > 0)}")
+                else:
+                    # TODO if we are using random prior with uniform distribution, do we need to keep
+                    # manual confidence as 0.5 or 0
+                    print("Warning", "{} path does not exist. Creating random prior with uniform distribution".
+                          format(manual_annotation_file))
+                    """
+                    Create a numpy array of dimension (num_training_samples, num_unique_labels) and  set the one-hot encoded label with uniform probability distribution for each label.
+                    In case of MNIST each row will be set as one of the symbol {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
+                    """
+                    _manual_annotation_concepts = np.random.choice(dao.num_classes, size=(len(self.train_x),
+                                                      TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col)
+                                                )
 
+            self.manual_annotation = self.get_manual_annotation(manual_annotation_file,
+                                                                _manual_annotation,
+                                                                dao.num_classes,
+                                                                self.train_y)
+            self.manual_annotation_concepts = self.get_manual_annotation_concepts(manual_annotation_file_concepts,
+                                                                         _manual_annotation_concepts,
+                                                                         TrainValDataIterator.num_concepts,
+                                                                         self.concepts_gt
+                                                                         )
+            self.max_pixels_to_translate = 4
+            if translate_image:
+                self.orig_train_x = deepcopy(self.train_x)
+                translated = np.apply_along_axis(translate_random,
+                                                 1,
+                                                 self.orig_train_x.reshape(self.orig_train_x.shape[0],
+                                                                           dao.image_shape[0] * dao.image_shape[1] * dao.image_shape[2]),
+                                                 max_pixels=self.max_pixels_to_translate,
+                                                 image_shape = dao.image_shape
+                                                 )
+                self.train_x = translated.reshape((self.orig_train_x.shape[0],
+                                                   dao.image_shape[0],
+                                                   dao.image_shape[1],
+                                                   dao.image_shape[2]))
             self.train_idx = 0
             self.val_idx = 0
 
@@ -242,16 +413,18 @@ class TrainValDataIterator:
             x = self.train_x[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size]
             y = self.train_y[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size]
             label = self.manual_annotation[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size]
+            label_concepts = self.manual_annotation_concepts[self.train_idx * self.batch_size:(self.train_idx + 1) * self.batch_size]
             self.train_idx += 1
         elif dataset_type == "val":
             x = self.val_x[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
             y = self.val_y[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
             label = self.manual_annotation[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
+            label_concepts = self.manual_annotation_concepts[self.val_idx * self.batch_size:(self.val_idx + 1) * self.batch_size]
             # TODO check if this is last batch, if yes,reset the counter
             self.val_idx += 1
         else:
             raise ValueError("dataset_type should be either 'train' or 'val' ")
-        return x, y, label
+        return x, y, label, label_concepts
 
     def get_num_samples(self, dataset_type):
         if dataset_type == "train":
@@ -262,6 +435,17 @@ class TrainValDataIterator:
             raise ValueError("dataset_type should be either 'train' or 'val' ")
 
     def reset_counter(self, dataset_type):
+        if self.translate_image:
+            translated = np.apply_along_axis(translate_random,
+                                             1,
+                                             self.orig_train_x.reshape(self.orig_train_x.shape[0],
+                                                                       self.dao.image_shape[0] * self.dao.image_shape[1] * self.dao.image_shape[2]),
+                                             max_pixels=self.max_pixels_to_translate,
+                                             image_shape=self.dao.image_shape)
+            self.train_x = translated.reshape((self.orig_train_x.shape[0],
+                                               self.dao.image_shape[0],
+                                               self.dao.image_shape[1],
+                                               self.dao.image_shape[2]))
         if dataset_type == "train":
             self.train_idx = 0
         elif dataset_type == "val":
@@ -323,21 +507,21 @@ def load_train(data_dir,
     return dao.load_train(data_dir, shuffle)
 
 
-def load_test_raw_data(data_dir):
-    data_dir = os.path.join(data_dir, "images/")
-
-    def extract_data(filename, num_data, head_size, data_size):
-        with gzip.open(filename) as bytestream:
-            bytestream.read(head_size)
-            buf = bytestream.read(data_size * num_data)
-            _data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
-        return _data
-
-    data = extract_data(data_dir + '/t10k-images-idx3-ubyte.gz', 10000, 16, 28 * 28)
-    test_x = data.reshape((10000, 28, 28, 1))
-    data = extract_data(data_dir + '/t10k-labels-idx1-ubyte.gz', 10000, 8, 1)
-    test_y = data.reshape(10000)
-    return test_x, test_y
+# def load_test_raw_data(data_dir):
+#     data_dir = os.path.join(data_dir, "images/")
+#
+#     def extract_data(filename, num_data, head_size, data_size):
+#         with gzip.open(filename) as bytestream:
+#             bytestream.read(head_size)
+#             buf = bytestream.read(data_size * num_data)
+#             _data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
+#         return _data
+#
+#     data = extract_data(data_dir + '/t10k-images-idx3-ubyte.gz', 10000, 16, 28 * 28)
+#     test_x = data.reshape((10000, 28, 28, 1))
+#     data = extract_data(data_dir + '/t10k-labels-idx1-ubyte.gz', 10000, 8, 1)
+#     test_y = data.reshape(10000)
+#     return test_x, test_y
 
 
 def load_train_val(data_dir,
@@ -367,12 +551,18 @@ class DataIterator:
     Y_RAW = "test_y"
     Y_ONE_HOT = "test_y_one_hot"
     X = "test_x"
+    num_concepts = 20
 
     def __init__(self,
                  dao: IDao,
                  dataset_path=None,
-                 batch_size=None
+                 batch_size=None,
+                 num_concepts_per_image_row=7,
+                 num_concepts_per_image_col=7
                  ):
+        DataIterator.num_concepts_per_image_row = num_concepts_per_image_row
+        DataIterator.num_concepts_per_image_col = num_concepts_per_image_col
+
         self.idx = 0
         self.dataset_path = dataset_path
         self.batch_size = batch_size
@@ -388,6 +578,10 @@ class DataIterator:
         self.manual_annotation = np.zeros((len(self.x), 11), dtype=np.float16)
         self.manual_annotation[:, 0:10] = self.y
         self.manual_annotation[:, 10] = 1  # set manual annotation confidence as 1
+        self.manual_annotation_concepts = np.zeros((len(self.x),
+                                                    DataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col,
+                                                    DataIterator.num_concepts + 1),
+                                                   dtype=np.float)
         self.idx = 0
 
 
@@ -404,8 +598,10 @@ class DataIterator:
         x = self.x[self.idx * self.batch_size:(self.idx + 1) * self.batch_size]
         y = self.y[self.idx * self.batch_size:(self.idx + 1) * self.batch_size]
         label = self.manual_annotation[self.idx * self.batch_size:(self.idx + 1) * self.batch_size]
+        label_concepts = self.manual_annotation_concepts[self.idx * self.batch_size:(self.idx + 1) * self.batch_size]
+
         self.idx += 1
-        return x, y, label
+        return x, y, label, label_concepts
 
     def get_num_samples(self, dataset_type):
         return len(self.x)

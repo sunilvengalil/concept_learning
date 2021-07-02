@@ -2,6 +2,9 @@
 Most codes from https://github.com/carpedm20/DCGAN-tensorflow
 """
 from __future__ import division
+
+from typing import List, Tuple
+
 import pandas as pd
 import scipy.misc
 from skimage import img_as_ubyte
@@ -13,12 +16,76 @@ import tensorflow as tf
 import os
 import imageio
 from collections import defaultdict
-from clearn.utils.data_loader import load_test_raw_data
+
+from clearn.config import ExperimentConfig
+# from clearn.utils.data_loader import load_test_raw_data
 
 from sklearn.cluster import KMeans
 from yellowbrick.cluster import KElbowVisualizer
+from sklearn.preprocessing import MinMaxScaler
+
 
 SIGNIFICANT_THRESHOLD = 0.15
+
+
+def is_convolutional_layer(layer_num, num_units, num_dense_layers):
+    if layer_num >= len(num_units) - num_dense_layers :
+        return False
+    else:
+        return True
+
+
+def get_padding_info(exp_config:ExperimentConfig,
+                     image_shape: Tuple[int]
+                     ):
+    num_units = exp_config.num_units
+    num_dense_layers = exp_config.num_dense_layers
+    strides = exp_config.strides
+    image_sizes = []
+    padding_added_row = []
+    padding_added_col = []
+    print("Image shape", image_shape)
+    height = image_shape[0]
+    width = image_shape[1]
+    channels =  image_shape[2]
+    image_sizes.append((height, width, channels))
+    layer_num = 0
+    for layer_num, stride in enumerate(strides[:-1]):
+        if not is_convolutional_layer(layer_num, num_units, num_dense_layers):
+            image_sizes.append(num_units[layer_num])
+            continue
+        height, width = get_image_size(height, padding_added_col, padding_added_row, stride, width)
+        image_sizes.append((height, width, num_units[layer_num]))
+    if is_convolutional_layer(layer_num + 1, num_units, num_dense_layers):
+        height, width = get_image_size(height, padding_added_col, padding_added_row, strides[-1], width)
+        image_sizes.append((height, width, num_units[layer_num + 1]))
+    else:
+        image_sizes.append(exp_config.Z_DIM)
+    print(image_sizes)
+    print(num_units)
+    return padding_added_row, padding_added_col, image_sizes
+
+
+def get_image_size(height, padding_added_col, padding_added_row, stride, width):
+    if height % stride != 0:
+        num_pads = stride - height % stride
+        pad_left = num_pads // 2
+        pad_right = num_pads - pad_left
+        padding_added_row.append((pad_left, pad_right))
+        height = (height // stride) + 1
+    else:
+        padding_added_row.append((0, 0))
+        height = height // stride
+    if width % stride != 0:
+        num_pads = stride - width % stride
+        pad_left = num_pads // 2
+        pad_right = num_pads - pad_left
+        padding_added_col.append((pad_left, pad_right))
+        width = (width // stride) + 1
+    else:
+        padding_added_col.append((0, 0))
+        width = width // stride
+    return height, width
 
 
 def check_and_create_folder(log_dir):
@@ -212,13 +279,19 @@ def segregate_images_by_label(train_val_iterator, dataset_type="val"):
     return images_by_label
 
 
-def get_latent_vector_column(z_dim):
+def get_latent_vector_column(z_dim:int,
+                             num_classes=10,
+                             returnpredicted_proba_col_name:bool=False):
     mean_col_names = ["mu_{}".format(i) for i in range(z_dim)]
     sigma_col_names = ["sigma_{}".format(i) for i in range(z_dim)]
     z_col_names = ["z_{}".format(i) for i in range(z_dim)]
     # TODO fix this
     l3_col_names = ["l3_{}".format(i) for i in range(32)]
-    return mean_col_names, sigma_col_names, z_col_names, l3_col_names
+    if returnpredicted_proba_col_name:
+        predicted_proba_col_names = ["predicted_proba_{}".format(i) for i in range(num_classes)]
+        return mean_col_names, sigma_col_names, z_col_names, l3_col_names, predicted_proba_col_names
+    else:
+        return mean_col_names, sigma_col_names, z_col_names, l3_col_names
 
 
 def get_mean(i, df, mean_col_names):

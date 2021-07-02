@@ -14,6 +14,7 @@ def encode_images(model, train_val_data_iterator, dataset_type="train", save_ima
 
 from clearn.analysis.encode_decode import encode_and_get_features
 
+
 def encode_images_and_get_features(model, train_val_data_iterator, exp_config, epoch, dataset_type="train", save_results=True):
     encoded_df = None
     while train_val_data_iterator.has_next(dataset_type):
@@ -22,7 +23,6 @@ def encode_images_and_get_features(model, train_val_data_iterator, exp_config, e
             train_val_data_iterator.reset_counter(dataset_type)
             break
 
-        #mu, sigma, z = model.encode(batch_images)
         mu, sigma, z, dense2_ens, reshapeds, conv2_ens, conv1_ens = encode_and_get_features(model,
                                                                                             batch_images,
                                                                                             exp_config.BATCH_SIZE,

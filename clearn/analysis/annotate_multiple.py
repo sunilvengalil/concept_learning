@@ -4,11 +4,12 @@ import argparse
 
 create_split = False
 experiment_name = "Experiment_1"
-ROOT_PATH = "/Users/sunilv/concept_learning_exp"
-z_dim_range = [21, 24, 2]
+root_path = "/Users/sunilv/concept_learning_exp/"
+z_dim_range = [5, 15, 2]
+learning_rate = 0.001
 num_epochs = 10
-num_runs = 1
-eval_interval = 900
+num_runs = 5
+completed_z_dims = 0
 
 def parse_args():
     desc = "Start annotation of images"
@@ -17,7 +18,6 @@ def parse_args():
     parser.add_argument('--batch', type=int, default=1)
     return parser.parse_args()
 
-
 args = parse_args()
 start_epoch = args.epoch
 start_batch_id = args.batch
@@ -25,7 +25,7 @@ num_cluster_config = None
 for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
     print(f"Starting annotation for z_dim {z_dim}")
     for run_id in range(num_runs):
-        exp_config = ExperimentConfig(root_path=ROOT_PATH,
+        exp_config = ExperimentConfig(root_path=root_path,
                                       num_decoder_layer=4,
                                       z_dim=z_dim,
                                       num_units=[64, 128, 32],
@@ -37,7 +37,7 @@ for z_dim in range(z_dim_range[0], z_dim_range[1], z_dim_range[2]):
                                       split_name="Split_1",
                                       model_name="VAE",
                                       batch_size=64,
-                                      eval_interval=eval_interval,
+                                      eval_interval_in_epochs=1,
                                       name=experiment_name,
                                       num_val_samples=128,
                                       total_training_samples=60000,

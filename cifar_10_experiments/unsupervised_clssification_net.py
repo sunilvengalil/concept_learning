@@ -1,6 +1,6 @@
 from clearn.config import ExperimentConfig
 from clearn.dao.dao_factory import get_dao
-from clearn.experiments.experiment import initialize_model_train_and_get_features, MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10
+from clearn.experiments.experiment import initialize_model_train_and_get_features, MODEL_TYPE_VAE_UNSUPERVISED
 
 experiment_name = "Experiment_4"
 root_path = "/Users/sunilv/concept_learning_exp/"

@@ -21,7 +21,7 @@ from clearn.config.common_path import get_encoded_csv_file
 from clearn.config import ExperimentConfig
 from clearn.experiments.experiment import Experiment
 from clearn.analysis.encode_decode import decode
-from clearn.analysis.cluster_utils import cluster_and_decode_latent_vectors, display_cluster_center_images,get_cluster
+from clearn.analysis.cluster_utils import cluster_and_decode_latent_vectors, display_images,get_cluster
 from clearn.analysis.cluster_utils import get_cluster_groups,assign_manual_label_and_confidence, get_samples_for_cluster
 from clearn.analysis import ManualAnnotation, Cluster, ClusterGroup
 from PIL import Image

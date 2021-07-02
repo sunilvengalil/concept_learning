@@ -6,6 +6,7 @@ from clearn.config import ExperimentConfig
 from clearn.dao.idao import IDao
 from clearn.models.classify.classifier import ClassifierModel
 from clearn.utils.data_loader import DataIterator
+from clearn.models.architectures.custom.tensorflow_graphs import cnn_n_layer
 
 
 class SupervisedClassifierModel(ClassifierModel):
@@ -38,3 +39,6 @@ class SupervisedClassifierModel(ClassifierModel):
         # graph inputs for visualize training results
         if epoch != -1:
             self.epoch = epoch
+
+    def _encoder(self, x, reuse=False):
+        return cnn_n_layer(self, x, self.exp_config.Z_DIM, reuse)

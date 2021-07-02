@@ -1,4 +1,4 @@
-import os
+import numpy as np
 
 from clearn.config import ExperimentConfig
 from clearn.dao.idao import IDao
@@ -18,7 +18,7 @@ class GenerativeModel(Model):
                  test_data_iterator):
         super().__init__(exp_config, sess, epoch, dao, test_data_iterator)
 
-    def encode(self, images):
+    def encode(self, images: np.ndarray):
         pass
 
     def decode(self, z):
@@ -28,4 +28,10 @@ class GenerativeModel(Model):
         pass
 
     def evaluate(self, train_val_data_iterator: TrainValDataIterator, dataset_type: str):
+        pass
+
+    def encode_and_get_features(self, images: np.ndarray):
+        pass
+
+    def decode_and_get_features(self, z: np.ndarray):
         pass

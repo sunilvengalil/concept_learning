@@ -134,7 +134,7 @@ class ClassifierModel(Model):
 
                 self.counter += 1
                 self.num_steps_completed = batch + 1
-                self.writer.add_summary(summary_str, self.counter - 1)
+                # self.writer.add_summary(summary_str, self.counter - 1)
 
             self.num_training_epochs_completed = epoch + 1
             print(f"Completed {epoch} epochs")
@@ -174,12 +174,24 @@ class ClassifierModel(Model):
                 max_accuracy = df["test_accuracy"].max()
                 print("Max test accuracy", max_accuracy)
 
-    def evaluate(self, data_iterator, dataset_type="train", num_batches_train=0, save_images=True):
-        if num_batches_train == 0:
-            num_batches_train = self.num_batches_train
-        print(
-            f"Running evaluation after epoch:{self.num_training_epochs_completed} and step:{self.num_steps_completed} ")
+            # save metrics
+            # df = None
+            # for i, metric in enumerate(self.metrics_to_compute):
+            #     column_name = f"train_{metric}"
+            #     if i == 0:
+            #         df = pd.DataFrame(self.metrics["train"][metric], columns=["epoch", column_name])
+            #     else:
+            #         df[column_name] = np.asarray(self.metrics["train"][metric])[:, 1]
+            #     df[f"val_{metric}"] = np.asarray(self.metrics["val"][metric])[:, 1]
+            #     df[f"test_{metric}"] = np.asarray(self.metrics["test"][metric])[:, 1]
+            #     max_value = df[f"test_{metric}"].max()
+            #     print(f"Max test {metric}", max_value)
+            # if df is not None:
+            #     df.to_csv(
+            #         os.path.join(self.exp_config.ANALYSIS_PATH, f"metrics_{self.start_epoch}.csv"),
+            #         index=False)
 
+    def evaluate(self, data_iterator, dataset_type="train", num_batches_train=0, save_images=True):
         labels_predicted = None
         labels = None
         z = None
@@ -203,7 +215,7 @@ class ClassifierModel(Model):
                 if z is None:
                     z = z_for_batch
                 else:
-                    z = np.hstack([z, z_for_batch])
+                    z = np.vstack([z, z_for_batch])
             batch_no += 1
 
         if "accuracy" in self.metrics_to_compute:
@@ -212,9 +224,12 @@ class ClassifierModel(Model):
 
         encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
                                   columns=["label", "label_predicted"])
+
         if self.exp_config.return_latent_vector:
             mean_col_names, sigma_col_names, z_col_names, l3_col_names = get_latent_vector_column(self.exp_config.Z_DIM)
-            encoded_df[z_col_names] = z
+            for i, z_col_name in enumerate(z_col_names):
+                encoded_df[z_col_name] = z[:, i]
+
         if self.exp_config.write_predictions:
             output_csv_file = get_encoded_csv_file(self.exp_config,
                                                    self.num_training_epochs_completed,

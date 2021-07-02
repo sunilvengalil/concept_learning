@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 
 from clearn.dao.dao_factory import get_dao
 from clearn.utils.dir_utils import check_and_create_folder
@@ -32,16 +33,21 @@ def get_base_path(exp_config,
     """
 
     num_units = exp_config.num_units
-    if len(exp_config.num_units)  >= 3:
+    if len(exp_config.num_units) >= 3:
         units_ = str(exp_config.num_units[-1])
-        for i in exp_config.num_units[2:-1][::-1]:
+        for i in exp_config.num_units[1:-1][::-1]:
             units_ += "_" + str(i)
     else:
-        units_ = "0"
+        if len(num_units) == 2:
+            units_ = "0"
+        else:
+            units_ = "0_0"
     if exp_config.num_cluster_config is None:
-        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{units_}_{num_units[1]}_{num_units[0]}_{exp_config.Z_DIM}_{run_id}/")
+        return os.path.join(os.path.join(exp_config.root_path, exp_config.name),
+                            f"Exp_{units_}_{num_units[0]}_{exp_config.Z_DIM}_{run_id}/")
     else:
-        return os.path.join(os.path.join(exp_config.root_path, exp_config.name), f"Exp_{units_}_{num_units[1]}_{num_units[0]}_{exp_config.Z_DIM}_{exp_config.num_cluster_config}_{run_id}/")
+        return os.path.join(os.path.join(exp_config.root_path, exp_config.name),
+                            f"Exp_{units_}_{num_units[0]}_{exp_config.Z_DIM}_{exp_config.num_cluster_config}_{run_id}/")
 
 
 class ExperimentConfig:
@@ -49,6 +55,12 @@ class ExperimentConfig:
     NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW = "TWO_TIMES_ELBOW"
     USE_ACTUAL = "USE_ACTUAL"
     USE_CLUSTER_CENTER = "USE_CLUSTER_CENTER"
+    DISTANCE_EUCLIDEAN = "EUCLIDEAN"
+    DISTANCE_MAHALANOBIS = "MAHALANOBIS"
+    CLUSTERING_K_MEANS = "K_MEANS"
+    CLUSTERING_GMM = "GMM"
+    CONFIDENCE_DECAY_FUNCTION_EXPONENTIAL = "EXPONENTIAL"
+    CONFIDENCE_DECAY_FUNCTION_GAUSSIAN = "GAUSSIAN"
 
     def __init__(self,
                  root_path,
@@ -56,6 +68,8 @@ class ExperimentConfig:
                  z_dim,
                  num_units,
                  num_cluster_config,
+                 strides,
+                 num_dense_layers,
                  confidence_decay_factor=2,
                  beta=5,
                  supervise_weight=0,
@@ -79,7 +93,19 @@ class ExperimentConfig:
                  write_predictions=True,
                  eval_interval_in_epochs=1,
                  return_latent_vector=True,
-                 seed=547
+                 budget=1,
+                 seed=547,
+                 distance_metric=DISTANCE_EUCLIDEAN,
+                 clustering_alg=CLUSTERING_K_MEANS,
+                 confidence_decay_function=CONFIDENCE_DECAY_FUNCTION_EXPONENTIAL,
+                 log_level=logging.INFO,
+                 fully_convolutional=False,
+                 num_concepts=10,
+                 supervise_weight_concepts=1,
+                 uncorrelated_features=False,
+                 env=None,
+                 translate_image=False,
+                 normalize_before_saving=False
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -90,15 +116,25 @@ class ExperimentConfig:
         """
         # if ExperimentConfig._instance is not None:
         #     raise Exception("ExperimentConfig is singleton class. Use class method get_exp_config() instead")
-        self.root_path = root_path
-        if len(num_units) != num_decoder_layer - 1:
-            print(num_units, num_decoder_layer)
-            raise ValueError("No of units should be same as number of layers minus one")
+        if root_path is not None :
+            #TODO validate if the folder can be created or not
+            self.root_path = root_path
+        elif env is not None:
+            if env == "sunil_local":
+                self.root_path = "/Users/sunilv/concept_learning_exp"
+            elif env == "colab":
+                self.root_path = "/content/gdrive/MyDrive/concept_learning/concept_learning/concept_learning_exp"
+            else:
+                raise Exception(f"Parameter env should be set as sunil_local or colab. env is passed as {env} instead")
+
+        if len(num_units) < 1 or len(num_units) > 5 :
+            print(num_units)
+            raise ValueError("Length of num_units should be 2 or 3")
 
         # num_units.append(z_dim * 2)
         self.learning_rate = learning_rate
 
-        self.num_decoder_layer = num_decoder_layer
+        self.num_decoder_layer = len(num_units) + 1
         self.Z_DIM = z_dim
         self.num_units = num_units
         self.dataset_name = dataset_name
@@ -118,7 +154,8 @@ class ExperimentConfig:
         self.confidence_decay_factor = confidence_decay_factor
         self.manual_labels_config = manual_labels_config
         self.reconstruction_weight = reconstruction_weight
-        self.num_train_samples = ((total_training_samples - num_val_samples) // batch_size) * batch_size
+        self.dao = get_dao(dataset_name, split_name, num_val_samples)
+        # self.num_train_samples = (self.dao.number_of_training_samples  // batch_size) * batch_size
         self.activation_hidden_layer = activation_hidden_layer
         self.activation_output_layer = activation_output_layer
         self.save_reconstructed_images = save_reconstructed_images
@@ -130,6 +167,29 @@ class ExperimentConfig:
         self.eval_interval_in_epochs = eval_interval_in_epochs
         self.return_latent_vector = return_latent_vector
         self.seed = seed
+        self.budget = budget
+        self.clustering_alg = clustering_alg
+        self.confidence_decay_function = confidence_decay_function
+        self.distance_metric = distance_metric
+        self.log_level = log_level
+        self.fully_convolutional = fully_convolutional
+        self.num_concepts = num_concepts
+        self.supervise_weight_concepts = supervise_weight_concepts
+        self.strides = strides
+        self.num_dense_layers = num_dense_layers
+        self.uncorrelated_features = uncorrelated_features
+        self.translate_image = translate_image
+        self.normalize_before_saving = normalize_before_saving
+
+    @property
+    def num_train_samples(self):
+        return (self.dao.number_of_training_samples // self.BATCH_SIZE) * self.BATCH_SIZE
+
+    def set_root_path(self, env):
+        if env == "sunil_local":
+            self.root_path = "/Users/sunilv/concept_learning_exp"
+        elif env == "colab":
+            self.root_path = "/content/gdrive/MyDrive/concept_learning/concept_learning/concept_learning_exp"
 
     def as_json(self):
         config_json = dict()
@@ -161,6 +221,19 @@ class ExperimentConfig:
         config_json["EVAL_INTERVAL_IN_EPOCHS"] = self.eval_interval_in_epochs
         config_json["RETURN_LATENT_VECTOR"] = self.return_latent_vector
         config_json["SEED"] = self.seed
+        config_json["BUDGET"] = self.budget
+        config_json["CLUSTERING_ALG"] = self.clustering_alg
+        config_json["CONFIDENCE_DECAY_FUNCTION"] = self.confidence_decay_function
+        config_json["DISTANCE_METRIC"] = self.distance_metric
+        config_json["LOG_LEVEL"] = self.log_level
+        config_json["FULLY_CONVOLUTIONAL"] = self.fully_convolutional
+        config_json["NUM_CONCEPTS"] = self.num_concepts
+        config_json["SUPERVISE_WEIGHT_CONCEPTS"] = self.supervise_weight_concepts
+        config_json["STRIDES"] = self.strides
+        config_json["NUM_DENSE_LAYER"] = self.num_dense_layers
+        config_json["UNCORRELATED_FEATURES"] = self.uncorrelated_features
+        config_json["TRANSLATE_IMAGE"] = self.translate_image
+        config_json["NORMALIZE_BEFORE_SAVING"] = self.normalize_before_saving
         return config_json
 
     def get_exp_name_with_parameters(self, run_id):
@@ -276,15 +349,26 @@ class ExperimentConfig:
         self.eval_interval_in_epochs = exp_config_dict["EVAL_INTERVAL_IN_EPOCHS"]
         self.return_latent_vector = exp_config_dict["RETURN_LATENT_VECTOR"]
         self.seed = exp_config_dict["SEED"]
-
+        self.budget = exp_config_dict["BUDGET"]
+        self.confidence_decay_function = exp_config_dict["CONFIDENCE_DECAY_FUNCTION"]
+        self.distance_metric = exp_config_dict["DISTANCE_METRIC"]
+        self.clustering_alg = exp_config_dict["CLUSTERING_ALG"]
+        self.log_level = exp_config_dict["LOG_LEVEL"]
+        self.fully_convolutional = exp_config_dict["FULLY_CONVOLUTIONAL"]
+        self.num_concepts = exp_config_dict["NUM_CONCEPTS"]
+        self.supervise_weight_concepts = exp_config_dict["SUPERVISE_WEIGHT_CONCEPTS"]
+        self.strides = exp_config_dict["STRIDES"],
+        self.num_dense_layers = exp_config_dict["NUM_DENSE_LAYERS"]
+        self.num_dense_layers = exp_config_dict["UNCORRELATED_FEATURES"]
+        self.translate_image = exp_config["TRANSLATE_IMAGE"]
+        self.normalize_before_saving = exp_config["NORMALIZE_BEFORE_SAVING"]
 
 if __name__ == "__main__":
     _root_path = "/Users/sunilv/concept_learning_exp"
-    num_units = [128, 256, 512, 1024]
     exp_config = ExperimentConfig(root_path=_root_path,
                                   num_decoder_layer=5,
                                   z_dim=32,
-                                  num_units=num_units,
+                                  num_units=[128, 256, 512, 1024],
                                   num_cluster_config=None,
                                   confidence_decay_factor=5,
                                   beta=5,

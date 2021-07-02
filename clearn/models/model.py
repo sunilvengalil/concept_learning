@@ -1,6 +1,7 @@
 from abc import ABC
 import os
 import tensorflow as tf
+
 from tensorflow.compat.v1 import Session
 
 from clearn.config import ExperimentConfig
@@ -26,16 +27,17 @@ class Model(ABC):
         self.dao = dao
         self.test_data_iterator = test_data_iterator
 
+
     def _initialize(self,
                     restore_from_existing_checkpoint=True,
                     check_point_epochs=None):
         # saver to save model
-        self.saver = tf.train.Saver(max_to_keep=50)
-        # summary writer
-        self.writer = tf.summary.FileWriter(self.exp_config.LOG_PATH + '/' + self._model_name_,
-                                            self.sess.graph)
-        self.writer_v = tf.summary.FileWriter(self.exp_config.LOG_PATH + '/' + self._model_name_ + "_v",
-                                              self.sess.graph)
+        self.saver = tf.compat.v1.train.Saver(max_to_keep=50)
+        # # summary writer
+        # self.writer = tf.compat.v1.summary.FileWriter(self.exp_config.LOG_PATH + '/' + self._model_name_,
+        #                                     self.sess.graph)
+        # self.writer_v = tf.compat.v1.summary.FileWriter(self.exp_config.LOG_PATH + '/' + self._model_name_ + "_v",
+        #                                       self.sess.graph)
 
         if restore_from_existing_checkpoint:
             # restore check-point if it exits
@@ -63,13 +65,20 @@ class Model(ABC):
         # saver to save model
         self.saver = tf.compat.v1.train.Saver(max_to_keep=20)
 
-        print(" [*] Reading checkpoints...")
         checkpoint_dir = checkpoint_dir
         ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
+        print(f"Reading checkpoints from {checkpoint_dir} State {ckpt} ")
+
         if ckpt and ckpt.model_checkpoint_path:
             ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
             if check_point_epochs is not None:
-                ckpt_name = check_point_epochs
+                num_training_samples = self.dao.number_of_training_samples // self.exp_config.BATCH_SIZE
+                print("num_training_samples", num_training_samples)
+                if check_point_epochs < 6:
+                    steps = check_point_epochs * num_training_samples + 1
+                else:
+                    steps = check_point_epochs * num_training_samples
+                ckpt_name = f"{self._model_name_}.model-{steps}"
             print("ckpt_name", ckpt_name)
             self.saver.restore(self.sess, os.path.join(checkpoint_dir, ckpt_name))
             counter = int(next(re.finditer("(\d+)(?!.*\d)", ckpt_name)).group(0))
