@@ -464,12 +464,15 @@ class SemiSupervisedClassifierMnist(VAE):
         data_iterator.reset_counter(dataset_type)
         reconstruction_losses = []
         retention_policies: List[RetentionPolicy] = list()
-        retention_policies_class_wise:List[List[RetentionPolicy]] = [[] * self.dao.num_classes]
+        retention_policies_class_wise:List[List[RetentionPolicy]] =[]
 
         if save_policies_classes == -1:
             save_policies_classes = list(range(self.dao.num_classes))
 
         if save_images:
+            for i in range(len(save_policies_classes)):
+                retention_policies_class_wise.append([])
+
             for policy in save_policies:
                 if dataset_type.upper() == policy.split("_")[0]:
                     policy_type = policy.split("_")[1]
