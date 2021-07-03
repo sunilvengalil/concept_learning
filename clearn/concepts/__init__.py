@@ -12,7 +12,8 @@ class Operator:
         self.num_samples_required = num_samples_required
         self.operator = operator
         if OPERATORS[operator] == "VERTICAL_CONCATENATE":
-            self.concept_list = [12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
+            self.concept_list = [12, 13, 14, 16, 18, 21, 26, 29, 30, 31, 32, 35, 36]
+            #self.concept_list = [12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
         elif OPERATORS[operator] == "IDENTITY":
             self.concept_list = [10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
         self.concepts_to_use_1 = np.random.choice(self.concept_list, num_samples_required)
