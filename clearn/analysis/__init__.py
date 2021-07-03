@@ -1,6 +1,8 @@
 # Column names in annotated csv file
 from typing import List
 import numpy as np
+from copy import deepcopy
+import cv2
 
 CSV_COL_NAME_EPOCH = "epoch"
 CSV_COL_NAME_STEP = "step"
@@ -104,22 +106,97 @@ class ClusterGroup:
 
 class ImageConcept:
     def __init__(self,
-                 digit_image:np.ndarray,
-                 h_extend:List,
-                 v_extend:List,
-                 digit:int,
-                 num_clusters:int,
-                 cluster_name:str,
-                 sample_index:int,
-                 epochs_completed = 0):
+                 digit_image: np.ndarray,
+                 h_extend: List,
+                 v_extend: List,
+                 digit: int,
+                 num_clusters: int,
+                 cluster_name: str,
+                 sample_index: int,
+                 epochs_completed=0,
+                 name=None,
+                 split_id=1,
+                 mode_id=1,
+                 should_use_original_cordinate=True,
+                 top_largest_cc=-1,
+                 bottom_largest_cc=-1,
+                 left_largest_cc=-1,
+                 right_largest_cc=-1
+                 ):
+        self.split_id = split_id
+        self.mode_id = mode_id
         self.digit_image = digit_image
-        self.h_extend = h_extend
-        self.v_extend = v_extend
+        if len(h_extend) == 0:
+            self.h_extend = [0, np.squeeze(digit_image).shape[1]]
+        else:
+            self.h_extend = h_extend
+
+        if len(v_extend) == 0:
+            self.v_extend = [0, np.squeeze(digit_image).shape[0]]
+        else:
+            self.v_extend = v_extend
+
+        self.orig_v_extend = deepcopy(self.v_extend)
+        self.orig_h_extend = deepcopy(self.h_extend)
+
+        self.should_use_original_cordinate = should_use_original_cordinate
+
         self.digit = digit
         self.num_clusters = num_clusters
         self.cluster_name = cluster_name
         self.sample_index = sample_index
         self.epochs_completed = epochs_completed
+        if name is None:
+            self.name = self.get_key()
+        else:
+            key = self.get_key()
+            self.name = f"{name}_{key}"
+
+        self.top_largest_cc = top_largest_cc
+        self.left_largest_cc = left_largest_cc
+        self.bottom_largest_cc = bottom_largest_cc
+        self.right_largest_cc = right_largest_cc
+
+    def get_full_image(self):
+        squeezed = np.squeeze(self.digit_image)
+        mask = np.zeros_like(squeezed)
+        print(mask.shape, self.v_extend, self.h_extend)
+        mask[self.v_extend[0]:self.v_extend[1], self.h_extend[0]:self.h_extend[1]] = self.get_cropped_image()
+        return mask
+
+    def find_largest_cc(self):
+        cropped = self.get_full_image()
+        thresh = cv2.threshold((cropped * 256).astype(np.uint8), 0, 1, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+        output = cv2.connectedComponentsWithStats(thresh, 8, cv2.CV_32S)
+        (numLabels, labels, stats, centroids) = output
+        label_of_largest_connected_component = np.argmax(stats[1:, 4]) + 1
+        centroid_of_largest_connected_component = centroids[label_of_largest_connected_component]
+        self.top_largest_cc = stats[label_of_largest_connected_component, cv2.CC_STAT_TOP]
+        self.left_largest_cc = stats[label_of_largest_connected_component, cv2.CC_STAT_LEFT]
+        self.bottom_largest_cc = self.top_largest_cc + stats[label_of_largest_connected_component, cv2.CC_STAT_HEIGHT]
+        self.right_largest_cc = self.left_largest_cc + stats[label_of_largest_connected_component, cv2.CC_STAT_WIDTH]
+        self.centroid_largest_cc = centroid_of_largest_connected_component
+        print(centroid_of_largest_connected_component)
+        cropped[labels != label_of_largest_connected_component] = 0
+        return cropped
+
+    def use_largest_cc(self):
+        self.should_use_original_cordinate = False
+        self.v_extend = [self.top_largest_cc, self.bottom_largest_cc]
+        self.h_extend = [self.left_largest_cc, self.right_largest_cc]
+
+    def use_original_cc(self):
+        self.should_use_original_cordinate = True
+        self.v_extend = deepcopy(self.orig_v_extend)
+        self.h_extend = deepcopy(self.orig_h_extend)
+
+    def get_image_largest_cc(self):
+        squeezed = np.squeeze(self.digit_image)
+        mask = np.zeros_like(squeezed)
+        print(mask.shape, self.v_extend, self.h_extend)
+        cropped = squeezed[self.top_largest_cc:self.bottom_largest_cc, self.left_largest_cc:self.right_largest_cc]
+        mask[self.top_largest_cc:self.bottom_largest_cc, self.left_largest_cc:self.right_largest_cc] = cropped
+        return mask
 
     def get_cropped_image(self):
         v_extend = self.v_extend
@@ -140,7 +217,7 @@ class ImageConcept:
         width = cropped.shape[1]
         row = 0
         non_zero_pixels_in_col = np.sum(cropped[:, row])
-        if non_zero_pixels_in_col == 0 :
+        if non_zero_pixels_in_col == 0:
             while non_zero_pixels_in_col == 0 and row <= width:
                 non_zero_pixels_in_col = np.sum(cropped[:, row])
                 row += 1
@@ -150,14 +227,14 @@ class ImageConcept:
 
         row = width - 1
         non_zero_pixels_in_col = np.sum(cropped[:, row])
-        if non_zero_pixels_in_col == 0 :
+        if non_zero_pixels_in_col == 0:
             while non_zero_pixels_in_col == 0 and row > from_row:
                 non_zero_pixels_in_col = np.sum(cropped[:, row])
                 row -= 1
             to_row = row + 1
         else:
             to_row = row
-        return cropped[:, from_row-1:to_row+1]
+        return cropped[:, max(0, from_row - 1):min(to_row + 1, cropped.shape[1])]
 
     @staticmethod
     def tight_bound_v(cropped):
@@ -174,25 +251,47 @@ class ImageConcept:
 
         col = height - 1
         non_zero_pixels_in_row = np.sum(cropped[col, :])
-        if non_zero_pixels_in_row == 0 :
+        if non_zero_pixels_in_row == 0:
             while non_zero_pixels_in_row == 0 and col > from_col:
                 non_zero_pixels_in_row = np.sum(cropped[col, :])
                 col -= 1
             to_col = col + 1
         else:
             to_col = col
+        return cropped[max(from_col - 1, 0):min(to_col + 1, cropped.shape[0]), :]
 
-        return cropped[from_col - 1:to_col + 1, :]
+    def get_key(self):
+        return f"{self.digit}_{self.h_extend[0]}_{self.h_extend[1]}_{self.v_extend[0]}_{self.v_extend[1]}"
 
     def todict(self):
         concept_dict = dict()
-        concept_dict["digit_image"] = self.digit_image.tolist()
-        concept_dict["h_extend"] = self.h_extend
-        concept_dict["v_extend"] = self.v_extend
+        if isinstance(self.digit_image, np.ndarray):
+            concept_dict["digit_image"] = self.digit_image.tolist()
+        else:
+            concept_dict["digit_image"] = self.digit_image
+
+        if isinstance(self.h_extend, np.ndarray):
+            concept_dict["h_extend"] = self.h_extend.tolist()
+        else:
+            concept_dict["h_extend"] = self.h_extend
+
+        concept_dict["h_extend"] = [int(self.h_extend[0]), int(self.h_extend[1])]
+
+        concept_dict["v_extend"] = [int(self.v_extend[0]), int(self.v_extend[1])]
+
         concept_dict["digit"] = self.digit
         concept_dict["num_clusters"] = self.num_clusters
         concept_dict["cluster_name"] = self.cluster_name
         concept_dict["sample_index"] = self.sample_index
+        concept_dict["epochs_completed"] = self.epochs_completed
+        concept_dict["split_id"] = self.split_id
+        concept_dict["mode_id"] = self.mode_id
+        concept_dict["name"] = self.name
+        concept_dict["should_use_original_cordinate"] = self.should_use_original_cordinate
+        concept_dict["orig_v_extend"] = [int(self.orig_v_extend[0]), int(self.orig_v_extend[1])]
+        concept_dict["orig_h_extend"] = [int(self.orig_h_extend[0]), int(self.orig_h_extend[1])]
+        concept_dict["v_extend_largest_cc"] = [int(self.top_largest_cc), int(self.bottom_largest_cc)]
+        concept_dict["h_extend_largest_cc"] = [int(self.left_largest_cc), int(self.right_largest_cc)]
         return concept_dict
 
     @classmethod
@@ -203,17 +302,35 @@ class ImageConcept:
                        digit=image_concept_dict["digit"],
                        num_clusters=image_concept_dict["num_clusters"],
                        cluster_name=image_concept_dict["cluster_name"],
-                       sample_index=image_concept_dict["sample_index"] )
+                       sample_index=image_concept_dict["sample_index"])
+        if "epochs_completed" in image_concept_dict:
+            instance.epochs_completed = image_concept_dict["epochs_completed"],
+        if "name" in image_concept_dict:
+            instance.name = image_concept_dict["name"],
+        if "should_use_original_cordinate" in image_concept_dict:
+            instance.should_use_original_cordinate = image_concept_dict["should_use_original_cordinate"]
+        if "split_id" in image_concept_dict:
+            instance.split_id = image_concept_dict["split_id"]
+        if "mode_id" in image_concept_dict:
+            instance.mode_id = image_concept_dict["mode_id"]
+        if "top_largest_cc" in image_concept_dict:
+            instance.top_largest_cc = image_concept_dict["top_largest_cc"]
+        if "bottom_largest_cc" in image_concept_dict:
+            instance.bottom_largest_cc = image_concept_dict["bottom_largest_cc"]
+        if "left_largest_cc" in image_concept_dict:
+            instance.left_largest_cc = image_concept_dict["left_largest_cc"]
+        if "right_largest_cc" in image_concept_dict:
+            instance.right_largest_cc = image_concept_dict["right_largest_cc"]
         return instance
 
     # classmethod
     def tolist(self, image_concept_dict):
-        return [ image_concept_dict["digit_image"],
-                       image_concept_dict["h_extend"],
-                       image_concept_dict["v_extend"],
-                       image_concept_dict["digit"],
-                       image_concept_dict["num_clusters"],
-                       image_concept_dict["cluster_name"],
-                       image_concept_dict["sample_index"]
-        ]
+        return [image_concept_dict["digit_image"],
+                image_concept_dict["h_extend"],
+                image_concept_dict["v_extend"],
+                image_concept_dict["digit"],
+                image_concept_dict["num_clusters"],
+                image_concept_dict["cluster_name"],
+                image_concept_dict["sample_index"]
+                ]
 
