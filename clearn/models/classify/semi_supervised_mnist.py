@@ -564,7 +564,6 @@ class SemiSupervisedClassifierMnist(VAE):
                 print(
                     f"Length of batch_images: {batch_images.shape} Nll_batch shape: {nll_batch.shape} Nll shape: {nll.shape} Nll:{nll} ")
                 break
-            labels_predicted_for_batch = np.argmax(predicted_proba_batch, axis=1)
             labels_for_batch = np.argmax(batch_labels, axis=1)
 
             # if len(nll_batch.shape) != 2:
@@ -596,6 +595,8 @@ class SemiSupervisedClassifierMnist(VAE):
                     traceback.print_exc()
 
             predicted_proba_batch = softmax(y_pred)
+            labels_predicted_for_batch = np.argmax(predicted_proba_batch, axis=1)
+
             reconstruction_losses.append(nll)
 
             if labels_predicted is None:
