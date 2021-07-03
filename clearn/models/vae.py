@@ -136,11 +136,7 @@ class VAE(GenerativeModel):
                                                          self.out,
                                                          reduction=tf.compat.v1.losses.Reduction.NONE
                                                          )
-
-            mse_for_all_images = -tf.compat.v1.reduce_mean(mll, axis=(1, 2, 3))
-            self.marginal_likelihood = tf.math.multiply(mse_for_all_images,
-                                                         self.mask_for_concept_no[6][-1])
-
+            self.marginal_likelihood = -tf.compat.v1.reduce_mean(mll, axis=(1, 2, 3))
         self.neg_loglikelihood = -tf.reduce_mean(self.marginal_likelihood)
 
         kl = 0.5 * tf.reduce_sum(tf.square(self.mu) +
@@ -230,7 +226,7 @@ class VAE(GenerativeModel):
                         print(f"{metric}: train: {self.metrics[VAE.dataset_type_train][metric][-1]}")
                         print(f"{metric}: val: {self.metrics[VAE.dataset_type_val][metric][-1]}")
                         print(f"{metric}: test: {self.metrics[VAE.dataset_type_test][metric][-1]}")
-
+                    self.save_metrics()
                     evaluation_run_for_last_epoch = True
 
             train_val_data_iterator.reset_counter("train")
@@ -275,7 +271,7 @@ class VAE(GenerativeModel):
                 df[f"val_{metric}_std"] = np.asarray(self.metrics["val"][metric])[:, 2]
                 df[f"test_{metric}_std"] = np.asarray(self.metrics["test"][metric])[:, 2]
 
-            df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"{metric}_{self.num_training_epochs_completed}.csv"),
+            df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"{metric}_{self.start_epoch}.csv"),
                       index=False)
             max_value = df[f"test_{metric}_mean"].max()
             print(f"Max test {metric}", max_value)
@@ -409,12 +405,18 @@ class VAE(GenerativeModel):
             if dataset_type.upper() == rp.data_type.upper():
                 for image_no in range(num_images):
                     file_image = f"{dataset_type}_{rp.policy_type}_{image_no}.png"
+                    original_image_filename = f"orig_{dataset_type}_{rp.policy_type}_{image_no}.png"
                     file_label = f"{dataset_type}_{rp.policy_type}_{image_no}_labels.json"
                     file_loss = f"{dataset_type}_{rp.policy_type}_{image_no}_loss.json"
                     samples_to_save = np.zeros((num_samples_per_image,
                                                 self.dao.image_shape[0],
                                                 self.dao.image_shape[1],
                                                 self.dao.image_shape[2]))
+                    original_image = np.zeros((num_samples_per_image,
+                                                self.dao.image_shape[0],
+                                                self.dao.image_shape[1],
+                                                self.dao.image_shape[2]))
+
                     labels = np.zeros(num_samples_per_image)
                     losses = np.zeros(num_samples_per_image)
                     for sample_num, e in enumerate(rp.data_queue[image_no * num_samples_per_image: (
@@ -422,7 +424,10 @@ class VAE(GenerativeModel):
                         samples_to_save[sample_num, :, :, :] = e[2][0]
                         labels[sample_num] = e[2][1]
                         losses[sample_num] = e[2][2]
+                        original_image[sample_num, :, :, :] = e[2][3]
                     save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file_image)
+                    print(f"Saving original image  to {reconstructed_dir + original_image_filename}")
+                    save_image(original_image, [manifold_h, manifold_w], reconstructed_dir + original_image_filename)
 
                     with open(reconstructed_dir + file_label, "w") as fp:
                         json.dump(labels.tolist(), fp)
