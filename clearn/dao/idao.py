@@ -5,7 +5,8 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-MAP_FILE_NAME = "manually_generated_concepts.json"
+#MAP_FILE_NAME = "manually_generated_concepts.json"
+MAP_FILE_NAME = "manually_generated_concepts_icvgip.json"
 
 class IDao(ABC):
     VALIDATION_Y_RAW = "validation_y_raw"
