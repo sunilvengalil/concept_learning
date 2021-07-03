@@ -17,7 +17,7 @@ from clearn.models.generative_model import GenerativeModel
 from clearn.utils import prior_factory as prior
 from clearn.utils.retention_policy.policy import RetentionPolicy
 from clearn.utils.utils import save_image, get_latent_vector_column, get_padding_info
-from clearn.utils.dir_utils import get_eval_result_dir
+from clearn.utils.dir_utils import get_eval_result_dir, check_and_create_folder
 
 import tensorflow as tf
 
@@ -393,10 +393,12 @@ class VAE(GenerativeModel):
 
         return encoded_df
 
-    def save_sample_reconstructed_images(self, dataset_type, retention_policies):
+    def save_sample_reconstructed_images(self, dataset_type, retention_policies, class_label=None):
         reconstructed_dir = get_eval_result_dir(self.exp_config.PREDICTION_RESULTS_PATH,
                                                 self.num_training_epochs_completed,
                                                 self.num_steps_completed)
+        if class_label is not None:
+            reconstructed_dir = check_and_create_folder(reconstructed_dir + f"class_{class_label}")
         num_samples_per_image = 64
         manifold_w = 4
         manifold_h = num_samples_per_image // manifold_w

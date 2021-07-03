@@ -63,17 +63,6 @@ class SemiSupervisedClassifierMnist(VAE):
             else:
                 self.num_concpets_per_col = (latent_image_dim[1] // self.concepts_stride) + 1
 
-            # self.is_concepts_annotated = placeholder(tf.float32,
-            #                                          [exp_config.BATCH_SIZE,
-            #                                           self.num_concpets_per_row,
-            #                                           self.num_concpets_per_col],
-            #                                          name="is_concepts_annotated")
-            # self.concepts_labels = placeholder(tf.float32,
-            #                                    [exp_config.BATCH_SIZE,
-            #                                     self.num_concpets_per_row,
-            #                                     self.num_concpets_per_col,
-            #                                     exp_config.dao.num_classes],
-            #                                    name='manual_label_concepts')
         if exp_config.concept_dict is not None and len(exp_config.concept_dict) > 0:
             self.layers_to_apply_concept_loss = []
             self.unique_concepts: Dict[int, List] = dict()
@@ -456,7 +445,8 @@ class SemiSupervisedClassifierMnist(VAE):
                  metrics=[],
                  save_policies=("TEST_TOP_128", "TEST_BOTTOM_128",
                                 "TRAIN_TOP_128", "TRAIN_BOTTOM_128",
-                                "VAL_TOP_128", "VAL_BOTTOM_128")
+                                "VAL_TOP_128", "VAL_BOTTOM_128"),
+                 save_policies_classes=-1
                  ):
         if metrics is None or len(metrics) == 0:
             metrics = self.metrics_to_compute
@@ -474,6 +464,11 @@ class SemiSupervisedClassifierMnist(VAE):
         data_iterator.reset_counter(dataset_type)
         reconstruction_losses = []
         retention_policies: List[RetentionPolicy] = list()
+        retention_policies_class_wise:List[List[RetentionPolicy]] = [[] * self.dao.num_classes]
+
+        if save_policies_classes == -1:
+            save_policies_classes = list(range(self.dao.num_classes))
+
         if save_images:
             for policy in save_policies:
                 if dataset_type.upper() == policy.split("_")[0]:
@@ -484,6 +479,24 @@ class SemiSupervisedClassifierMnist(VAE):
                                              N=int(policy.split("_")[2])
                                              )
                         retention_policies.append(rp)
+                        for save_policies_class in save_policies_classes:
+                            rp = RetentionPolicy(dataset_type.upper(),
+                                                 policy_type=policy_type,
+                                                 N=int(policy.split("_")[2])
+                                                 )
+                            retention_policies_class_wise[save_policies_class].append(rp)
+
+            for policy in save_policies:
+                if dataset_type.upper() == policy.split("_")[0]:
+                    policy_type = policy.split("_")[1]
+                    if "reconstruction_loss" in metrics:
+                        rp = RetentionPolicy(dataset_type.upper(),
+                                             policy_type=policy_type,
+                                             N=int(policy.split("_")[2])
+                                             )
+                        retention_policies.append(rp)
+
+
         while data_iterator.has_next(dataset_type):
             batch_images, batch_labels, manual_labels, manual_labels_concepts = data_iterator.get_next_batch(
                 dataset_type)
@@ -558,6 +571,9 @@ class SemiSupervisedClassifierMnist(VAE):
                 print(
                     f"Length of batch_images: {batch_images.shape} Nll_batch shape: {nll_batch.shape} Nll shape: {nll.shape} Nll:{nll} ")
                 break
+            labels_predicted_for_batch = np.argmax(predicted_proba_batch, axis=1)
+            labels_for_batch = np.argmax(batch_labels, axis=1)
+
             # if len(nll_batch.shape) != 2:
             #     raise Exception(f"Shape of nll_batch {nll_batch.shape}")
             """
@@ -568,15 +584,25 @@ class SemiSupervisedClassifierMnist(VAE):
                     for rp in retention_policies:
                         rp.update_heap(cost=nll_batch,
                                        exp_config=self.exp_config,
-                                       data=[reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch,
+                                       data=[reconstructed_image,
+                                             labels_for_batch,
+                                             nll_batch,
                                              batch_images])
+                    for class_label, rps in enumerate(retention_policies_class_wise):
+                        for rp in rps:
+                            label_indices = labels_for_batch == class_label
+                            if any(label_indices):
+                                rp.update_heap(cost=nll_batch[label_indices],
+                                               exp_config=self.exp_config,
+                                               data=[reconstructed_image[label_indices],
+                                                     labels_for_batch[label_indices],
+                                                     nll_batch[label_indices],
+                                                     batch_images[label_indices] ])
                 except:
                     print(f"Shape of mse is {nll_batch.shape}")
                     traceback.print_exc()
 
             predicted_proba_batch = softmax(y_pred)
-            labels_predicted_for_batch = np.argmax(predicted_proba_batch, axis=1)
-            labels_for_batch = np.argmax(batch_labels, axis=1)
             reconstruction_losses.append(nll)
 
             if labels_predicted is None:
@@ -610,6 +636,8 @@ class SemiSupervisedClassifierMnist(VAE):
 
         if save_images:
             self.save_sample_reconstructed_images(dataset_type, retention_policies)
+            for class_label in self.dao.num_classes:
+                self.save_sample_reconstructed_images(dataset_type, retention_policies, class_label)
 
         data_iterator.reset_counter(dataset_type)
         encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
