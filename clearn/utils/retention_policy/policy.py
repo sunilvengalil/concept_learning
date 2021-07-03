@@ -38,8 +38,8 @@ class RetentionPolicy:
         else:
             raise Exception(f" Data type of costs is {type(costs)}")
 
-        if len(costs) != exp_config.BATCH_SIZE:
-            raise Exception(f"Shape of cost is {len(costs)} ")
+        # if len(costs) != exp_config.BATCH_SIZE:
+        #     raise Exception(f"Shape of cost is {len(costs)} ")
 
         """
         Validation completed
