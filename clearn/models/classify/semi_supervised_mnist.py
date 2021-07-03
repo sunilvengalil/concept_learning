@@ -631,7 +631,7 @@ class SemiSupervisedClassifierMnist(VAE):
         if save_images:
             self.save_sample_reconstructed_images(dataset_type, retention_policies)
             for class_label in range(self.dao.num_classes):
-                self.save_sample_reconstructed_images(dataset_type, retention_policies_class_wise, class_label)
+                self.save_sample_reconstructed_images(dataset_type, retention_policies_class_wise[class_label], class_label)
 
         data_iterator.reset_counter(dataset_type)
         encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
