@@ -398,7 +398,7 @@ class VAE(GenerativeModel):
                                                 self.num_training_epochs_completed,
                                                 self.num_steps_completed)
         if class_label is not None:
-            reconstructed_dir = check_and_create_folder(reconstructed_dir + f"class_{class_label}")
+            reconstructed_dir = check_and_create_folder(reconstructed_dir + f"class_{class_label}/")
         num_samples_per_image = 64
         manifold_w = 4
         manifold_h = num_samples_per_image // manifold_w
