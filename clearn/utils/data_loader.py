@@ -207,22 +207,22 @@ class TrainValDataIterator:
                                                                                       instance.concepts_gt
                                                                                       )
         print(f"Total Manual annotation confidence {np.sum(instance.manual_annotation[:, 10])}")
-        if instance.translate_image:
-            instance.num_pixels = np.reshape(randint(low=0,
-                                                 high=instance.max_pixels_to_translate,
-                                                 size=instance.train_x.shape[0]),
-                                         (instance.train_x.shape[0], 1)
-                                         )
-            instance.directions = np.reshape(randint(low=0,
-                                                 high=4,
-                                                 size=instance.train_x.shape[0]),
-                                         (instance.train_x.shape[0], 1)
-                                         )
-            reshaped = instance.train_x.reshape(instance.train_x.shape[0], 784)
-            im_with_num_pixels_and_dir = np.hstack([reshaped, instance.num_pixels, instance.directions])
-            translated = np.apply_along_axis(translate_random, 1, im_with_num_pixels_and_dir)
-            print("translated shape", translated.shape)
-            instance.train_x = translated.reshape((instance.train_x.shape[0], 28, 28, 1))
+        # if instance.translate_image:
+        #     instance.num_pixels = np.reshape(randint(low=0,
+        #                                          high=instance.max_pixels_to_translate,
+        #                                          size=instance.train_x.shape[0]),
+        #                                  (instance.train_x.shape[0], 1)
+        #                                  )
+        #     instance.directions = np.reshape(randint(low=0,
+        #                                          high=4,
+        #                                          size=instance.train_x.shape[0]),
+        #                                  (instance.train_x.shape[0], 1)
+        #                                  )
+        #     reshaped = instance.train_x.reshape(instance.train_x.shape[0], 784)
+        #     im_with_num_pixels_and_dir = np.hstack([reshaped, instance.num_pixels, instance.directions])
+        #     translated = np.apply_along_axis(translate_random, 1, im_with_num_pixels_and_dir)
+        #     print("translated shape", translated.shape)
+        #     instance.train_x = translated.reshape((instance.train_x.shape[0], 28, 28, 1))
 
         instance.train_idx = 0
         instance.val_idx = 0
@@ -403,25 +403,25 @@ class TrainValDataIterator:
                                                                                   self.concepts_gt
                                                                                   )
             self.max_pixels_to_translate = 4
-            if translate_image:
-                self.num_pixels = np.reshape(randint(low=0,
-                                                     high=self.max_pixels_to_translate,
-                                                     size=self.train_x.shape[0]),
-                                             (self.train_x.shape[0], 1)
-                                             )
-                self.directions = np.reshape(randint(low=0,
-                                                     high=4,
-                                                     size=self.train_x.shape[0]),
-                                             (self.train_x.shape[0], 1)
-                                             )
-                reshaped = self.train_x.reshape(self.train_x.shape[0], 784)
-                im_with_num_pixels_and_dir = np.hstack([reshaped,
-                                                        self.num_pixels,
-                                                        self.directions])
-                # save_to_csv(im_with_num_pixels_and_dir, np.argmax(self.train_y, axis=1), "/Users/sunilv/concept_learning_exp/test/datasets/mnist_concepts/original_concepts.csv")
-                translated = np.apply_along_axis(translate_random, 1,  im_with_num_pixels_and_dir)
-                print("translated shape", translated.shape)
-                self.train_x = translated.reshape((self.train_x.shape[0], 28, 28, 1))
+            # if translate_image:
+            #     self.num_pixels = np.reshape(randint(low=0,
+            #                                          high=self.max_pixels_to_translate,
+            #                                          size=self.train_x.shape[0]),
+            #                                  (self.train_x.shape[0], 1)
+            #                                  )
+            #     self.directions = np.reshape(randint(low=0,
+            #                                          high=4,
+            #                                          size=self.train_x.shape[0]),
+            #                                  (self.train_x.shape[0], 1)
+            #                                  )
+            #     reshaped = self.train_x.reshape(self.train_x.shape[0], 784)
+            #     im_with_num_pixels_and_dir = np.hstack([reshaped,
+            #                                             self.num_pixels,
+            #                                             self.directions])
+            #     # save_to_csv(im_with_num_pixels_and_dir, np.argmax(self.train_y, axis=1), "/Users/sunilv/concept_learning_exp/test/datasets/mnist_concepts/original_concepts.csv")
+            #     translated = np.apply_along_axis(translate_random, 1,  im_with_num_pixels_and_dir)
+            #     print("translated shape", translated.shape)
+            #     self.train_x = translated.reshape((self.train_x.shape[0], 28, 28, 1))
             self.train_idx = 0
             self.val_idx = 0
 
@@ -476,23 +476,23 @@ class TrainValDataIterator:
             raise ValueError("dataset_type should be either 'train' or 'val' ")
 
     def reset_counter(self, dataset_type):
-        if self.translate_image:
-            self.num_pixels = np.reshape(randint(low=0,
-                                                 high=self.max_pixels_to_translate,
-                                                 size=self.train_x.shape[0]),
-                                         (self.train_x.shape[0], 1)
-                                         )
-            self.directions = np.reshape(randint(low=0,
-                                                 high=4,
-                                                 size=self.train_x.shape[0]),
-                                         (self.train_x.shape[0], 1)
-                                         )
-
-            reshaped = self.train_x.reshape(self.train_x.shape[0], 784)
-            im_with_num_pixels_and_dir = np.hstack([reshaped, self.num_pixels, self.directions])
-            translated = np.apply_along_axis(translate_random, 1, im_with_num_pixels_and_dir)
-            print("translated shape", translated.shape)
-            self.train_x = translated.reshape((self.train_x.shape[0], 28, 28, 1))
+        # if self.translate_image:
+        #     self.num_pixels = np.reshape(randint(low=0,
+        #                                          high=self.max_pixels_to_translate,
+        #                                          size=self.train_x.shape[0]),
+        #                                  (self.train_x.shape[0], 1)
+        #                                  )
+        #     self.directions = np.reshape(randint(low=0,
+        #                                          high=4,
+        #                                          size=self.train_x.shape[0]),
+        #                                  (self.train_x.shape[0], 1)
+        #                                  )
+        #
+        #     reshaped = self.train_x.reshape(self.train_x.shape[0], 784)
+        #     im_with_num_pixels_and_dir = np.hstack([reshaped, self.num_pixels, self.directions])
+        #     translated = np.apply_along_axis(translate_random, 1, im_with_num_pixels_and_dir)
+        #     print("translated shape", translated.shape)
+        #     self.train_x = translated.reshape((self.train_x.shape[0], 28, 28, 1))
         if dataset_type == "train":
             self.train_idx = 0
         elif dataset_type == "val":
