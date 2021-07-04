@@ -252,15 +252,13 @@ def initialize_model_train_and_get_features(experiment_name,
                                 f"Exp_{units_}_{num_units[0]}_{z_dim}_{num_cluster_config}_{run_id}/")
 
     if dao is None:
-        base_path = get_base_path()
-
-        analysis_path = os.path.join(base_path, "analysis/")
         print("root path",root_path)
         dao = get_dao(dataset_name,
                       split_name,
                       num_val_samples,
                       dataset_path=root_path+"/datasets/",
-                      concept_id = concept_id
+                      concept_id = concept_id,
+                      translate_image=translate_image
                       )
 
     if num_units is None:

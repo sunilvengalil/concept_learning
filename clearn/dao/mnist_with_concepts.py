@@ -34,8 +34,10 @@ class MnistConceptsDao(IDao):
                  split_name: str,
                  num_validation_samples: int,
                  dataset_path: str,
-                 concept_id: int
+                 concept_id: int,
+                 translate_image
                  ):
+        self.translate_image = translate_image
         self.training_phase = "CONCEPTS"
         self.data_dict = None
 
@@ -262,14 +264,16 @@ class MnistConceptsDao(IDao):
             num_images = len(digit_images)
             label = get_label(digit, h_extend, v_extend, label_key_to_label_map)
             for digit_image in digit_images:
-                image_for_concept = generate_concepts_from_digit_image(digit_image,
+                image_for_concept = generate_concepts_from_digit_image(
+                                                                       digit_image,
                                                                        num_images_per_concept // num_images,
                                                                        h_extend,
                                                                        v_extend,
                                                                        digit,
                                                                        concept_image.cluster_name,
                                                                        concept_image.sample_index,
-                                                                       concept_image.epochs_completed
+                                                                       concept_image.epochs_completed,
+                                                                        translate_image = self.translate_image
                                                                        )
 
                 concepts_for_digit[
@@ -284,7 +288,8 @@ if __name__ == "__main__":
                            dataset_path="C:/concept_learning_exp/datasets/",
                            split_name="split_70_30",
                            num_validation_samples=-1,
-                           concept_id=1
+                           concept_id=1,
+                           translate_image=False
                            )
     print(dao.label_key_to_label_map)
     images,labels = dao.load_train_images_and_label("C:\concept_learning_exp\datasets/",

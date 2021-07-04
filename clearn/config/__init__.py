@@ -164,7 +164,8 @@ class ExperimentConfig:
                           split_name,
                                num_val_samples,
                                dataset_path=os.path.join(self.root_path, "datasets/"),
-                               concept_id = concept_id
+                               concept_id = concept_id,
+                               translate_image=translate_image
                           )
         else:
             self.dao = dao

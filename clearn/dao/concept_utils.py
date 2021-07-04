@@ -1,10 +1,13 @@
 import json
+from random import randint
+
 import numpy as np
 from scipy.stats import truncnorm
 import math
 
 from matplotlib import pyplot as plt
 
+from clearn.analysis import ImageConcept
 
 MAP_FILE_NAME = "manually_generated_concepts.json"
 MAX_IMAGES_TO_DISPLAY = 12
@@ -92,7 +95,8 @@ def segment_single_image_with_multiple_slices(image,
                                               cluster,
                                               sample_index,
                                               display_image=False,
-                                              epochs_completed=0
+                                              epochs_completed=0,
+                                              translate_image=False
                                               ):
 
     height, width = image.shape[0], image.shape[1]
@@ -126,7 +130,15 @@ def segment_single_image_with_multiple_slices(image,
         if len(h_extend) == 0:
             h_extend = [0, width]
         cropped = image[ v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]]
-        masked_images[image_number, v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]] = cropped
+
+        cropped_and_stripped = ImageConcept.tight_bound_h(ImageConcept.tight_bound_v(cropped))
+        if translate_image:
+            top = randint(0, image.shape[0] - cropped_and_stripped.shape[0])
+            left = randint(0, image.shape[1] - cropped_and_stripped.shape[1])
+            masked_images[image_number, top:top + cropped_and_stripped.shape[0], left:left + cropped_and_stripped.shape[1]] = cropped_and_stripped
+        else:
+            masked_images[image_number, v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]] = cropped
+
         image_number += 1
 
     if display_image:
@@ -143,7 +155,7 @@ def get_label(digit, h_extend, v_extend, label_key_to_label_map):
 
 
 def generate_concepts_from_digit_image(digit_image, num_concepts_to_generate, h_extend, v_extend, digit,
-                                       cluster_name, sample_index, epochs_completed, path=None):
+                                       cluster_name, sample_index, epochs_completed, path=None, translate_image=False):
     if len(v_extend) == 0:
         v_extend = [0, digit_image.shape[0]]
     if len(h_extend) == 0:
@@ -164,7 +176,8 @@ def generate_concepts_from_digit_image(digit_image, num_concepts_to_generate, h_
                                                                cluster_name,
                                                                sample_index,
                                                                display_image=False,
-                                                               epochs_completed=epochs_completed
+                                                               epochs_completed=epochs_completed,
+                                                               translate_image=translate_image
                                                                )
     if digit == 4:
         print(h_extend, v_extend, np.sum(concept_images, axis=(1,2,3)).shape)
