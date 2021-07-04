@@ -468,7 +468,10 @@ class SemiSupervisedClassifierMnist(VAE):
         retention_policies_class_wise:List[List[RetentionPolicy]] =[]
 
         if save_policies_classes == -1:
-            save_policies_classes = list(range(self.dao.num_classes))
+            if data_iterator.training_phase == "CONCEPTS":
+                save_policies_classes = list(range(self.dao.num_original_classes,
+                                                   self.dao.num_original_classes + self.dao.num_concepts_label_generated)
+                                             )
 
         if save_images:
             for i in range(len(save_policies_classes)):
@@ -483,12 +486,12 @@ class SemiSupervisedClassifierMnist(VAE):
                                              N=int(policy.split("_")[2])
                                              )
                         retention_policies.append(rp)
-                        for save_policies_class in save_policies_classes:
+                        for i in list(range(save_policies_classes)):
                             rp = RetentionPolicy(dataset_type.upper(),
                                                  policy_type=policy_type,
                                                  N=int(policy.split("_")[2])
                                                  )
-                            retention_policies_class_wise[save_policies_class].append(rp)
+                            retention_policies_class_wise[i].append(rp)
 
 
         while data_iterator.has_next(dataset_type):
@@ -581,8 +584,8 @@ class SemiSupervisedClassifierMnist(VAE):
                                              labels_for_batch,
                                              nll_batch,
                                              batch_images])
-                    for class_label, rps in enumerate(retention_policies_class_wise):
-                        for rp in rps:
+                    for i, class_label in enumerate(save_policies_classes):
+                        for rp in retention_policies_class_wise[i]:
                             label_indices = labels_for_batch == class_label
                             if any(label_indices):
                                 rp.update_heap(cost=nll_batch[label_indices],
