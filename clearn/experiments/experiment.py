@@ -224,7 +224,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             translate_image=False,
                                             concept_id = -1,
                                             concept_dict=None,
-                                            training_phase=None
+                                            training_phase=None,
+                                            run_test=True
                                             ):
     if concept_id == -1 and dataset_name == "mnist_concepts":
         raise Exception("Parameter concept_id should be non-negative")
@@ -322,7 +323,7 @@ def initialize_model_train_and_get_features(experiment_name,
                                                          training_phase=training_phase
                                                          )
 
-    if test_data_iterator is None:
+    if run_test and test_data_iterator is None:
         test_data_location = exp_config.DATASET_ROOT_PATH + "/test/"
         if exp_config.fully_convolutional:
             num_concepts_per_row, num_concepts_per_col = get_num_concepts_per_image(exp_config, dao)
