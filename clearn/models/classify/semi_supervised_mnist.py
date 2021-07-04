@@ -486,7 +486,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                              N=int(policy.split("_")[2])
                                              )
                         retention_policies.append(rp)
-                        for i in list(range(save_policies_classes)):
+                        for i in range(len(save_policies_classes)):
                             rp = RetentionPolicy(dataset_type.upper(),
                                                  policy_type=policy_type,
                                                  N=int(policy.split("_")[2])
@@ -634,8 +634,8 @@ class SemiSupervisedClassifierMnist(VAE):
 
         if save_images:
             self.save_sample_reconstructed_images(dataset_type, retention_policies)
-            for class_label in range(self.dao.num_classes):
-                self.save_sample_reconstructed_images(dataset_type, retention_policies_class_wise[class_label], class_label)
+            for i, class_label in enumerate(save_policies_classes):
+                self.save_sample_reconstructed_images(dataset_type, retention_policies_class_wise[i], class_label)
 
         data_iterator.reset_counter(dataset_type)
         encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
