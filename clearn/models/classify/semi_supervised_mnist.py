@@ -418,17 +418,20 @@ class SemiSupervisedClassifierMnist(VAE):
                 df[column_name] = np.asarray(self.metrics["train"][metric])[:, 1]
 
             df[f"val_{metric}_mean"] = np.asarray(self.metrics["val"][metric])[:, 1]
-            df[f"test_{metric}_mean"] = np.asarray(self.metrics["test"][metric])[:, 1]
+            if self.test_data_iterator is not None:
+                df[f"test_{metric}_mean"] = np.asarray(self.metrics["test"][metric])[:, 1]
 
             if np.asarray(self.metrics["val"][metric]).shape[1] == 3:
                 df[f"train_{metric}_std"] = np.asarray(self.metrics["train"][metric])[:, 2]
                 df[f"val_{metric}_std"] = np.asarray(self.metrics["val"][metric])[:, 2]
-                df[f"test_{metric}_std"] = np.asarray(self.metrics["test"][metric])[:, 2]
+                if self.test_data_iterator is not None:
+                    df[f"test_{metric}_std"] = np.asarray(self.metrics["test"][metric])[:, 2]
 
-            max_value = df[f"test_{metric}_mean"].max()
-            print(f"Max test {metric}_mean", max_value)
-            min_value = df[f"test_{metric}_mean"].min()
-            print(f"Minimum test {metric}_mean", min_value)
+            if self.test_data_iterator is not None:
+                max_value = df[f"test_{metric}_mean"].max()
+                print(f"Max test {metric}_mean", max_value)
+                min_value = df[f"test_{metric}_mean"].min()
+                print(f"Minimum test {metric}_mean", min_value)
 
         df["num_individual_samples_annotated"] = self.num_individual_samples_annotated
         df["num_samples_wrongly_annotated"] = self.num_samples_wrongly_annotated
