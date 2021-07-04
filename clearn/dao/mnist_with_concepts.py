@@ -10,7 +10,7 @@ from clearn.dao.concept_utils import generate_concepts_from_digit_image, get_lab
 from clearn.dao.idao import IDao
 from clearn.concepts import OPERATORS, apply_operator
 
-#MAP_FILE_NAME = "manually_generated_concepts.json"
+# MAP_FILE_NAME = "manually_generated_concepts.json"
 MAP_FILE_NAME = "manually_generated_concepts_icvgip.json"
 
 MAX_IMAGES_TO_DISPLAY = 12
