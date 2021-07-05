@@ -172,17 +172,53 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
     # v_extends_to_random = normal_distribution_int(v_extend[1], 1, 3, num_concepts_to_generate)
 
     concept_images,tops, lefts = segment_single_image_with_multiple_slices(digit_image,
-                                                               list(zip(h_extends_from_random, widths)),
-                                                               list(zip(v_extends_from_random, heights)),
-                                                               h_extend,
-                                                               v_extend,
-                                                               concept_image.digit,
-                                                               path,
+                                                                           list(zip(h_extends_from_random, widths)),
+                                                                           list(zip(v_extends_from_random, heights)),
+                                                                           h_extend,
+                                                                           v_extend,
+                                                                           concept_image.digit,
+                                                                           path,
                                                                concept_image.cluster_name,
                                                                concept_image.sample_index,
                                                                display_image=False,
                                                                epochs_completed=concept_image.epochs_completed,
                                                                translate_image=translate_image
                                                                )
-    return concept_images, tops, lefts
+    return concept_images, tops, lefts, widths, heights
 
+if __name__ == "__main__":
+    digit = 3
+    num_concepts_to_generate = 100
+    map_filename="C:/concept_learning_exp/datasets/mnist_concepts/split_70_30/manually_generated_concepts_icvgip.json"
+    concepts_dict = get_concept_map(map_filename)
+    print([k for k in concepts_dict.keys()])
+    concept_image = ImageConcept.fromdict(concepts_dict[str(3)][0])
+    print(concept_image.h_extend, concept_image.v_extend)
+    cropped_and_stripped, h_extend, v_extend = concept_image.get_cropped_and_stripped()
+    # plt.imshow(cropped_and_stripped)
+    # plt.show()
+    print(h_extend, v_extend)
+
+    # h_extends_from_random = normal_distribution_int(h_extend[0], 1, 3, num_concepts_to_generate)
+    # widths = normal_distribution_int(h_extend[1] - h_extend[0], 1, 3, num_concepts_to_generate)
+    # widths[widths == 0] = 1
+    # # width[width == 28] = 28
+    # v_extends_from_random = normal_distribution_int(v_extend[0], 1, 3, num_concepts_to_generate)
+    # heights = normal_distribution_int(v_extend[1] - v_extend[0], 1, 3, num_concepts_to_generate)
+    # heights[heights==0] = 1
+    # # v_extends_to_random = normal_distribution_int(v_extend[1], 1, 3, num_concepts_to_generate)
+    #
+    #
+    # concept_images, tops, lefts = segment_single_image_with_multiple_slices(concept_image.digit_image,
+    #                                                                         list(zip(h_extends_from_random, widths)),
+    #                                                                         list(zip(v_extends_from_random, heights)),
+    #                                                                         h_extend,
+    #                                                                         v_extend,
+    #                                                                         concept_image.digit,
+    #                                                                         path,
+    #                                                                         concept_image.cluster_name,
+    #                                                                         concept_image.sample_index,
+    #                                                                         display_image=False,
+    #                                                                         epochs_completed=concept_image.epochs_completed,
+    #                                                                         translate_image=translate_image
+    #                                                                         )
