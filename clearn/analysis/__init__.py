@@ -1,8 +1,9 @@
 # Column names in annotated csv file
 from typing import List
 import numpy as np
-from copy import deepcopy
 import cv2
+from copy import deepcopy
+
 
 CSV_COL_NAME_EPOCH = "epoch"
 CSV_COL_NAME_STEP = "step"
@@ -103,7 +104,6 @@ class ClusterGroup:
             if cluster.id == cluster_num:
                 return cluster
 
-
 class ImageConcept:
     def __init__(self,
                  digit_image: np.ndarray,
@@ -201,68 +201,83 @@ class ImageConcept:
     def get_cropped_image(self):
         v_extend = self.v_extend
         h_extend = self.h_extend
-        # if len(v_extend) == 0:
-        #     v_extend = [0, 28]
-        # if len(h_extend) == 0:
-        #     h_extend = [0, 28]
+        if len(v_extend) == 0:
+            v_extend = [0, 28]
+        if len(h_extend) == 0:
+            h_extend = [0, 28]
         cropped = np.asarray(self.digit_image)
         return cropped[0, v_extend[0]:v_extend[1], h_extend[0]:h_extend[1], 0]
 
     def get_cropped_and_stripped(self):
         cropped = np.squeeze(self.get_cropped_image())
-        h_im, h_extend = ImageConcept.tight_bound_h(cropped)
-        cropped_and_stripped, v_extend = ImageConcept.tight_bound_v(h_im)
-        return cropped_and_stripped, h_extend, v_extend
+        return ImageConcept.tight_bound_v(ImageConcept.tight_bound_h(cropped))
 
     @staticmethod
     def tight_bound_h(cropped):
         width = cropped.shape[1]
         row = 0
-        non_zero_pixels_in_col = np.sum(cropped[:, row])
+        max_value = np.max(cropped)
+        single_col = cropped[:, row]
+        non_zero_pixels_in_col = np.sum(single_col[single_col > 0.7 * max_value])
         if non_zero_pixels_in_col == 0:
             while non_zero_pixels_in_col == 0 and row <= width:
-                non_zero_pixels_in_col = np.sum(cropped[:, row])
+                #non_zero_pixels_in_col = np.sum(cropped[:, row])
+                single_col = cropped[:, row]
+                non_zero_pixels_in_col = np.sum(single_col[single_col > 0.7 * max_value])
                 row += 1
             from_row = row - 1
         else:
             from_row = row
 
         row = width - 1
-        non_zero_pixels_in_col = np.sum(cropped[:, row])
+        single_col = cropped[:, row]
+        non_zero_pixels_in_col = np.sum(single_col[single_col > 0.7 * max_value])
         if non_zero_pixels_in_col == 0:
             while non_zero_pixels_in_col == 0 and row > from_row:
+                single_col = cropped[:, row]
                 non_zero_pixels_in_col = np.sum(cropped[:, row])
+                non_zero_pixels_in_col = np.sum(single_col[single_col > 0.7 * max_value])
                 row -= 1
             to_row = row + 1
         else:
             to_row = row
-        h_extend_and_stripped = [max(0, from_row - 1), min(to_row + 1, cropped.shape[1])]
-        return cropped[:, h_extend_and_stripped[0]:h_extend_and_stripped[1]], h_extend_and_stripped
+        return cropped[:, max(0, from_row - 1):min(to_row + 1, cropped.shape[1])]
 
     @staticmethod
     def tight_bound_v(cropped):
         height = cropped.shape[0]
         col = 0
-        non_zero_pixels_in_row = np.sum(cropped[col, :])
+        # non_zero_pixels_in_row = np.sum(cropped[col, :])
+        max_value = np.max(cropped)
+        single_row = cropped[col,:]
+        non_zero_pixels_in_row = np.sum(single_row[single_row > 0.7 * max_value])
         if non_zero_pixels_in_row == 0:
             while non_zero_pixels_in_row == 0 and col <= height:
-                non_zero_pixels_in_row = np.sum(cropped[col, :])
+                #non_zero_pixels_in_row = np.sum(cropped[col, :])
+                single_row = cropped[col,:]
+                non_zero_pixels_in_row = np.sum(single_row[single_row > 0.7 * max_value])
+
                 col += 1
             from_col = col - 1
         else:
             from_col = col
 
         col = height - 1
-        non_zero_pixels_in_row = np.sum(cropped[col, :])
+        #non_zero_pixels_in_row = np.sum(cropped[col, :])
+        single_row = cropped[col,:]
+        non_zero_pixels_in_row = np.sum(single_row[single_row > 0.7 * max_value])
+
         if non_zero_pixels_in_row == 0:
             while non_zero_pixels_in_row == 0 and col > from_col:
-                non_zero_pixels_in_row = np.sum(cropped[col, :])
+                # non_zero_pixels_in_row = np.sum(cropped[col, :])
+                single_row = cropped[col,:]
+
+                non_zero_pixels_in_row = np.sum(single_row[single_row > 0.7 * max_value])
                 col -= 1
             to_col = col + 1
         else:
             to_col = col
-        v_extend_stripped = [max(from_col - 1, 0), min(to_col + 1, cropped.shape[0])]
-        return cropped[v_extend_stripped[0]:v_extend_stripped[1], :], v_extend_stripped
+        return cropped[max(from_col - 1, 0):min(to_col + 1, cropped.shape[0]), :]
 
     def get_key(self):
         return f"{self.digit}_{self.h_extend[0]}_{self.h_extend[1]}_{self.v_extend[0]}_{self.v_extend[1]}"
@@ -306,9 +321,11 @@ class ImageConcept:
                        digit=image_concept_dict["digit"],
                        num_clusters=image_concept_dict["num_clusters"],
                        cluster_name=image_concept_dict["cluster_name"],
-                       sample_index=image_concept_dict["sample_index"])
+                       sample_index=image_concept_dict["sample_index"]
+                        )
         if "epochs_completed" in image_concept_dict:
-            instance.epochs_completed = image_concept_dict["epochs_completed"],
+            instance.epochs_completed=image_concept_dict["epochs_completed"],
+
         if "name" in image_concept_dict:
             instance.name = image_concept_dict["name"],
         if "should_use_original_cordinate" in image_concept_dict:
@@ -325,9 +342,10 @@ class ImageConcept:
             instance.left_largest_cc = image_concept_dict["left_largest_cc"]
         if "right_largest_cc" in image_concept_dict:
             instance.right_largest_cc = image_concept_dict["right_largest_cc"]
+
         return instance
 
-    # classmethod
+
     def tolist(self, image_concept_dict):
         return [image_concept_dict["digit_image"],
                 image_concept_dict["h_extend"],
@@ -337,4 +355,3 @@ class ImageConcept:
                 image_concept_dict["cluster_name"],
                 image_concept_dict["sample_index"]
                 ]
-
