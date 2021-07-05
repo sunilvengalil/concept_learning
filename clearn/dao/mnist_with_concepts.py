@@ -184,12 +184,14 @@ class MnistConceptsDao(IDao):
             y = concepts_df.values[:, feature_dim]
             _x = x.reshape((x.shape[0], self.image_shape[0], self.image_shape[1], self.image_shape[2]))
         else:
-            concepts, concept_labels, tops, lefts = self.generate_concepts(map_filename,
+            concepts, concept_labels, _tops, _lefts = self.generate_concepts(map_filename,
                                                                            MnistConceptsDao.NUM_IMAGES_PER_CONCEPT)
 
             print(self.orig_train_images.shape, concepts.shape)
             _x = np.vstack([self.orig_train_images, concepts])
             y = np.hstack([self.orig_train_labels, concept_labels])
+            tops = np.hstack([np.zeros_like(self.orig_train_labels()), _tops])
+            lefts = np.hstack([np.zeros_like(self.orig_train_labels()), _lefts])
 
             # Generate derived images
             concept_1, concept_2, derived_images, derived_labels = self.generate_derived_images(map_filename,
