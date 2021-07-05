@@ -250,7 +250,7 @@ class MnistConceptsDao(IDao):
             lefts[num_concepts_generated: num_concepts_generated + concepts_for_digit.shape[0]] = lefts_for_digit
             num_concepts_generated = num_concepts_generated + concepts_for_digit.shape[0]
 
-        return concepts[0:num_concepts_generated], labels[0:num_concepts_generated], tops, lefts
+        return concepts[0:num_concepts_generated], labels[0:num_concepts_generated], tops[0:num_concepts_generated], lefts[0:num_concepts_generated]
 
     def get_samples(self, digit, cluster_name, sample_index):
         # TODO implement for multiple images
@@ -287,7 +287,7 @@ class MnistConceptsDao(IDao):
                 tops[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = tops_for_concept
                 lefts[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = lefts_for_concept
                 num_samples_generated += image_for_concept.shape[0]
-        return concepts_for_digit[0:num_samples_generated], labels[0:num_samples_generated], tops, lefts
+        return concepts_for_digit[0:num_samples_generated], labels[0:num_samples_generated], tops[0:num_samples_generated], lefts[0:num_samples_generated]
 
 
 if __name__ == "__main__":
