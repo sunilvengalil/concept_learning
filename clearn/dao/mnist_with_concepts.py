@@ -190,8 +190,8 @@ class MnistConceptsDao(IDao):
             print(self.orig_train_images.shape, concepts.shape)
             _x = np.vstack([self.orig_train_images, concepts])
             y = np.hstack([self.orig_train_labels, concept_labels])
-            tops = np.hstack([np.zeros_like(self.orig_train_labels()), _tops])
-            lefts = np.hstack([np.zeros_like(self.orig_train_labels()), _lefts])
+            tops = np.hstack([np.zeros_like(self.orig_train_labels), _tops])
+            lefts = np.hstack([np.zeros_like(self.orig_train_labels), _lefts])
 
             # Generate derived images
             concept_1, concept_2, derived_images, derived_labels = self.generate_derived_images(map_filename,
