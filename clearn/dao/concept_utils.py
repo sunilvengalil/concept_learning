@@ -124,23 +124,22 @@ def segment_single_image_with_multiple_slices(image,
     if path is not None:
         image_filename = path + f"seg_{title_for_filename}_{int(epochs_completed)}_{cluster}_{sample_index}.png"
 
-    for h_extend, v_extend in zip(h_extends, v_extends):
-        if len(v_extend) == 0:
-            v_extend = [0, height]
-        if len(h_extend) == 0:
-            h_extend = [0, width]
-
-        if v_extend[1] - v_extend[0] == 0:
-            if v_extend[0] > 0:
-                v_extend[0] -= 1
+    for _h_extend, _v_extend in zip(h_extends, v_extends):
+        if _v_extend[1] - _v_extend[0] == 0:
+            if _v_extend[0] > 0:
+                v_extend = [_v_extend[0] - 1, _v_extend[1]]
             else:
-                v_extend[1] += 1
+                v_extend = [_v_extend[0], _v_extend[1] + 1]
+        else:
+            v_extend = _v_extend
 
-        if h_extend[1] - h_extend[0] == 0:
-            if h_extend[0] > 0:
-                h_extend[0] -= 1
+        if _h_extend[1] - _h_extend[0] == 0:
+            if _h_extend[0] > 0:
+                h_extend = [_h_extend[0] - 1, _h_extend[1]]
             else:
-                h_extend[1] += 1
+                h_extend[1] = [_h_extend[0], _h_extend[1] + 1]
+        else:
+            h_extend = _h_extend
 
         cropped = image[ v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]]
 
