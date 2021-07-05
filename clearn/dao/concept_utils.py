@@ -110,7 +110,6 @@ def segment_single_image_with_multiple_slices(image,
         1
     ]
     )
-    image_number = 0
 
     ld = location_description(h_extend_mean, v_extend_mean, image_shape)
     location_key = f"{h_extend_mean[0]}_{h_extend_mean[1]}_{v_extend_mean[0]}_{v_extend_mean[1]}"
@@ -123,9 +122,9 @@ def segment_single_image_with_multiple_slices(image,
     image_filename = None
     if path is not None:
         image_filename = path + f"seg_{title_for_filename}_{int(epochs_completed)}_{cluster}_{sample_index}.png"
-    tops = np.zeros(len(v_extends))
-    lefts = np.zeros(len(v_extends))
-
+    tops = np.zeros(len(v_extends), dtype=int)
+    lefts = np.zeros(len(v_extends), dtype=int)
+    image_number = 0
     for h_extend, v_extend in zip(h_extends, v_extends):
         cropped = image[ v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]]
         h_im, _ = ImageConcept.tight_bound_h(cropped)
