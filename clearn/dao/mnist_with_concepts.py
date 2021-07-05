@@ -186,7 +186,7 @@ class MnistConceptsDao(IDao):
         else:
             concepts, concept_labels, _tops, _lefts = self.generate_concepts(map_filename,
                                                                            MnistConceptsDao.NUM_IMAGES_PER_CONCEPT)
-
+            print(np.unique(concept_labels,return_counts=True))
             print(self.orig_train_images.shape, concepts.shape)
             _x = np.vstack([self.orig_train_images, concepts])
             y = np.hstack([self.orig_train_labels, concept_labels])
