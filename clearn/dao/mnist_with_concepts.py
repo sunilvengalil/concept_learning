@@ -251,6 +251,7 @@ class MnistConceptsDao(IDao):
                                                                                                  self.label_key_to_label_map
                                                                                                  )
             concepts[num_concepts_generated: num_concepts_generated + concepts_for_digit.shape[0]] = concepts_for_digit
+            labels[num_concepts_generated: num_concepts_generated + concepts_for_digit.shape[0]] = labels_for_concepts_for_digit
             tops[num_concepts_generated: num_concepts_generated + concepts_for_digit.shape[0]] = tops_for_digit
             lefts[num_concepts_generated: num_concepts_generated + concepts_for_digit.shape[0]] = lefts_for_digit
             num_concepts_generated = num_concepts_generated + concepts_for_digit.shape[0]
