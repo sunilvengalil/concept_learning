@@ -123,36 +123,20 @@ def segment_single_image_with_multiple_slices(image,
     image_filename = None
     if path is not None:
         image_filename = path + f"seg_{title_for_filename}_{int(epochs_completed)}_{cluster}_{sample_index}.png"
+    tops = np.zeros(v_extends.shape[0])
+    lefts = np.zeros(v_extends.shape[0])
 
     for h_extend, v_extend in zip(h_extends, v_extends):
-        # if _v_extend[1] - _v_extend[0] == 0:
-        #     if _v_extend[0] > 0:
-        #         v_extend = [_v_extend[0] - 1, _v_extend[1]]
-        #     else:
-        #         v_extend = [_v_extend[0], _v_extend[1] + 1]
-        # else:
-        #     v_extend = _v_extend
-        #
-        # if _h_extend[1] - _h_extend[0] == 0:
-        #     if _h_extend[0] > 0:
-        #         h_extend = [_h_extend[0] - 1, _h_extend[1]]
-        #     else:
-        #         h_extend[1] = [_h_extend[0], _h_extend[1] + 1]
-        # else:
-        #     h_extend = _h_extend
-
         cropped = image[ v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]]
-
         h_im, _ = ImageConcept.tight_bound_h(cropped)
         cropped_and_stripped, _= ImageConcept.tight_bound_v(h_im)
 
         if translate_image:
-            top = randint(0, height - cropped_and_stripped.shape[0])
-            left = randint(0, width - cropped_and_stripped.shape[1])
-            masked_images[image_number, top:top + cropped_and_stripped.shape[0], left:left + cropped_and_stripped.shape[1]] = cropped_and_stripped
+            tops[image_number] = randint(0, height - cropped_and_stripped.shape[0])
+            lefts[image_number] = randint(0, width - cropped_and_stripped.shape[1])
+            masked_images[image_number, tops[image_number]:tops[image_number] + cropped_and_stripped.shape[0], lefts[image_number]:lefts[image_number] + cropped_and_stripped.shape[1]] = cropped_and_stripped
         else:
             masked_images[image_number, v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]] = cropped
-
         image_number += 1
 
     if display_image:
@@ -161,7 +145,7 @@ def segment_single_image_with_multiple_slices(image,
                        title=title,
                        num_images_to_display=num_images
                        )
-    return masked_images
+    return masked_images, tops, lefts
 
 
 def get_label(digit,
@@ -188,7 +172,7 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
     heights[heights==0] = 1
     # v_extends_to_random = normal_distribution_int(v_extend[1], 1, 3, num_concepts_to_generate)
 
-    concept_images = segment_single_image_with_multiple_slices(digit_image,
+    concept_images,tops, lefts = segment_single_image_with_multiple_slices(digit_image,
                                                                list(zip(h_extends_from_random, widths)),
                                                                list(zip(v_extends_from_random, heights)),
                                                                h_extend,
@@ -201,5 +185,5 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
                                                                epochs_completed=concept_image.epochs_completed,
                                                                translate_image=translate_image
                                                                )
-    return concept_images
+    return concept_images, tops, lefts
 

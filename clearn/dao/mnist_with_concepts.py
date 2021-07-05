@@ -184,14 +184,16 @@ class MnistConceptsDao(IDao):
             y = concepts_df.values[:, feature_dim]
             _x = x.reshape((x.shape[0], self.image_shape[0], self.image_shape[1], self.image_shape[2]))
         else:
-            concepts, concept_labels = self.generate_concepts(map_filename,
-                                                              MnistConceptsDao.NUM_IMAGES_PER_CONCEPT)
+            concepts, concept_labels, tops, lefts = self.generate_concepts(map_filename,
+                                                                           MnistConceptsDao.NUM_IMAGES_PER_CONCEPT)
+
             print(self.orig_train_images.shape, concepts.shape)
             _x = np.vstack([self.orig_train_images, concepts])
             y = np.hstack([self.orig_train_labels, concept_labels])
 
             # Generate derived images
-            concept_1, concept_2, derived_images, derived_labels = self.generate_derived_images(map_filename, MnistConceptsDao.NUM_IMAGES_PER_CONCEPT)
+            concept_1, concept_2, derived_images, derived_labels = self.generate_derived_images(map_filename,
+                                                                                                MnistConceptsDao.NUM_IMAGES_PER_CONCEPT)
 
             image_df = pd.DataFrame(concept_1, columns=["concept_1"])
             image_df["derived_label"] = derived_labels
@@ -204,6 +206,9 @@ class MnistConceptsDao(IDao):
             x = deepcopy(_x).reshape(_x.shape[0], feature_dim)
             image_df = pd.DataFrame(x)
             image_df["label"] = y
+            image_df["top"] = tops
+            image_df["left"] = lefts
+
             image_df.to_csv(concept_image_filename, index=False)
 
         if training_phase == "CONCEPTS":
@@ -229,19 +234,23 @@ class MnistConceptsDao(IDao):
         # Change 8 to 12 below . 10 + 2 (4 and 9 has bimodal distribution)
         concepts = np.zeros((num_images_per_concept * self.num_concepts, 28, 28, 1))
         labels = np.zeros((num_images_per_concept * self.num_concepts), np.int8)
+        tops = np.zeros((num_images_per_concept * self.num_concepts), np.int8)
+        lefts = np.zeros((num_images_per_concept * self.num_concepts), np.int8)
+
+
         num_concepts_generated = 0
         for digit, list_of_concept_dict in concepts_dict.items():
-            concepts_for_digit, labels_for_concepts_for_digit = self.generate_concepts_for_digit(digit,
+            concepts_for_digit, labels_for_concepts_for_digit, tops_for_digit, lefts_for_digit = self.generate_concepts_for_digit(digit,
                                                                                                  list_of_concept_dict,
                                                                                                  num_images_per_concept,
                                                                                                  self.label_key_to_label_map
                                                                                                  )
             concepts[num_concepts_generated: num_concepts_generated + concepts_for_digit.shape[0]] = concepts_for_digit
-            labels[num_concepts_generated: num_concepts_generated + concepts_for_digit.shape[
-                0]] = labels_for_concepts_for_digit
+            tops[num_concepts_generated: num_concepts_generated + concepts_for_digit.shape[0]] = tops_for_digit
+            lefts[num_concepts_generated: num_concepts_generated + concepts_for_digit.shape[0]] = lefts_for_digit
             num_concepts_generated = num_concepts_generated + concepts_for_digit.shape[0]
 
-        return concepts[0:num_concepts_generated], labels[0:num_concepts_generated]
+        return concepts[0:num_concepts_generated], labels[0:num_concepts_generated], tops, lefts
 
     def get_samples(self, digit, cluster_name, sample_index):
         # TODO implement for multiple images
@@ -250,6 +259,9 @@ class MnistConceptsDao(IDao):
     def generate_concepts_for_digit(self, digit, list_of_concept_dict, num_images_per_concept, label_key_to_label_map):
         concepts_for_digit = np.zeros((num_images_per_concept * len(list_of_concept_dict), 28, 28, 1))
         labels = np.zeros(num_images_per_concept * len(list_of_concept_dict), np.int8)
+        tops = np.zeros(num_images_per_concept * len(list_of_concept_dict), np.int8)
+        lefts = np.zeros(num_images_per_concept * len(list_of_concept_dict), np.int8)
+
         num_samples_generated = 0
         for image_concept_dict in list_of_concept_dict:
             concept_image = ImageConcept.fromdict(image_concept_dict)
@@ -264,17 +276,18 @@ class MnistConceptsDao(IDao):
             num_images = len(digit_images)
             label = get_label(digit, h_extend, v_extend, label_key_to_label_map)
             for digit_image in digit_images:
-                image_for_concept = generate_concepts_from_digit_image(concept_image,
+                image_for_concept, tops_for_concept, lefts_for_concept = generate_concepts_from_digit_image(concept_image,
                                                                        digit_image,
                                                                        num_images_per_concept // num_images,
                                                                        translate_image=self.translate_image
                                                                        )
 
-                concepts_for_digit[
-                num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = image_for_concept
+                concepts_for_digit[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = image_for_concept
                 labels[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = label
+                tops[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = tops_for_concept
+                lefts[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = lefts_for_concept
                 num_samples_generated += image_for_concept.shape[0]
-        return concepts_for_digit[0:num_samples_generated], labels[0:num_samples_generated]
+        return concepts_for_digit[0:num_samples_generated], labels[0:num_samples_generated], tops, lefts
 
 
 if __name__ == "__main__":
