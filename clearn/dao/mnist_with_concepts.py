@@ -254,26 +254,20 @@ class MnistConceptsDao(IDao):
         for image_concept_dict in list_of_concept_dict:
             concept_image = ImageConcept.fromdict(image_concept_dict)
             v_extend, h_extend = concept_image.v_extend, concept_image.h_extend
-            if len(v_extend) == 0:
-                v_extend = [0, 28]
-            if len(h_extend) == 0:
-                h_extend = [0, 28]
+            # if len(v_extend) == 0:
+            #     v_extend = [0, 28]
+            # if len(h_extend) == 0:
+            #     h_extend = [0, 28]
 
             # TODO modify this to get samples from multiple images
             digit_images = self.get_samples(digit, concept_image.cluster_name, concept_image.sample_index)
             num_images = len(digit_images)
             label = get_label(digit, h_extend, v_extend, label_key_to_label_map)
             for digit_image in digit_images:
-                image_for_concept = generate_concepts_from_digit_image(
+                image_for_concept = generate_concepts_from_digit_image(concept_image,
                                                                        digit_image,
                                                                        num_images_per_concept // num_images,
-                                                                       h_extend,
-                                                                       v_extend,
-                                                                       digit,
-                                                                       concept_image.cluster_name,
-                                                                       concept_image.sample_index,
-                                                                       concept_image.epochs_completed,
-                                                                        translate_image=self.translate_image
+                                                                       translate_image=self.translate_image
                                                                        )
 
                 concepts_for_digit[

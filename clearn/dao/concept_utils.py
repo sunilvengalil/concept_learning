@@ -124,32 +124,32 @@ def segment_single_image_with_multiple_slices(image,
     if path is not None:
         image_filename = path + f"seg_{title_for_filename}_{int(epochs_completed)}_{cluster}_{sample_index}.png"
 
-    for _h_extend, _v_extend in zip(h_extends, v_extends):
-        if _v_extend[1] - _v_extend[0] == 0:
-            if _v_extend[0] > 0:
-                v_extend = [_v_extend[0] - 1, _v_extend[1]]
-            else:
-                v_extend = [_v_extend[0], _v_extend[1] + 1]
-        else:
-            v_extend = _v_extend
+    for h_extend, v_extend in zip(h_extends, v_extends):
+        # if _v_extend[1] - _v_extend[0] == 0:
+        #     if _v_extend[0] > 0:
+        #         v_extend = [_v_extend[0] - 1, _v_extend[1]]
+        #     else:
+        #         v_extend = [_v_extend[0], _v_extend[1] + 1]
+        # else:
+        #     v_extend = _v_extend
+        #
+        # if _h_extend[1] - _h_extend[0] == 0:
+        #     if _h_extend[0] > 0:
+        #         h_extend = [_h_extend[0] - 1, _h_extend[1]]
+        #     else:
+        #         h_extend[1] = [_h_extend[0], _h_extend[1] + 1]
+        # else:
+        #     h_extend = _h_extend
 
-        if _h_extend[1] - _h_extend[0] == 0:
-            if _h_extend[0] > 0:
-                h_extend = [_h_extend[0] - 1, _h_extend[1]]
-            else:
-                h_extend[1] = [_h_extend[0], _h_extend[1] + 1]
-        else:
-            h_extend = _h_extend
+        cropped = image[ v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]]
 
-        cropped = image[ v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]]
-
-        cropped_and_stripped = ImageConcept.tight_bound_h(ImageConcept.tight_bound_v(cropped))
+        cropped_and_stripped, _, _ = ImageConcept.tight_bound_h(ImageConcept.tight_bound_v(cropped))
         if translate_image:
-            top = randint(0, height- cropped_and_stripped.shape[0])
+            top = randint(0, height - cropped_and_stripped.shape[0])
             left = randint(0, width - cropped_and_stripped.shape[1])
             masked_images[image_number, top:top + cropped_and_stripped.shape[0], left:left + cropped_and_stripped.shape[1]] = cropped_and_stripped
         else:
-            masked_images[image_number, v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]] = cropped
+            masked_images[image_number, v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]] = cropped
 
         image_number += 1
 
@@ -166,33 +166,32 @@ def get_label(digit, h_extend, v_extend, label_key_to_label_map):
     return label_key_to_label_map[f"{digit}_{h_extend[0]}_{h_extend[1]}_{v_extend[0]}_{v_extend[1]}"]
 
 
-def generate_concepts_from_digit_image(digit_image, num_concepts_to_generate, h_extend, v_extend, digit,
-                                       cluster_name, sample_index, epochs_completed, path=None, translate_image=False):
-    if len(v_extend) == 0:
-        v_extend = [0, digit_image.shape[0]]
-    if len(h_extend) == 0:
-        h_extend = [0, digit_image.shape[1]]
+def generate_concepts_from_digit_image(concept_image:ImageConcept,
+                                       digit_image, num_concepts_to_generate, path=None, translate_image=False):
+
+    cropped_and_stripped, h_extend, v_extend = concept_image.get_cropped_and_stripped()
 
     h_extends_from_random = normal_distribution_int(h_extend[0], 1, 3, num_concepts_to_generate)
-    h_extends_to_random = normal_distribution_int(h_extend[1], 1, 3, num_concepts_to_generate)
+    widths = normal_distribution_int(h_extend[1] - h_extend[0], 1, 3, num_concepts_to_generate)
+    widths[widths == 0] = 1
+    #width[width == 28] = 28
     v_extends_from_random = normal_distribution_int(v_extend[0], 1, 3, num_concepts_to_generate)
-    v_extends_to_random = normal_distribution_int(v_extend[1], 1, 3, num_concepts_to_generate)
+    heights = normal_distribution_int(v_extend[1] - v_extend[0], 1, 3, num_concepts_to_generate)
+    heights[heights==0] = 1
+    #v_extends_to_random = normal_distribution_int(v_extend[1], 1, 3, num_concepts_to_generate)
 
     concept_images = segment_single_image_with_multiple_slices(digit_image,
-                                                               list(zip(h_extends_from_random, h_extends_to_random)),
-                                                               list(zip(v_extends_from_random, v_extends_to_random)),
+                                                               list(zip(h_extends_from_random, widths)),
+                                                               list(zip(v_extends_from_random, heights)),
                                                                h_extend,
                                                                v_extend,
-                                                               digit,
+                                                               concept_image.digit,
                                                                path,
-                                                               cluster_name,
-                                                               sample_index,
+                                                               concept_image.cluster_name,
+                                                               concept_image.sample_index,
                                                                display_image=False,
-                                                               epochs_completed=epochs_completed,
+                                                               epochs_completed=concept_image.epochs_completed,
                                                                translate_image=translate_image
                                                                )
-    if digit == 4:
-        print(h_extend, v_extend, np.sum(concept_images, axis=(1,2,3)).shape)
-
     return concept_images
 
