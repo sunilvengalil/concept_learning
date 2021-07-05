@@ -210,7 +210,9 @@ class ImageConcept:
 
     def get_cropped_and_stripped(self):
         cropped = np.squeeze(self.get_cropped_image())
-        return ImageConcept.tight_bound_v(ImageConcept.tight_bound_h(cropped))
+        h_im, h_extend = ImageConcept.tight_bound_h(cropped)
+        cropped_and_stripped, v_extend = ImageConcept.tight_bound_v(h_im)
+        return cropped_and_stripped, h_extend, v_extend
 
     @staticmethod
     def tight_bound_h(cropped):
@@ -241,7 +243,8 @@ class ImageConcept:
             to_row = row + 1
         else:
             to_row = row
-        return cropped[:, max(0, from_row - 1):min(to_row + 1, cropped.shape[1])]
+        h_extend_and_stripped = [max(0, from_row - 1), min(to_row + 1, cropped.shape[1])]
+        return cropped[:, h_extend_and_stripped[0]:h_extend_and_stripped[1]], h_extend_and_stripped
 
     @staticmethod
     def tight_bound_v(cropped):
@@ -277,7 +280,8 @@ class ImageConcept:
             to_col = col + 1
         else:
             to_col = col
-        return cropped[max(from_col - 1, 0):min(to_col + 1, cropped.shape[0]), :]
+        v_extend_stripped = [max(from_col - 1, 0), min(to_col + 1, cropped.shape[0])]
+        return cropped[v_extend_stripped[0]:v_extend_stripped[1], :], v_extend_stripped
 
     def get_key(self):
         return f"{self.digit}_{self.h_extend[0]}_{self.h_extend[1]}_{self.v_extend[0]}_{self.v_extend[1]}"
