@@ -13,7 +13,7 @@ class Operator:
         self.operator = operator
         if OPERATORS[operator] == "VERTICAL_CONCATENATE":
             self.concept_list = [12, 13, 14, 16, 18, 21, 26, 29, 30, 31, 32, 35, 36]
-            #self.concept_list = [12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
+            # self.concept_list = [12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
         elif OPERATORS[operator] == "IDENTITY":
             self.concept_list = [10, 11, 12, 13, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
         self.concepts_to_use_1 = np.random.choice(self.concept_list, num_samples_required)
@@ -98,8 +98,8 @@ def apply_operator(operators_to_use,
 
         image_concept_1: ImageConcept = key_image_concept_map[key_to_label_map[concept_to_use_1]]
         image_concept_2: ImageConcept = key_image_concept_map[key_to_label_map[concept_to_use_2]]
-        cropped_1 = image_concept_1.get_cropped_and_stripped()
-        cropped_2 = image_concept_2.get_cropped_and_stripped()
+        cropped_1, _, _ = image_concept_1.get_cropped_and_stripped()
+        cropped_2, _, _ = image_concept_2.get_cropped_and_stripped()
         derived_images[image_index] = images_for_operator[operator_to_use].apply_operation(cropped_1, cropped_2)
         derived_labels[image_index] = label_start + operator_to_use
         if image_index % 1000 == 0:
