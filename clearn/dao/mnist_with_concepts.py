@@ -202,6 +202,9 @@ class MnistConceptsDao(IDao):
 
             _x = np.vstack([_x, derived_images])
             y = np.hstack([y, derived_labels])
+            tops = np.hstack([tops, np.zeros_like(derived_labels)])
+            lefts = np.hstack([lefts, np.zeros_like(derived_labels)])
+
 
             x = deepcopy(_x).reshape(_x.shape[0], feature_dim)
             image_df = pd.DataFrame(x)
