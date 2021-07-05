@@ -129,12 +129,25 @@ def segment_single_image_with_multiple_slices(image,
             v_extend = [0, height]
         if len(h_extend) == 0:
             h_extend = [0, width]
+
+        if v_extend[1] - v_extend[0] == 0:
+            if v_extend[0] > 0:
+                v_extend[0] -= 1
+            else:
+                v_extend[1] += 1
+
+        if h_extend[1] - h_extend[0] == 0:
+            if h_extend[0] > 0:
+                h_extend[0] -= 1
+            else:
+                h_extend[1] += 1
+
         cropped = image[ v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]]
 
         cropped_and_stripped = ImageConcept.tight_bound_h(ImageConcept.tight_bound_v(cropped))
         if translate_image:
-            top = randint(0, image.shape[0] - cropped_and_stripped.shape[0])
-            left = randint(0, image.shape[1] - cropped_and_stripped.shape[1])
+            top = randint(0, height- cropped_and_stripped.shape[0])
+            left = randint(0, width - cropped_and_stripped.shape[1])
             masked_images[image_number, top:top + cropped_and_stripped.shape[0], left:left + cropped_and_stripped.shape[1]] = cropped_and_stripped
         else:
             masked_images[image_number, v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]] = cropped

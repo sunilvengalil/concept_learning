@@ -273,7 +273,7 @@ class MnistConceptsDao(IDao):
                                                                        concept_image.cluster_name,
                                                                        concept_image.sample_index,
                                                                        concept_image.epochs_completed,
-                                                                        translate_image = self.translate_image
+                                                                        translate_image=self.translate_image
                                                                        )
 
                 concepts_for_digit[
