@@ -143,8 +143,9 @@ def segment_single_image_with_multiple_slices(image,
 
         cropped = image[ v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]]
 
-        v_im, _ = ImageConcept.tight_bound_v(cropped)
-        cropped_and_stripped, _= ImageConcept.tight_bound_h(v_im)
+        h_im, _ = ImageConcept.tight_bound_h(cropped)
+        cropped_and_stripped, _= ImageConcept.tight_bound_v(h_im)
+
         if translate_image:
             top = randint(0, height - cropped_and_stripped.shape[0])
             left = randint(0, width - cropped_and_stripped.shape[1])
@@ -163,23 +164,29 @@ def segment_single_image_with_multiple_slices(image,
     return masked_images
 
 
-def get_label(digit, h_extend, v_extend, label_key_to_label_map):
+def get_label(digit,
+              h_extend,
+              v_extend,
+              label_key_to_label_map):
     return label_key_to_label_map[f"{digit}_{h_extend[0]}_{h_extend[1]}_{v_extend[0]}_{v_extend[1]}"]
 
 
 def generate_concepts_from_digit_image(concept_image:ImageConcept,
-                                       digit_image, num_concepts_to_generate, path=None, translate_image=False):
+                                       digit_image,
+                                       num_concepts_to_generate,
+                                       path=None,
+                                       translate_image=False):
 
     cropped_and_stripped, h_extend, v_extend = concept_image.get_cropped_and_stripped()
 
     h_extends_from_random = normal_distribution_int(h_extend[0], 1, 3, num_concepts_to_generate)
     widths = normal_distribution_int(h_extend[1] - h_extend[0], 1, 3, num_concepts_to_generate)
     widths[widths == 0] = 1
-    #width[width == 28] = 28
+    # width[width == 28] = 28
     v_extends_from_random = normal_distribution_int(v_extend[0], 1, 3, num_concepts_to_generate)
     heights = normal_distribution_int(v_extend[1] - v_extend[0], 1, 3, num_concepts_to_generate)
     heights[heights==0] = 1
-    #v_extends_to_random = normal_distribution_int(v_extend[1], 1, 3, num_concepts_to_generate)
+    # v_extends_to_random = normal_distribution_int(v_extend[1], 1, 3, num_concepts_to_generate)
 
     concept_images = segment_single_image_with_multiple_slices(digit_image,
                                                                list(zip(h_extends_from_random, widths)),
