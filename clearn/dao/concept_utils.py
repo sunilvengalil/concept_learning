@@ -123,8 +123,8 @@ def segment_single_image_with_multiple_slices(image,
     image_filename = None
     if path is not None:
         image_filename = path + f"seg_{title_for_filename}_{int(epochs_completed)}_{cluster}_{sample_index}.png"
-    tops = np.zeros(v_extends.shape[0])
-    lefts = np.zeros(v_extends.shape[0])
+    tops = np.zeros(len(v_extends))
+    lefts = np.zeros(len(v_extends))
 
     for h_extend, v_extend in zip(h_extends, v_extends):
         cropped = image[ v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]]
