@@ -592,12 +592,22 @@ class SemiSupervisedClassifierMnist(VAE):
                         for rp in retention_policies_class_wise[i]:
                             label_indices = labels_for_batch == class_label
                             if any(label_indices):
+                                if class_label == 10:
+                                    print(f"Updating heap class {class_label} loss length {nll_batch[label_indices].shape} ")
+                                    print(f"Length of data queue {len(rp.data_queue)}")
+                                    print("data queue", rp.data_queue)
+
                                 rp.update_heap(cost=nll_batch[label_indices],
                                                exp_config=self.exp_config,
                                                data=[reconstructed_image[label_indices],
                                                      labels_for_batch[label_indices],
                                                      nll_batch[label_indices],
                                                      batch_images[label_indices] ])
+                                if class_label == 10:
+                                    print(f"Updating heap class {class_label} loss length {nll_batch[label_indices].shape} ")
+                                    print(f"Length of data queue {len(rp.data_queue)}")
+                                    print("data queue", rp.data_queue)
+
                 except:
                     print(f"Shape of mse is {nll_batch.shape}")
                     traceback.print_exc()
