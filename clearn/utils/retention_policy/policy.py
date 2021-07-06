@@ -52,18 +52,21 @@ class RetentionPolicy:
 
 
         try:
+            print("Before Adding to data queue", len(self.data_queue))
+
             for cost, reconstructed_image, label, nll, orig_image in zip(costs, reconstructed_images, labels, nlls, orig_images):
                 if len(self.data_queue) < self.N:
-                    print("Before Adding to data queue", len(self.data_queue))
                     heapq.heappush(self.data_queue, (-cost,  next(tiebreaker), [reconstructed_image, label, nll, orig_image]))
                     if cost < current_max_in_heap:
                         current_max_in_heap = cost
                     # print("Cost", cost, current_max_in_heap)
-                    print("after pushing", len(self.data_queue))
                 else:
                     if cost < current_max_in_heap:
                         _current_max_in_heap = heapq.heappushpop(self.data_queue, (-cost, next(tiebreaker),  [reconstructed_image, label, nll, orig_image]))
                         current_max_in_heap = -_current_max_in_heap[0]
+
+            print("after pushing", len(self.data_queue))
+
         except:
             print(f" Type of cost {type(cost)}. Cost:{cost}")
             if isinstance(cost, list):
@@ -79,7 +82,7 @@ class RetentionPolicy:
             _cost = cost
         else:
             raise Exception(f"Allowed policy_types are TOP and BOTTOM. Got {self.policy_type} instead")
-        if len(self.data_queue) == 0:
+        if len(self.data_queue) < self.N:
             self._update_heap(exp_config, _cost, data)
         else:
             if min(cost) < -self.data_queue[0][0]:
