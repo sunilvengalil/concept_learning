@@ -606,7 +606,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                 if class_label == 10:
                                     print(f"Updating heap class {class_label} loss length {nll_batch[label_indices].shape} ")
                                     print(f"Length of data queue {len(rp.data_queue)}")
-                                    print("data queue", rp.data_queue)
+                                    #print("data queue", rp.data_queue)
 
                 except:
                     print(f"Shape of mse is {nll_batch.shape}")
