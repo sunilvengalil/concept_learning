@@ -491,18 +491,11 @@ class SemiSupervisedClassifierMnist(VAE):
                                              )
                         retention_policies.append(rp)
                         for i in range(len(save_policies_classes)):
-                            if save_policies_classes[i] == 10:
-                                rp = RetentionPolicy(dataset_type.upper(),
-                                                     policy_type=policy_type,
-                                                     N=int(policy.split("_")[2]),
-                                                     log=True
-                                                     )
-                            else:
-                                rp = RetentionPolicy(dataset_type.upper(),
-                                                     policy_type=policy_type,
-                                                     N=int(policy.split("_")[2]),
-                                                     log=False
-                                                     )
+                            rp = RetentionPolicy(dataset_type.upper(),
+                                                 policy_type=policy_type,
+                                                 N=int(policy.split("_")[2]),
+                                                 log=False
+                                                 )
 
                             retention_policies_class_wise[i].append(rp)
 
@@ -601,21 +594,12 @@ class SemiSupervisedClassifierMnist(VAE):
                         for rp in retention_policies_class_wise[i]:
                             label_indices = labels_for_batch == class_label
                             if any(label_indices):
-                                if class_label == 10:
-                                    print(f"Before Updating heap class {class_label} loss length {nll_batch[label_indices].shape} ")
-                                    print(f"Before Length of data queue {len(rp.data_queue)}")
-                                    # print("data queue", rp.data_queue)
-
                                 rp.update_heap(cost=nll_batch[label_indices],
                                                exp_config=self.exp_config,
                                                data=[reconstructed_image[label_indices],
                                                      labels_for_batch[label_indices],
                                                      nll_batch[label_indices],
                                                      batch_images[label_indices] ])
-                                if class_label == 10:
-                                    print(f"After Updating heap class {class_label} loss length {nll_batch[label_indices].shape} ")
-                                    print(f"After Length of data queue {len(rp.data_queue)}")
-                                    #print("data queue", rp.data_queue)
 
                 except:
                     print(f"Shape of mse is {nll_batch.shape}")

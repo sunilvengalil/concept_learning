@@ -54,8 +54,8 @@ class RetentionPolicy:
 
 
         try:
-            if self.log:
-                print("Before Adding to data queue", len(self.data_queue))
+            # if self.log:
+            #     print("Before Adding to data queue", len(self.data_queue))
 
             for cost, reconstructed_image, label, nll, orig_image in zip(costs, reconstructed_images, labels, nlls, orig_images):
                 if len(self.data_queue) < self.N:
@@ -67,8 +67,8 @@ class RetentionPolicy:
                     if cost < current_max_in_heap:
                         _current_max_in_heap = heapq.heappushpop(self.data_queue, (-cost, next(tiebreaker),  [reconstructed_image, label, nll, orig_image]))
                         current_max_in_heap = -_current_max_in_heap[0]
-            if self.log:
-                print("after pushing", len(self.data_queue))
+            # if self.log:
+            #     print("after pushing", len(self.data_queue))
 
         except:
             print(f" Type of cost {type(cost)}. Cost:{cost}")
