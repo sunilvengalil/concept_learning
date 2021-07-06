@@ -35,11 +35,13 @@ class MnistConceptsDao(IDao):
                  num_validation_samples: int,
                  dataset_path: str,
                  concept_id: int,
-                 translate_image
+                 translate_image,
+                 std_dev=1
                  ):
         self.translate_image = translate_image
         self.training_phase = "CONCEPTS"
         self.data_dict = None
+        self.std_dev = std_dev
 
         self.dataset_name: str = "mnist_concepts"
         self.dataset_path = dataset_path
@@ -297,7 +299,8 @@ class MnistConceptsDao(IDao):
                 image_for_concept, tops_for_concept, lefts_for_concept, widths_for_concepts, heights_for_concepts = generate_concepts_from_digit_image(concept_image,
                                                                        digit_image,
                                                                        num_images_per_concept // num_images,
-                                                                       translate_image=self.translate_image
+                                                                       translate_image=self.translate_image,
+                                                                       std_dev=self.std_dev
                                                                        )
                 concepts_for_digit[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = image_for_concept
                 labels[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = label

@@ -107,7 +107,8 @@ class ExperimentConfig:
                  translate_image=False,
                  dao=None,
                  concept_id=-1,
-                 concept_dict=None
+                 concept_dict=None,
+                 std_dev_concept_distribution=1
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -161,11 +162,12 @@ class ExperimentConfig:
             # base_path = get_base_path()
             #
             self.dao = get_dao(dataset_name,
-                          split_name,
+                               split_name,
                                num_val_samples,
                                dataset_path=os.path.join(self.root_path, "datasets/"),
                                concept_id = concept_id,
-                               translate_image=translate_image
+                               translate_image=translate_image,
+                               std_dev=std_dev_concept_distribution
                           )
         else:
             self.dao = dao
@@ -196,6 +198,7 @@ class ExperimentConfig:
         self.translate_image = translate_image
         self.concept_id = concept_id
         self.concept_dict = concept_dict
+        self.std_dev_concept_distribution = std_dev_concept_distribution
 
     @property
     def num_train_samples(self):
@@ -251,6 +254,7 @@ class ExperimentConfig:
         config_json["TRANSLATE_IMAGE"] = self.translate_image
         config_json["CONCEPT_ID"] = self.concept_id
         config_json["CONCEPT_DICT"] = self.concept_dict
+        config_json["STD_DEV_CONCEPT_DISTRIBUTION"] = self.std_dev_concept_distribution
 
         return config_json
 
@@ -277,6 +281,7 @@ class ExperimentConfig:
         self.reconstructed_images_path = os.path.join(self.PREDICTION_RESULTS_PATH, "reconstructed_images/")
         self.LOG_PATH = os.path.join(self.BASE_PATH, "logs/")
         self.ANALYSIS_PATH = os.path.join(self.BASE_PATH, "analysis/")
+
         paths = [self.root_path,
                  self.BASE_PATH,
                  self.DATASET_ROOT_PATH,
@@ -385,6 +390,8 @@ class ExperimentConfig:
         self.translate_image = exp_config["TRANSLATE_IMAGE"]
         self.concept_id = exp_config["CONCEPT_ID"]
         self.concept_dict = exp_config["CONCEPT_DICT"]
+        self.std_dev_concept_distribution = exp_config["STD_DEV_CONCEPT_DISTRIBUTION"]
+
 
 if __name__ == "__main__":
     _root_path = "/Users/sunilv/concept_learning_exp"

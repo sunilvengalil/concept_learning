@@ -158,16 +158,17 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
                                        digit_image,
                                        num_concepts_to_generate,
                                        path=None,
-                                       translate_image=False):
+                                       translate_image=False,
+                                       std_dev=1):
 
     cropped_and_stripped, h_extend, v_extend = concept_image.get_cropped_and_stripped()
 
-    h_extends_from_random = normal_distribution_int(h_extend[0], 1, 3, num_concepts_to_generate)
-    widths = normal_distribution_int(h_extend[1] - h_extend[0], 1, 3, num_concepts_to_generate)
+    h_extends_from_random = normal_distribution_int(h_extend[0], std_dev, 3, num_concepts_to_generate)
+    widths = normal_distribution_int(h_extend[1] - h_extend[0], std_dev, 3, num_concepts_to_generate)
     widths[widths == 0] = 1
     # width[width == 28] = 28
-    v_extends_from_random = normal_distribution_int(v_extend[0], 1, 3, num_concepts_to_generate)
-    heights = normal_distribution_int(v_extend[1] - v_extend[0], 1, 3, num_concepts_to_generate)
+    v_extends_from_random = normal_distribution_int(v_extend[0], std_dev, 3, num_concepts_to_generate)
+    heights = normal_distribution_int(v_extend[1] - v_extend[0], std_dev, 3, num_concepts_to_generate)
     heights[heights==0] = 1
     # v_extends_to_random = normal_distribution_int(v_extend[1], 1, 3, num_concepts_to_generate)
 
@@ -178,11 +179,11 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
                                                                            v_extend,
                                                                            concept_image.digit,
                                                                            path,
-                                                               concept_image.cluster_name,
-                                                               concept_image.sample_index,
-                                                               display_image=False,
-                                                               epochs_completed=concept_image.epochs_completed,
-                                                               translate_image=translate_image
+                                                                           concept_image.cluster_name,
+                                                                           concept_image.sample_index,
+                                                                           display_image=False,
+                                                                           epochs_completed=concept_image.epochs_completed,
+                                                                           translate_image=translate_image
                                                                )
     return concept_images, tops, lefts, widths, heights
 
@@ -205,7 +206,7 @@ if __name__ == "__main__":
     # width[width == 28] = 28
     v_extends_from_random = normal_distribution_int(v_extend[0], 1, 3, num_concepts_to_generate)
     heights = normal_distribution_int(v_extend[1] - v_extend[0], 1, 3, num_concepts_to_generate)
-    heights[heights==0] = 1
+    heights[heights == 0] = 1
     # v_extends_to_random = normal_distribution_int(v_extend[1], 1, 3, num_concepts_to_generate)
 
 
