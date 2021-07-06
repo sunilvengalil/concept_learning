@@ -491,10 +491,19 @@ class SemiSupervisedClassifierMnist(VAE):
                                              )
                         retention_policies.append(rp)
                         for i in range(len(save_policies_classes)):
-                            rp = RetentionPolicy(dataset_type.upper(),
-                                                 policy_type=policy_type,
-                                                 N=int(policy.split("_")[2])
-                                                 )
+                            if save_policies_classes[i] == 10:
+                                rp = RetentionPolicy(dataset_type.upper(),
+                                                     policy_type=policy_type,
+                                                     N=int(policy.split("_")[2]),
+                                                     log=True
+                                                     )
+                            else:
+                                rp = RetentionPolicy(dataset_type.upper(),
+                                                     policy_type=policy_type,
+                                                     N=int(policy.split("_")[2]),
+                                                     log=False
+                                                     )
+
                             retention_policies_class_wise[i].append(rp)
 
 
