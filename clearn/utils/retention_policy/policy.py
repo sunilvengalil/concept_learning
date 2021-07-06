@@ -15,12 +15,14 @@ class RetentionPolicy:
     def __init__(self,
                  data_type:str,
                  policy_type: str,
-                 N: int
+                 N: int,
+                 log=False
                  ):
         self.data_queue: List = []
         self.policy_type: str = policy_type
         self.N: int = N
         self.data_type = data_type
+        self.log = log
 
     def _update_heap(self, exp_config: ExperimentConfig,  costs: np.ndarray, data):
 
@@ -52,7 +54,8 @@ class RetentionPolicy:
 
 
         try:
-            print("Before Adding to data queue", len(self.data_queue))
+            if self.log:
+                print("Before Adding to data queue", len(self.data_queue))
 
             for cost, reconstructed_image, label, nll, orig_image in zip(costs, reconstructed_images, labels, nlls, orig_images):
                 if len(self.data_queue) < self.N:
@@ -64,8 +67,8 @@ class RetentionPolicy:
                     if cost < current_max_in_heap:
                         _current_max_in_heap = heapq.heappushpop(self.data_queue, (-cost, next(tiebreaker),  [reconstructed_image, label, nll, orig_image]))
                         current_max_in_heap = -_current_max_in_heap[0]
-
-            print("after pushing", len(self.data_queue))
+            if self.log:
+                print("after pushing", len(self.data_queue))
 
         except:
             print(f" Type of cost {type(cost)}. Cost:{cost}")
