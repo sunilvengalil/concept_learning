@@ -63,6 +63,7 @@ def display_images(decoded_images,
 def normal_distribution_int(mean, scale, range, num_samples):
     if scale == 0:
         X = np.zeros(num_samples)
+    else:
         X = truncnorm(a=-range / scale, b=+range / scale, scale=scale).rvs(size=num_samples)
     X = X + mean
     X = X.round().astype(int)
