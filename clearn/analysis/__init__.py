@@ -324,7 +324,7 @@ class ImageConcept:
 
     @classmethod
     def fromdict(cls, image_concept_dict):
-        instance = cls(digit_image=image_concept_dict["digit_image"],
+        instance = cls(digit_image=np.asarray(image_concept_dict["digit_image"]),
                        h_extend=image_concept_dict["h_extend"],
                        v_extend=image_concept_dict["v_extend"],
                        digit=image_concept_dict["digit"],

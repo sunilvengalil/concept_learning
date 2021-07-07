@@ -365,7 +365,7 @@ def get_num_concepts_per_image(exp_config, dao):
     concepts_stride = 1
 
     if latent_image_dim[0] % concepts_stride == 0:
-        h = latent_image_dim[0] //concepts_stride
+        h = latent_image_dim[0] // concepts_stride
     else:
         h = (latent_image_dim[0] // concepts_stride) + 1
     if latent_image_dim[1] % concepts_stride == 0:

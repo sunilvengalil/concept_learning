@@ -103,6 +103,7 @@ def segment_single_image_with_multiple_slices(image,
                                               ):
 
     height, width = image.shape[0], image.shape[1]
+    print(image.shape)
     image_shape = image.shape
     num_images = len(h_extends)
 
@@ -129,10 +130,14 @@ def segment_single_image_with_multiple_slices(image,
     lefts = np.zeros(len(v_extends), dtype=int)
     image_number = 0
     for h_extend, v_extend in zip(h_extends, v_extends):
+        print(location_key)
+        print(v_extend[0], v_extend[1])
+        print(v_extend[0], v_extend[1])
         cropped = image[ v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]]
+        # plt.imshow(cropped)
         h_im, _ = ImageConcept.tight_bound_h(cropped)
-        cropped_and_stripped, _= ImageConcept.tight_bound_v(h_im)
-
+        cropped_and_stripped, _ = ImageConcept.tight_bound_v(h_im)
+        print(np.min(cropped_and_stripped), np.max(cropped_and_stripped))
         if translate_image:
             tops[image_number] = randint(0, height - cropped_and_stripped.shape[0])
             lefts[image_number] = randint(0, width - cropped_and_stripped.shape[1])
@@ -158,7 +163,7 @@ def get_label(digit,
 
 
 def generate_concepts_from_digit_image(concept_image:ImageConcept,
-                                       digit_image,
+                                       samples,
                                        num_concepts_to_generate,
                                        path=None,
                                        translate_image=False,
@@ -166,7 +171,12 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
 
     cropped_and_stripped, h_extend, v_extend = concept_image.get_cropped_and_stripped()
 
-    h_extends_from_random = normal_distribution_int(h_extend[0], std_dev, 3, num_concepts_to_generate)
+    self.image_set_dict[cluster_name][sample_index]]
+
+
+    h_extends_from_random = grid_search(digit_image, h_extend[0], std_dev, 3, num_concepts_to_generate)
+
+
     widths = normal_distribution_int(h_extend[1] - h_extend[0], std_dev, 3, num_concepts_to_generate)
     widths[widths == 0] = 1
     # width[width == 28] = 28
@@ -175,7 +185,7 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
     heights[heights==0] = 1
     # v_extends_to_random = normal_distribution_int(v_extend[1], 1, 3, num_concepts_to_generate)
 
-    concept_images,tops, lefts = segment_single_image_with_multiple_slices(digit_image,
+    concept_images, tops, lefts = segment_single_image_with_multiple_slices(digit_image,
                                                                            list(zip(h_extends_from_random, widths)),
                                                                            list(zip(v_extends_from_random, heights)),
                                                                            h_extend,
@@ -186,12 +196,11 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
                                                                            concept_image.sample_index,
                                                                            display_image=False,
                                                                            epochs_completed=concept_image.epochs_completed,
-                                                                           translate_image=translate_image
-                                                               )
+                                                                           translate_image=translate_image)
     return concept_images, tops, lefts, widths, heights
 
 if __name__ == "__main__":
-    digit = 3
+    digit = 7
     num_concepts_to_generate = 100
     map_filename="C:/concept_learning_exp/datasets/mnist_concepts/split_70_30/manually_generated_concepts_icvgip.json"
     concepts_dict = get_concept_map(map_filename)
@@ -206,14 +215,11 @@ if __name__ == "__main__":
     h_extends_from_random = normal_distribution_int(h_extend[0], 1, 3, num_concepts_to_generate)
     widths = normal_distribution_int(h_extend[1] - h_extend[0], 1, 3, num_concepts_to_generate)
     widths[widths == 0] = 1
-    # width[width == 28] = 28
     v_extends_from_random = normal_distribution_int(v_extend[0], 1, 3, num_concepts_to_generate)
     heights = normal_distribution_int(v_extend[1] - v_extend[0], 1, 3, num_concepts_to_generate)
     heights[heights == 0] = 1
-    # v_extends_to_random = normal_distribution_int(v_extend[1], 1, 3, num_concepts_to_generate)
 
-
-    concept_images, tops, lefts = segment_single_image_with_multiple_slices(concept_image.digit_image,
+    concept_images, tops, lefts = segment_single_image_with_multiple_slices(concept_image.digit_image[0],
                                                                             list(zip(h_extends_from_random, widths)),
                                                                             list(zip(v_extends_from_random, heights)),
                                                                             h_extend,

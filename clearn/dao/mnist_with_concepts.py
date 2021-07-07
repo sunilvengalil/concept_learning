@@ -242,14 +242,14 @@ class MnistConceptsDao(IDao):
 
     def generate_concepts(self, map_filename, num_images_per_concept):
         concepts_dict = get_concept_map(map_filename)
-        # Change 8 to 12 below . 10 + 2 (4 and 9 has bimodal distribution)
+        #  27 concepts (4 and 9 has bimodal distribution, mode 1 of 4 - 3 concepts, 8- 4 concepts)
         concepts = np.zeros((num_images_per_concept * self.num_concepts, 28, 28, 1))
+
         labels = np.zeros((num_images_per_concept * self.num_concepts), np.int8)
         tops = np.zeros((num_images_per_concept * self.num_concepts), np.int8)
         lefts = np.zeros((num_images_per_concept * self.num_concepts), np.int8)
         widths = np.zeros((num_images_per_concept * self.num_concepts), np.int8)
         heights = np.zeros((num_images_per_concept * self.num_concepts), np.int8)
-
 
         num_concepts_generated = 0
         for digit, list_of_concept_dict in concepts_dict.items():
@@ -270,11 +270,30 @@ class MnistConceptsDao(IDao):
 
         return concepts[0:num_concepts_generated], labels[0:num_concepts_generated], tops[0:num_concepts_generated], lefts[0:num_concepts_generated], widths[0:num_concepts_generated], heights[0:num_concepts_generated]
 
-    def get_samples(self, digit, cluster_name, sample_index):
-        # TODO implement for multiple images
-        return [self.image_set_dict[cluster_name][sample_index]]
+    def get_samples(self, digit, cluster_name, sample_index, num_samples_to_generate, cluster_probabilities=[0.2, 0.8]):
+
+        clusters = []
+        cluster_num = 0
+        for k, v in self.image_set_dict.items():
+            if k.endswith(str(digit)):
+                sample_indices_for_cluster = np.random.choice(len(v), num_samples_to_generate * max(cluster_probabilities[cluster_num] + 1, 1))
+                clusters.append((k, v, sample_indices_for_cluster))
+                cluster_num += 1
+
+        cluster_indices = np.random.choice(1, num_samples_to_generate, p=cluster_probabilities)
+        sample_indices = np.zeros(num_samples_to_generate)
+        for cluster_num in range(len(cluster_probabilities)):
+            sample_indices[cluster_indices==cluster_num] =sample_indices_for_cluster[cluster_num]
+
+        samples = np.hstack([cluster_indices, sample_indices])
+        # TODO save df for debugging
+        #
+        # df = pd.DataFrame(samples,columns=["cluster_indices", "sample_indices"])
+        # df.to_csv()
+        return samples, clusters
 
     def generate_concepts_for_digit(self, digit, list_of_concept_dict, num_images_per_concept, label_key_to_label_map):
+
         concepts_for_digit = np.zeros((num_images_per_concept * len(list_of_concept_dict), 28, 28, 1))
         labels = np.zeros(num_images_per_concept * len(list_of_concept_dict), np.int8)
         tops = np.zeros(num_images_per_concept * len(list_of_concept_dict), np.int8)
@@ -286,29 +305,25 @@ class MnistConceptsDao(IDao):
         for image_concept_dict in list_of_concept_dict:
             concept_image = ImageConcept.fromdict(image_concept_dict)
             v_extend, h_extend = concept_image.v_extend, concept_image.h_extend
-            # if len(v_extend) == 0:
-            #     v_extend = [0, 28]
-            # if len(h_extend) == 0:
-            #     h_extend = [0, 28]
 
-            # TODO modify this to get samples from multiple images
-            digit_images = self.get_samples(digit, concept_image.cluster_name, concept_image.sample_index)
-            num_images = len(digit_images)
+            samples, clusters = self.get_samples(digit, concept_image.cluster_name, concept_image.sample_index)
+            #num_images = len(digit_images)
             label = get_label(digit, h_extend, v_extend, label_key_to_label_map)
-            for digit_image in digit_images:
-                image_for_concept, tops_for_concept, lefts_for_concept, widths_for_concepts, heights_for_concepts = generate_concepts_from_digit_image(concept_image,
-                                                                       digit_image,
-                                                                       num_images_per_concept // num_images,
-                                                                       translate_image=self.translate_image,
-                                                                       std_dev=self.std_dev
-                                                                       )
-                concepts_for_digit[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = image_for_concept
-                labels[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = label
-                tops[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = tops_for_concept
-                lefts[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = lefts_for_concept
-                widths[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = widths_for_concepts
-                heights[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = heights_for_concepts
-                num_samples_generated += image_for_concept.shape[0]
+
+            #for digit_image in digit_images:
+            image_for_concept, tops_for_concept, lefts_for_concept, widths_for_concepts, heights_for_concepts = generate_concepts_from_digit_image(concept_image,
+                                                                   samples,
+                                                                   num_images_per_concept,
+                                                                   translate_image=self.translate_image,
+                                                                   std_dev=self.std_dev
+                                                                   )
+            concepts_for_digit[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = image_for_concept
+            labels[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = label
+            tops[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = tops_for_concept
+            lefts[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = lefts_for_concept
+            widths[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = widths_for_concepts
+            heights[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = heights_for_concepts
+            num_samples_generated += image_for_concept.shape[0]
         return concepts_for_digit[0:num_samples_generated], labels[0:num_samples_generated], tops[0:num_samples_generated], lefts[0:num_samples_generated], widths[0:num_samples_generated], heights[0:num_samples_generated]
 
 
