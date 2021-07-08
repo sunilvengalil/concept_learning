@@ -103,7 +103,6 @@ def segment_single_image_with_multiple_slices(image,
                                               ):
 
     height, width = image.shape[0], image.shape[1]
-    print(image.shape)
     image_shape = image.shape
     num_images = len(h_extends)
 
@@ -130,14 +129,10 @@ def segment_single_image_with_multiple_slices(image,
     lefts = np.zeros(len(v_extends), dtype=int)
     image_number = 0
     for h_extend, v_extend in zip(h_extends, v_extends):
-        print(location_key)
-        print(v_extend[0], v_extend[1])
-        print(v_extend[0], v_extend[1])
         cropped = image[ v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]]
-        # plt.imshow(cropped)
         h_im, _ = ImageConcept.tight_bound_h(cropped)
-        cropped_and_stripped, _ = ImageConcept.tight_bound_v(h_im)
-        print(np.min(cropped_and_stripped), np.max(cropped_and_stripped))
+        cropped_and_stripped, _= ImageConcept.tight_bound_v(h_im)
+
         if translate_image:
             tops[image_number] = randint(0, height - cropped_and_stripped.shape[0])
             lefts[image_number] = randint(0, width - cropped_and_stripped.shape[1])
@@ -163,7 +158,7 @@ def get_label(digit,
 
 
 def generate_concepts_from_digit_image(concept_image:ImageConcept,
-                                       samples,
+                                       digit_image,
                                        num_concepts_to_generate,
                                        path=None,
                                        translate_image=False,
@@ -171,12 +166,7 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
 
     cropped_and_stripped, h_extend, v_extend = concept_image.get_cropped_and_stripped()
 
-    self.image_set_dict[cluster_name][sample_index]]
-
-
-    h_extends_from_random = grid_search(digit_image, h_extend[0], std_dev, 3, num_concepts_to_generate)
-
-
+    h_extends_from_random = normal_distribution_int(h_extend[0], std_dev, 3, num_concepts_to_generate)
     widths = normal_distribution_int(h_extend[1] - h_extend[0], std_dev, 3, num_concepts_to_generate)
     widths[widths == 0] = 1
     # width[width == 28] = 28
@@ -196,7 +186,8 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
                                                                            concept_image.sample_index,
                                                                            display_image=False,
                                                                            epochs_completed=concept_image.epochs_completed,
-                                                                           translate_image=translate_image)
+                                                                           translate_image=translate_image
+                                                               )
     return concept_images, tops, lefts, widths, heights
 
 if __name__ == "__main__":

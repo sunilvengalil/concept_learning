@@ -141,7 +141,10 @@ class ImageConcept:
 
         self.should_use_original_cordinate = should_use_original_cordinate
 
-        self.digit = digit
+        self.digit:int = digit
+
+        self.digits:List[int] = [digit]
+
         self.num_clusters = num_clusters
         self.cluster_name = cluster_name
         self.sample_index = sample_index
@@ -206,16 +209,17 @@ class ImageConcept:
         # if len(h_extend) == 0:
         #     h_extend = [0, 28]
         cropped = np.asarray(self.digit_image)
+        print(h_extend, v_extend, cropped.shape)
         return cropped[0, v_extend[0]:v_extend[1], h_extend[0]:h_extend[1], 0]
 
     def get_cropped_and_stripped(self):
         cropped = np.squeeze(self.get_cropped_image())
         h_im, h_extend = ImageConcept.tight_bound_h(cropped)
         h_extend[0] += self.h_extend[0]
-        h_extend[1]  += self.h_extend[0]
+        h_extend[1] += self.h_extend[0]
         cropped_and_stripped, v_extend = ImageConcept.tight_bound_v(h_im)
         v_extend[0] += self.v_extend[0]
-        v_extend[1]  += self.v_extend[0]
+        v_extend[1] += self.v_extend[0]
 
         return cropped_and_stripped, h_extend, v_extend
 
@@ -320,6 +324,8 @@ class ImageConcept:
         concept_dict["orig_h_extend"] = [int(self.orig_h_extend[0]), int(self.orig_h_extend[1])]
         concept_dict["v_extend_largest_cc"] = [int(self.top_largest_cc), int(self.bottom_largest_cc)]
         concept_dict["h_extend_largest_cc"] = [int(self.left_largest_cc), int(self.right_largest_cc)]
+        concept_dict["digits"] = self.digits
+
         return concept_dict
 
     @classmethod
@@ -351,6 +357,10 @@ class ImageConcept:
             instance.left_largest_cc = image_concept_dict["left_largest_cc"]
         if "right_largest_cc" in image_concept_dict:
             instance.right_largest_cc = image_concept_dict["right_largest_cc"]
+        if "digits" in image_concept_dict:
+            instance.digits = image_concept_dict["digits"]
+        else:
+            instance.digits = [instance.digit]
 
         return instance
 
