@@ -322,7 +322,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                             feed_dict=feed_dict
                                                                                                             )
                         print(supervised_loss_concepts_for_l3)
-                        for k, v in supervised_loss_concepts_for_l3.keys():
+                        for k, v in supervised_loss_concepts_for_l3.items():
                             supervised_loss_concepts_for_epoch += v
                 else:
                     feed_dict = {
