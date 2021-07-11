@@ -1,4 +1,5 @@
 import logging
+import numpy as np
 
 import tensorflow as tf
 from clearn.analysis.encode_images import encode_images, encode_images_and_get_features
@@ -16,7 +17,7 @@ from clearn.models.classify.supervised_classifier import SupervisedClassifierMod
 from clearn.dao.dao_factory import get_dao
 from clearn.models.model import Model
 
-from clearn.utils.data_loader import TrainValDataIterator, DataIterator
+from clearn.utils.data_loader import TrainValDataIterator, DataIterator, load_images
 from clearn.config import ExperimentConfig
 from clearn.utils.utils import show_all_variables, get_padding_info
 
@@ -57,7 +58,6 @@ class Experiment:
 
     def initialize(self, _model=None):
         """
-
         :type _model: VAE
         """
         self.model = _model
@@ -92,7 +92,7 @@ class Experiment:
 
         print(" [*] Training finished!")
 
-    def test(self, data_iterator):
+    def predict(self, data_iterator):
         return self.model.evaluate(data_iterator, dataset_type="test")
 
     def encode_latent_vector(self, _train_val_data_iterator, dataset_type,
@@ -360,7 +360,7 @@ def get_num_concepts_per_image(exp_config, dao):
     concepts_stride = 1
 
     if latent_image_dim[0] % concepts_stride == 0:
-        h = latent_image_dim[0] //concepts_stride
+        h = latent_image_dim[0] // concepts_stride
     else:
         h = (latent_image_dim[0] // concepts_stride) + 1
     if latent_image_dim[1] % concepts_stride == 0:
@@ -525,13 +525,13 @@ def train_and_get_features(exp: Experiment,
     return exp.encode_latent_vector(train_val_data_iterator, "val")
 
 
-def test(exp: Experiment,
-         model: VAAL_ARCHITECTURE_FOR_CIFAR,
-         data_iterator: DataIterator
-         ):
+def predict(exp: Experiment,
+            model: VAAL_ARCHITECTURE_FOR_CIFAR,
+            data_iterator: DataIterator
+            ):
     exp.model = model
     show_all_variables()
-    predicted_df = exp.test(data_iterator)
+    predicted_df = exp.predict(data_iterator)
     return predicted_df
 
 
@@ -552,17 +552,17 @@ def load_model_and_test(experiment_name,
     if num_units is None:
         num_units = [64, 128, 32]
     dao = get_dao(dataset_name, split_name, num_val_samples)
-    exp_config = ExperimentConfig(root_path=root_path,
-                                  num_decoder_layer=len(num_units) + 1,
-                                  z_dim=z_dim,
-                                  num_units=num_units,
-                                  num_cluster_config=num_cluster_config,
-                                  confidence_decay_factor=5,
-                                  dataset_name=dataset_name,
-                                  split_name=split_name,
-                                  model_name="VAE",
-                                  batch_size=64,
-                                  name=experiment_name,
+    exp_config = ExperimentConfig(root_path = root_path,
+                                  num_decoder_layer = len(num_units) + 1,
+                                  z_dim = z_dim,
+                                  num_units = num_units,
+                                  num_cluster_config = num_cluster_config,
+                                  confidence_decay_factor = 5,
+                                  dataset_name = dataset_name,
+                                  split_name = split_name,
+                                  model_name = "VAE",
+                                  batch_size = 64,
+                                  name = experiment_name,
                                   num_val_samples=num_val_samples,
                                   save_reconstructed_images=save_reconstructed_images,
                                   write_predictions=write_predictions
@@ -579,31 +579,89 @@ def load_model_and_test(experiment_name,
         model = get_model(dao, exp_config, model_type, num_epochs=-1, sess=sess, test_data_iterator=data_iterator)
 
         print("Starting Inference")
-        predicted_df = test(exp, model, data_iterator)
+        predicted_df = predict(exp, model, data_iterator)
         data_iterator.reset_counter("test")
         return exp_config, predicted_df
 
 
 if __name__ == "__main__":
-    model_1, exp_config_1, _, _, epochs_completed = load_trained_model(experiment_name="Experiment_4",
-                                                                       z_dim=32,
-                                                                       run_id=3,
-                                                                       num_cluster_config=ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW,
-                                                                       manual_labels_config=ExperimentConfig.USE_ACTUAL,
-                                                                       supervise_weight=0,
-                                                                       beta=0,
-                                                                       reconstruction_weight=1,
-                                                                       model_type=MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10,
-                                                                       num_units=[64, 128, 64, 64],
-                                                                       save_reconstructed_images=True,
-                                                                       split_name="split_1",
-                                                                       num_val_samples=128,
-                                                                       learning_rate=0.001,
-                                                                       dataset_name="cifar_10",
-                                                                       activation_output_layer="LINEAR",
-                                                                       write_predictions=False,
-                                                                       seed=547,
-                                                                       root_path="/Users/sunilv/concept_learning_exp",
-                                                                       eval_interval_in_epochs=1
-                                                                       )
-    print("Number of epochs completed", model_1.num_training_epochs_completed)
+    # model_1, exp_config_1, _, _, epochs_completed = load_trained_model(experiment_name = "Experiment_4",
+    #                                                                    z_dim = 32,
+    #                                                                    run_id=3,
+    #                                                                    num_cluster_config = ExperimentConfig.NUM_CLUSTERS_CONFIG_TWO_TIMES_ELBOW,
+    #                                                                    manual_labels_config = ExperimentConfig.USE_ACTUAL,
+    #                                                                    supervise_weight = 0,
+    #                                                                    beta = 0,
+    #                                                                    reconstruction_weight = 1,
+    #                                                                    model_type = MODEL_TYPE_VAE_UNSUPERVISED_CIFAR10,
+    #                                                                    num_units = [64, 128, 64, 64],
+    #                                                                    save_reconstructed_images = True,
+    #                                                                    split_name="split_1",
+    #                                                                    num_val_samples = 128,
+    #                                                                    learning_rate = 0.001,
+    #                                                                    dataset_name = "cifar_10",
+    #                                                                    activation_output_layer = "LINEAR",
+    #                                                                    write_predictions = False,
+    #                                                                    seed = 547,
+    #                                                                    root_path = "/Users/sunilv/concept_learning_exp",
+    #                                                                    eval_interval_in_epochs = 1
+    #                                                                    )
+    # print("Number of epochs completed", model_1.num_training_epochs_completed)
+
+    create_split = True
+    root_path = "C:/concept_learning_exp/"
+    experiment_name = "test"
+    z_dim = 16
+    num_units = [16, 16, 16, 16, 16]
+    strides = [2, 1, 2, 1, 2, 1]
+
+    layer_num = len(num_units) - 2
+    label_list = list(range(10, 28))
+    print(label_list)
+    print(layer_num)
+    run_id = 1
+    _exp_config = ExperimentConfig(root_path=root_path,
+                                  num_decoder_layer=4,
+                                  num_cluster_config=None,
+                                  supervise_weight=0,
+                                  name=experiment_name,
+                                  z_dim=z_dim,
+                                  batch_size=512,
+                                  beta=5,
+                                  reconstruction_weight=1,
+                                  num_units=num_units,
+                                  save_reconstructed_images=True,
+                                  split_name="split_70_30",
+                                  dataset_name="mnist_concepts",
+                                  eval_interval_in_epochs=4,
+                                  model_save_interval=10,
+                                  num_val_samples=-1,
+                                  run_evaluation_during_training=True,
+                                  return_latent_vector=False,
+                                  write_predictions=True,
+                                  fully_convolutional=True,
+                                  num_concepts=28,
+                                  strides=strides,
+                                  activation_output_layer="SIGMOID",
+                                  num_dense_layers=0,
+                                  uncorrelated_features=False,
+                                  concept_dict={6: {"unique_concepts": [-1]},
+                                                layer_num: {"unique_concepts": label_list
+                                                            },
+                                                },
+                                  concept_id=40
+                                  )
+    _exp_config.check_and_create_directories(run_id)
+
+    train_val_data_iterator = get_train_val_iterator(create_split = create_split,
+                                                     dao=_exp_config.dao,
+                                                     exp_config=_exp_config,
+                                                     num_epochs_completed = 0,
+                                                     split_name=_exp_config.split_name
+                                                     )
+
+    train_images, train_labels, _ = load_images(_exp_config,
+                                                train_val_data_iterator,
+                                                "train"
+                                                )
+    train_labels = np.argwhere(train_labels == 1)[:, 1]
