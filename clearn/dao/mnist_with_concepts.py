@@ -1,5 +1,3 @@
-import math
-
 import cv2
 import numpy as np
 import os
@@ -8,8 +6,6 @@ import json
 import pandas as pd
 
 from copy import deepcopy
-
-import scipy.signal
 
 from clearn.analysis import ImageConcept
 from clearn.dao.concept_utils import generate_concepts_from_digit_image, get_label, get_concept_map, display_images
@@ -39,7 +35,7 @@ def similarity_score(im_patch, cropped_and_stripped):
     cropped_and_stripped = np.squeeze(cropped_and_stripped)
     if len(im_patch.shape) == 3:
         raise Exception("Similarity score not implemented for color images")
-    return scipy.signal.correlate2d(im_patch, cropped_and_stripped)
+    return np.dot(im_patch.flatten(), cropped_and_stripped.flatten())
 
 
 def grid_search(digit_image, concept_image):
@@ -50,33 +46,37 @@ def grid_search(digit_image, concept_image):
     top_to = v_extend[0] + search_window_height
     left_from = h_extend[0] - search_window_height
     left_to = h_extend[0] + search_window_height
-    print(top_from, top_to, left_from, left_to)
-    corr = scipy.signal.correlate2d(np.squeeze(digit_image), cropped_and_stripped, mode="same")
+    # print(top_from, top_to, left_from, left_to)
+    # corr = scipy.signal.correlate2d(np.squeeze(digit_image), cropped_and_stripped, mode="same")
 
-    y, x = np.unravel_index(np.argmax(corr), corr.shape)  # find the match
+    # y, x = np.unravel_index(np.argmax(corr), corr.shape)  # find the match
 
+    sim_scores = []
+    max_sim_score = 0
+    for top in range(top_from, top_to, search_stride):
+        for left in range(left_from, left_to, search_stride) :
+            im_patch = digit_image[top:top + height, left:left + width]
+            sim_score = similarity_score(im_patch, cropped_and_stripped)
+            sim_scores.append(sim_score)
+            if sim_scores[-1] > max_sim_score:
+                max_sim_score = sim_scores[-1]
+                top_hat = top
+                left_hat = left
+            print(top, left, top + height, left+ width,  max_sim_score, top_hat, left_hat)
 
-    # sim_scores = []
-    # max_sim_score = 0
-    # for top in range(top_from, top_to, search_stride):
-    #     for left in range(left_from, left_to, search_stride) :
-    #         im_patch = digit_image[top:top + height, left:left + width]
-    #         print(im_patch.shape, cropped_and_stripped.shape)
-    #         sim_score = similarity_score(im_patch, cropped_and_stripped)
-    #         sim_scores.append(sim_score)
-    #         print(sim_scores, sim_scores[-1])
-    #         if sim_scores[-1] > max_sim_score:
-    #             max_sim_score = sim_scores[-1]
-    #             top_hat = top
-    #             left_hat = left
+    # h_extend = [x - math.floor(cropped_and_stripped.shape[1] / 2.0), x + math.ceil(cropped_and_stripped.shape[1] / 2.0)]
+    # v_extend = [y - math.floor(cropped_and_stripped.shape[0] / 2.0), y + math.ceil(cropped_and_stripped.shape[0] / 2.0)]
+    print("final",top_hat, left_hat, top_hat + height, left_hat + width, sim_score)
 
-    h_extend = [x - math.floor(cropped_and_stripped.shape[1] / 2.0), x + math.ceil(cropped_and_stripped.shape[1] / 2.0)]
-    v_extend = [y - math.floor(cropped_and_stripped.shape[0] / 2.0), y + math.ceil(cropped_and_stripped.shape[0] / 2.0)]
-    return h_extend, v_extend, corr
+    v_extend = [top_hat, top_hat + height]
+    h_extend = [left_hat, left_hat + width]
+    #return h_extend, v_extend, corr
+    return h_extend, v_extend
 
 
 class MnistConceptsDao(IDao):
     NUM_IMAGES_PER_CONCEPT = 3000
+
     def __init__(self,
                  dataset_name: str,
                  split_name: str,
@@ -137,8 +137,10 @@ class MnistConceptsDao(IDao):
         with open(level2_manual_annotations_good_cluster_filename) as json_file:
             level2_manual_annotations_good_cluster = json.load(json_file)
         print([k for k in level2_manual_annotations_good_cluster.keys()])
+        manual_labels =[ 6, 5, 9, 3, 7, 8, 2, 1, 0, 4]
+
         for cluster_id in range(10):
-            self.image_set_dict[f"level_2_cluster_centers_{cluster_id}"] = np.asarray(
+            self.image_set_dict[f"level_2_cluster_centers_{manual_labels[cluster_id]}"] = np.asarray(
                 level2_manual_annotations_good_cluster[str(cluster_id)]["decoded_images"])
             self.image_set_dict[f"training_set_{cluster_id}"] = self.images_by_label[cluster_id]
 
@@ -214,7 +216,7 @@ class MnistConceptsDao(IDao):
         orig_train_images = data.reshape((60000, 28, 28, 1))
         data = self.extract_data(data_dir + '/train-labels-idx1-ubyte.gz', 60000, 8, 1)
         orig_train_labels = np.asarray(data.reshape(60000)).astype(np.int)
-        return orig_train_images, orig_train_labels
+        return orig_train_images/self.max_value, orig_train_labels
 
     def load_train_images_and_label(self, data_dir, map_filename=None, training_phase=None):
 
@@ -223,7 +225,7 @@ class MnistConceptsDao(IDao):
         if self.concept_id is None:
             raise Exception("Pass an integer for parameter concept_id while creating the instance of MnistConceptsDao")
 
-        concept_image_filename = data_dir  + f"concept_{self.concept_id}.csv"
+        concept_image_filename = data_dir + f"concept_{self.concept_id}.csv"
         derived_images_filename = data_dir + f"derived_{self.concept_id}.csv"
 
         feature_dim = self.image_shape[0] * self.image_shape[1] * self.image_shape[2]
@@ -366,7 +368,10 @@ class MnistConceptsDao(IDao):
                 clusters = []
                 for k, v in self.image_set_dict.items():
                     if k.endswith(str(digit)):
+                        print("cluster_name", k)
                         clusters.append(v)
+                        # if path is not None:
+                        #     display_images(v, path + f"/{k}", k)
 
                 sample_df = self.get_samples(digit,
                                              num_images_per_concept // (len(concept_image.digits) * num_images_to_sample_from_for_digit)
@@ -375,29 +380,35 @@ class MnistConceptsDao(IDao):
                 print("Sample df shape",sample_df.shape)
                 # TODO modify this using apply
                 for index, sample_row in sample_df.iterrows():
-                    cluster = clusters[sample_row["cluster_indices"]]
-                    print(cluster.shape)
+                    cluster_index = sample_row["cluster_indices"]
+                    cluster = clusters[cluster_index]
+                    print(cluster_index, cluster.shape)
                     if path is not None:
                         display_images(cluster, path + f"cluster_{index}.png", f"cluster_{index}")
                     sample_index = sample_row["sample_indices"]
                     digit_image = cluster[sample_index]
-                    print("Concept image: extends", concept_image.h_extend, concept_image.v_extend, concept_image.digit_image.shape, np.sum(concept_image.digit_image))
-                    h_extend, v_extend, corr = grid_search(digit_image,
-                                                           concept_image)
+                    print("Concept image: extends",
+                          concept_image.h_extend,
+                          concept_image.v_extend,
+                          concept_image.digit_image.shape,
+                          np.sum(concept_image.digit_image)
+                          )
+                    h_extend, v_extend = grid_search(digit_image,
+                                                     concept_image)
                     print(h_extend, v_extend, digit_image.shape)
-                    plt.figure()
-                    plt.imshow(np.squeeze(concept_image.digit_image))
+                    # plt.figure()
+                    # plt.imshow(np.squeeze(concept_image.digit_image))
                     print(concept_no, digit, index, sample_row["cluster_indices"], sample_index)
                     print("Digit image min and max", np.min(concept_image.digit_image), np.max(concept_image.digit_image))
                     print("Digit image from cluster min and max", np.min(digit_image), np.max(digit_image))
 
                     if path is not None:
-                        cv2.imwrite(path + f"/correlation_{digit}_{concept_no}_{index}.png", corr)
-                        cv2.imwrite(path + f"/original_{digit}_{concept_no}_{index}_{sample_index}.png", digit_image)
+                        #cv2.imwrite(path + f"/correlation_{digit}_{concept_no}_{index}.png", corr * 256)
+                        cv2.imwrite(path + f"/original_{digit}_{concept_no}_{index}_{sample_index}.png", digit_image * 256)
 
-                        #cv2.imwrite(path + f"/concept_{digit}_{concept_no}_{index}_full.png", concept_image.get_full_image())
-                        cv2.imwrite(path + f"/concept_{digit}_{concept_no}_{index}_full_digit.png", np.squeeze(concept_image.digit_image))
-                        #cv2.imwrite(path + f"/concept_{digit}_{concept_no}_{index}_cropped.png", concept_image.get_cropped_image())
+                        cv2.imwrite(path + f"/concept_{digit}_{concept_no}_{index}_full.png", concept_image.get_full_image() * 256)
+                        cv2.imwrite(path + f"/concept_{digit}_{concept_no}_{index}_full_digit.png", np.squeeze(concept_image.digit_image) * 256)
+                        cv2.imwrite(path + f"/concept_{digit}_{concept_no}_{index}_cropped.png", concept_image.get_cropped_image() * 256)
 
                     image_concept = ImageConcept(np.expand_dims(digit_image, 0),
                                                  h_extend,
@@ -428,7 +439,7 @@ class MnistConceptsDao(IDao):
 
 if __name__ == "__main__":
     from matplotlib import pyplot as plt
-    concept_id = 1
+    concept_id = 5
     dao = MnistConceptsDao(dataset_name="mnist_concepts",
                            dataset_path="C:/concept_learning_exp/datasets/",
                            split_name="split_70_30",
@@ -441,7 +452,11 @@ if __name__ == "__main__":
     num_images_per_concept = 100
     path = f"C:/concept_learning_exp/datasets/mnist_concepts/concept_id_{concept_id}/"
 
-    digit = 3
+    # for k, v in dao.image_set_dict.items():
+    #     display_images(v, path + f"/{k}", k)
+    # exit()
+
+    digit = 5
     concepts, labels, tops, lefts, widths, heights = dao.generate_concepts_for_digits(dao.concepts_dict[str(digit)],
                                                                                       num_images_per_concept=num_images_per_concept,
                                                                                       label_key_to_label_map=dao.label_key_to_label_map,
@@ -461,10 +476,9 @@ if __name__ == "__main__":
             for j in range(concepts_for_label.shape[0]):
                 corr[i, j] = np.dot(concepts_for_label[i].flatten(),
                                     concepts_for_label[j].flatten()) / (np.linalg.norm(concepts_for_label[i]) * np.linalg.norm(concepts_for_label[j]))
-        print(corr.shape)
-        print(np.sum(corr[corr > 0.5]))
-
-        # plt.imshow(corr,cmap="gray")
+        # print(corr.shape)
+        # print(np.sum(corr[corr > 0.5]))
+        # plt.imshow(corr, cmap="gray")
         # plt.colorbar()
         # plt.show()
 
@@ -473,23 +487,23 @@ if __name__ == "__main__":
         num_images_to_display = 32
         images_displayed = 0
 
-        # for i in range(concepts_for_label.shape[0] // num_images_to_display):
-        #     title = f"{i * num_images_to_display}_{(i + 1) * num_images_to_display}"
-        #     fname = f"C:/concept_learning_exp/datasets/mnist_concepts/concept_id_{concept_id}/" + title
-        #     print(concepts_for_label[top_indices[i * num_images_to_display : (i + 1) * num_images_to_display]].shape)
-        #     display_images(concepts_for_label[top_indices[i * num_images_to_display : (i + 1) * num_images_to_display]],
-        #                    fname,
-        #                    title=title)
-        #     # cv2.imwrite(f"C:/concept_learning_exp/datasets/mnist_concepts/concept_id_{concept_id}/concept_{label}_{i}.png",
-        #     #             np.squeeze(concepts_for_label[i]))
-        # if concepts_for_label.shape[0] % num_images_to_display > 0:
-        #     left_out = (concepts_for_label.shape[0] // num_images_to_display) * num_images_to_display
-        #     title = f"{left_out}_{concepts_for_label.shape[0]}"
-        #     fname = f"C:/concept_learning_exp/datasets/mnist_concepts/concept_id_{concept_id}/" + title
-        #     display_images(concepts_for_label[left_out: ],
-        #                    fname,
-        #                    title=title)
+        for i in range(concepts_for_label.shape[0] // num_images_to_display):
+            title = f"concepts_{label}_{i * num_images_to_display}_{(i + 1) * num_images_to_display}"
+            fname = f"C:/concept_learning_exp/datasets/mnist_concepts/concept_id_{concept_id}/" + title
+            print(concepts_for_label[top_indices[i * num_images_to_display: (i + 1) * num_images_to_display]].shape)
+            display_images(concepts_for_label[top_indices[i * num_images_to_display: (i + 1) * num_images_to_display]],
+                           fname,
+                           title=title)
+            # cv2.imwrite(f"C:/concept_learning_exp/datasets/mnist_concepts/concept_id_{concept_id}/concept_{label}_{i}.png",
+            #             np.squeeze(concepts_for_label[i]))
 
+        if concepts_for_label.shape[0] % num_images_to_display > 0:
+            left_out = (concepts_for_label.shape[0] // num_images_to_display) * num_images_to_display
+            title = f"concepts_{label}_{left_out}_{concepts_for_label.shape[0]}"
+            fname = f"C:/concept_learning_exp/datasets/mnist_concepts/concept_id_{concept_id}/" + title
+            display_images(concepts_for_label[left_out:],
+                           fname,
+                           title=title)
 
     # images,labels = dao.load_train_images_and_label("C:\concept_learning_exp\datasets/",
     #                                 map_filename="C:\concept_learning_exp\datasets/mnist_concepts/split_70_30/manually_generated_concepts.json")
@@ -498,5 +512,3 @@ if __name__ == "__main__":
     # #     print(k, v)
     # print(dao.orig_train_images.shape)
     # print(images.shape, labels.shape)
-
-

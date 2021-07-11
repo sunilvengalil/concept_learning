@@ -4,6 +4,14 @@ from clearn.dao.cifar_10 import CiFar10Dao
 from clearn.dao.mnist_with_concepts import MnistConceptsDao
 
 
+class IDao:
+    pass
+
+
+class DriveDao(IDao):
+    pass
+
+
 def get_dao(dataset_name,
             split_name: str,
             num_validation_samples: int,
@@ -27,6 +35,16 @@ def get_dao(dataset_name,
                                 std_dev=std_dev
                                 )
     elif dataset_name == "cat_vs_dog":
-        return CatVsDogDao(dataset_name, split_name, num_validation_samples, dataset_path, concept_id)
+        return CatVsDogDao(dataset_name,
+                           split_name,
+                           num_validation_samples,
+                           dataset_path,
+                           concept_id
+                           )
+    elif dataset_name == "drive":
+        return DriveDao(dataset_name,
+                        split_name,
+                        num_validation_samples = -1,
+                                )
     else:
         raise Exception(f"Dataset {dataset_name} not implemented")
