@@ -135,7 +135,7 @@ def segment_single_image_with_multiple_slices(image,
         if digit_location_key == "4_17_23_17_28":
             print(digit_location_key, np.sum(cropped_and_stripped))
         if np.sum(cropped_and_stripped) < 10:
-            print(f"Skipping {digit_location_key} np.sum(cropped_and_stripped) ")
+            print(f"Skipping {digit_location_key} {np.sum(cropped_and_stripped)} ")
             continue
 
         if translate_image:
