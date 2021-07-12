@@ -163,7 +163,7 @@ class ImageConcept:
     def get_full_image(self):
         squeezed = np.squeeze(self.digit_image)
         mask = np.zeros_like(squeezed)
-        print(mask.shape, self.v_extend, self.h_extend)
+        #print(mask.shape, self.v_extend, self.h_extend)
         mask[self.v_extend[0]:self.v_extend[1], self.h_extend[0]:self.h_extend[1]] = self.get_cropped_image()
         return mask
 
@@ -179,7 +179,7 @@ class ImageConcept:
         self.bottom_largest_cc = self.top_largest_cc + stats[label_of_largest_connected_component, cv2.CC_STAT_HEIGHT]
         self.right_largest_cc = self.left_largest_cc + stats[label_of_largest_connected_component, cv2.CC_STAT_WIDTH]
         self.centroid_largest_cc = centroid_of_largest_connected_component
-        print(centroid_of_largest_connected_component)
+        #print(centroid_of_largest_connected_component)
         cropped[labels != label_of_largest_connected_component] = 0
         return cropped
 
@@ -196,7 +196,7 @@ class ImageConcept:
     def get_image_largest_cc(self):
         squeezed = np.squeeze(self.digit_image)
         mask = np.zeros_like(squeezed)
-        print(mask.shape, self.v_extend, self.h_extend)
+        #print(mask.shape, self.v_extend, self.h_extend)
         cropped = squeezed[self.top_largest_cc:self.bottom_largest_cc, self.left_largest_cc:self.right_largest_cc]
         mask[self.top_largest_cc:self.bottom_largest_cc, self.left_largest_cc:self.right_largest_cc] = cropped
         return mask
@@ -209,7 +209,7 @@ class ImageConcept:
         # if len(h_extend) == 0:
         #     h_extend = [0, 28]
         cropped = np.asarray(self.digit_image)
-        print(h_extend, v_extend, cropped.shape)
+        #print(h_extend, v_extend, cropped.shape)
         return cropped[0, v_extend[0]:v_extend[1], h_extend[0]:h_extend[1], 0]
 
     def get_cropped_and_stripped(self):
