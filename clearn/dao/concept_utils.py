@@ -132,7 +132,10 @@ def segment_single_image_with_multiple_slices(image,
         cropped = image[ v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]]
         h_im, _ = ImageConcept.tight_bound_h(cropped)
         cropped_and_stripped, _= ImageConcept.tight_bound_v(h_im)
+        if digit_location_key == "4_17_23_17_28":
+            print(np.sum(cropped_and_stripped))
         if np.sum(cropped_and_stripped) < 10:
+            print(f"Skipping {digit_location_key} ")
             continue
 
         if translate_image:
