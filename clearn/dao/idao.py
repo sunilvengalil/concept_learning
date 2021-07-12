@@ -139,9 +139,9 @@ class IDao(ABC):
         else:
             _val_x = val_x
 
-        data_dict = {self.TRAIN_X: _train_x / self.max_value,
+        data_dict = {self.TRAIN_X: _train_x ,
                      self.TRAIN_Y: _train_y,
-                     self.VALIDATION_X: _val_x / self.max_value,
+                     self.VALIDATION_X: _val_x,
                      self.VALIDATION_Y_ONE_HOT: _val_y,
                      self.VALIDATION_Y_RAW: val_y}
         return data_dict
