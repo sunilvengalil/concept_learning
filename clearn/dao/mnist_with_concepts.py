@@ -80,7 +80,7 @@ def grid_search(digit_image, concept_image):
 
 
 class MnistConceptsDao(IDao):
-    NUM_IMAGES_PER_CONCEPT = 100
+    NUM_IMAGES_PER_CONCEPT = 1900
 
     def __init__(self,
                  dataset_name: str,
