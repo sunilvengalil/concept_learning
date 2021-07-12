@@ -127,9 +127,20 @@ class IDao(ABC):
         print(type(val_y), val_y.dtype)
         _val_y = np.eye(self.num_classes)[val_y]
         _train_y = np.eye(self.num_classes)[train_y]
-        data_dict = {self.TRAIN_X: train_x / self.max_value,
+
+        if np.max(train_x) == self.max_value:
+            _train_x = train_x / self.max_value
+        else:
+            _train_x = train_x
+
+        if np.max(val_x) == self.max_value:
+            _val_x = val_x / self.max_value
+        else:
+            _val_x = val_x
+
+        data_dict = {self.TRAIN_X: _train_x / self.max_value,
                      self.TRAIN_Y: _train_y,
-                     self.VALIDATION_X: val_x / self.max_value,
+                     self.VALIDATION_X: _val_x / self.max_value,
                      self.VALIDATION_Y_ONE_HOT: _val_y,
                      self.VALIDATION_Y_RAW: val_y}
         return data_dict

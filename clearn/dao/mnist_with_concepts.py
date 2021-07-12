@@ -162,6 +162,8 @@ class MnistConceptsDao(IDao):
 
             # print(class_label, cluster_id, df.shape)
             self.image_set_dict[f"training_set_{class_label}"] = df.values[:, 0:784].reshape(df.shape[0], 28, 28, 1)
+            shape = np.max(self.image_set_dict[f"training_set_{class_label}"])
+            print(f"Max value of class label {class_label} {shape}  ")
     @property
     def number_of_training_samples(self):
         if self.data_dict is None:
