@@ -132,6 +132,8 @@ def segment_single_image_with_multiple_slices(image,
         cropped = image[ v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]]
         h_im, _ = ImageConcept.tight_bound_h(cropped)
         cropped_and_stripped, _= ImageConcept.tight_bound_v(h_im)
+        if np.sum(cropped_and_stripped) < 10:
+            continue
 
         if translate_image:
             tops[image_number] = randint(0, height - cropped_and_stripped.shape[0])
