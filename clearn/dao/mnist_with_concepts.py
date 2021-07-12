@@ -348,13 +348,13 @@ class MnistConceptsDao(IDao):
         sample_indices_for_cluster = [None] * len(self.image_set_dict)
         for k, v in self.image_set_dict.items():
             if k.endswith(str(digit)):
-                print(cluster_probabilities)
+                #print(cluster_probabilities)
                 sample_indices_for_cluster[cluster_num] = np.random.choice(len(v),
                                                               num_samples_to_generate * min(cluster_probabilities[cluster_num] + 1, 1))
                 cluster_num += 1
 
         cluster_indices = np.random.choice(len(cluster_probabilities), num_samples_to_generate, p=cluster_probabilities)
-        print(cluster_indices.dtype)
+        #print(cluster_indices.dtype)
         sample_indices = np.zeros(num_samples_to_generate, dtype=int)
         for cluster_num in range(len(cluster_probabilities)):
             num_samples_for_cluster = np.sum(cluster_indices == cluster_num)
@@ -362,7 +362,7 @@ class MnistConceptsDao(IDao):
 
         samples = np.hstack([cluster_indices.reshape((num_samples_to_generate, 1)),
                              sample_indices.reshape(num_samples_to_generate, 1)])
-        print(cluster_indices.shape, sample_indices.shape, samples.shape)
+        #print(cluster_indices.shape, sample_indices.shape, samples.shape)
         df = pd.DataFrame(samples,columns=["cluster_indices", "sample_indices"])
         return df
 
@@ -388,7 +388,7 @@ class MnistConceptsDao(IDao):
                 clusters = []
                 for k, v in self.image_set_dict.items():
                     if k.endswith(str(digit)):
-                        print("cluster_name", k)
+                        #print("cluster_name", k)
                         clusters.append(v)
                         # if path is not None:
                         #     display_images(v, path + f"/{k}", k)
@@ -397,7 +397,7 @@ class MnistConceptsDao(IDao):
                                              num_images_per_concept // (len(concept_image.digits) * num_images_to_sample_from_for_digit)
                                              )
                 label = get_label(digit, h_extend, v_extend, label_key_to_label_map)
-                print("Sample df shape",sample_df.shape)
+                #print("Sample df shape",sample_df.shape)
                 # TODO modify this using apply
                 for index, sample_row in sample_df.iterrows():
                     cluster_index = sample_row["cluster_indices"]
@@ -407,12 +407,12 @@ class MnistConceptsDao(IDao):
                     #     display_images(cluster, path + f"cluster_{index}.png", f"cluster_{index}")
                     sample_index = sample_row["sample_indices"]
                     digit_image = cluster[sample_index]
-                    print("Concept image: extends",
-                          concept_image.h_extend,
-                          concept_image.v_extend,
-                          concept_image.digit_image.shape,
-                          np.sum(concept_image.digit_image)
-                          )
+                    # print("Concept image: extends",
+                    #       concept_image.h_extend,
+                    #       concept_image.v_extend,
+                    #       concept_image.digit_image.shape,
+                    #       np.sum(concept_image.digit_image)
+                    #       )
                     h_extend, v_extend, corr = grid_search(digit_image,
                                                      concept_image)
                     #print(h_extend, v_extend, digit_image.shape)
