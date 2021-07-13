@@ -120,7 +120,8 @@ class IDao(ABC):
 
         print(f"saving to data dir {data_dir} images.csv")
         frame = pd.DataFrame(train_x.reshape((train_x.shape[0], 784)))
-        frame["label"] = np.argmax(train_y, axis = 1)
+        print(train_y.shape)
+        frame["label"] = train_y
         frame.to_csv(data_dir + "/images.csv", index=False)
 
         data_dict["TRAIN_INDICES"] = train_indices
