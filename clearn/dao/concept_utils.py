@@ -196,7 +196,7 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
     num_concepts_generated = concept_images.shape[0]
     widths = widths[0:num_concepts_generated]
     heights = heights[0:num_concepts_generated]
-    print("Number of images generated", num_concepts_generated)
+    # print("Number of images generated", num_concepts_generated)
     return concept_images, tops, lefts, widths, heights
 
 if __name__ == "__main__":
