@@ -139,6 +139,7 @@ def segment_single_image_with_multiple_slices(image,
             continue
 
         if translate_image:
+            print("translate image is True")
             tops[image_number] = randint(0, height - cropped_and_stripped.shape[0])
             lefts[image_number] = randint(0, width - cropped_and_stripped.shape[1])
             masked_images[image_number, tops[image_number]:tops[image_number] + cropped_and_stripped.shape[0], lefts[image_number]:lefts[image_number] + cropped_and_stripped.shape[1]] = cropped_and_stripped

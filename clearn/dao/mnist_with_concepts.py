@@ -71,12 +71,12 @@ def grid_search(digit_image, concept_image):
 
     h_extend = [x - math.floor(cropped_and_stripped.shape[1] / 2.0), x + math.ceil(cropped_and_stripped.shape[1] / 2.0)]
     v_extend = [y - math.floor(cropped_and_stripped.shape[0] / 2.0), y + math.ceil(cropped_and_stripped.shape[0] / 2.0)]
-    #print("final",top_hat, left_hat, top_hat + height, left_hat + width, sim_score)
+    # print("final",top_hat, left_hat, top_hat + height, left_hat + width, sim_score)
 
-    #v_extend = [top_hat, top_hat + height]
-    #h_extend = [left_hat, left_hat + width]
+    # v_extend = [top_hat, top_hat + height]
+    # h_extend = [left_hat, left_hat + width]
     return h_extend, v_extend, corr
-    #return h_extend, v_extend
+    # return h_extend, v_extend
 
 
 class MnistConceptsDao(IDao):
