@@ -44,7 +44,6 @@ def similarity_score(im_patch, cropped_and_stripped):
 
 def grid_search(digit_image, concept_image):
     cropped_and_stripped, h_extend, v_extend = concept_image.get_cropped_and_stripped()
-
     height, width = cropped_and_stripped.shape[0], cropped_and_stripped.shape[1]
     top_from = v_extend[0] - search_window_height
     top_to = v_extend[0] + search_window_height
@@ -382,9 +381,12 @@ class MnistConceptsDao(IDao):
         num_samples_generated = 0
         for concept_no, image_concept_dict in enumerate(list_of_concept_dict):
             concept_image = ImageConcept.fromdict(image_concept_dict)
-
+            if concept_image.h_extend[1] - concept_image.h_extend[0] == 0:
+                raise Exception(f"Width of concept is zero for {concept_image.digit} {concept_image.h_extend}")
+            if concept_image.v_extend[1] - concept_image.v_extend[0] == 0:
+                raise Exception(f"Height of concept is zero for {concept_image.digit} {concept_image.v_extend}")
             v_extend, h_extend = concept_image.v_extend, concept_image.h_extend
-            for digit in  concept_image.digits:
+            for digit in concept_image.digits:
                 clusters = []
                 for k, v in self.image_set_dict.items():
                     if k.endswith(str(digit)):
