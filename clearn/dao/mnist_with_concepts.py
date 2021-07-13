@@ -157,12 +157,9 @@ class MnistConceptsDao(IDao):
                     df = pd.read_csv(sample_path + f"sample_{class_label}_{cluster_id}.csv")
                 else:
                     df = df.append(pd.read_csv(sample_path + f"sample_{class_label}_{cluster_id}.csv"))
-                print(class_label, cluster_id, df.shape)
-
-            # print(class_label, cluster_id, df.shape)
+            print(f"Sample images for class {class_label} cluster id  {cluster_id}  Shape {df.shape}")
             self.image_set_dict[f"training_set_{class_label}"] = df.values[:, 0:784].reshape(df.shape[0], 28, 28, 1)
             shape = np.max(self.image_set_dict[f"training_set_{class_label}"])
-            print(f"Max value of class label {class_label} {shape}  ")
     @property
     def number_of_training_samples(self):
         if self.data_dict is None:
