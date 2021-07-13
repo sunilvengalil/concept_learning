@@ -126,7 +126,7 @@ class VAE(GenerativeModel):
             self.out = tf.clip_by_value(out, 1e-8, 1 - 1e-8)
 
             self.marginal_likelihood = tf.reduce_sum(self.inputs * tf.math.log(self.out) +
-                                                     (1 - self.inputs) * tf.math.log(1 - self.out),
+                                                     self.exp_config.class_weight * (1 - self.inputs) * tf.math.log(1 - self.out),
                                                      [1, 2],
                                                      )
         else:

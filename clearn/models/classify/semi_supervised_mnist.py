@@ -122,7 +122,6 @@ class SemiSupervisedClassifierMnist(VAE):
                     print("layer_num", layer_num, decoder_feature)
                     f = self.decoder_dict[decoder_feature]
                     print(f.shape)
-                    num_concepts = len(self.exp_config.concept_dict[layer_num]["unique_concepts"])
                     self.supervised_loss_concepts_per_layer[layer_num] = dict()
                     self.mse_for_all_images = dict()
                     self.mse_for_all_images_masked = dict()

@@ -108,7 +108,8 @@ class ExperimentConfig:
                  dao=None,
                  concept_id=-1,
                  concept_dict=None,
-                 std_dev_concept_distribution=1
+                 std_dev_concept_distribution=1,
+                 class_weight=1
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -199,6 +200,7 @@ class ExperimentConfig:
         self.concept_id = concept_id
         self.concept_dict = concept_dict
         self.std_dev_concept_distribution = std_dev_concept_distribution
+        self.class_weight = class_weight
 
     @property
     def num_train_samples(self):
@@ -255,6 +257,7 @@ class ExperimentConfig:
         config_json["CONCEPT_ID"] = self.concept_id
         config_json["CONCEPT_DICT"] = self.concept_dict
         config_json["STD_DEV_CONCEPT_DISTRIBUTION"] = self.std_dev_concept_distribution
+        config_json["CLASS_WEIGHT"] = self.class_weight
 
         return config_json
 
@@ -337,8 +340,8 @@ class ExperimentConfig:
         exp_config.name = experiment_name
 
         dao = get_dao(dataset_name, split_name, exp_config.num_val_samples)
-        total_training_samples = dao.number_of_training_samples()
-        exp_config.num_train_samples = ((total_training_samples - exp_config.num_val_samples) // exp_config.BATCH_SIZE) * exp_config.BATCH_SIZE
+        #total_training_samples = dao.number_of_training_samples()
+        # exp_config.num_train_samples = ((total_training_samples - exp_config.num_val_samples) // exp_config.BATCH_SIZE) * exp_config.BATCH_SIZE
 
         return exp_config
 
@@ -365,7 +368,6 @@ class ExperimentConfig:
         self.confidence_decay_factor = exp_config_dict["CONFIDENCE_DECAY_FACTOR"]
         self.manual_labels_config = exp_config_dict["MANUAL_LABELS_CONFIG"]
         self.reconstruction_weight = exp_config_dict["RECONSTRUCTION_WEIGHT"]
-        self.num_val_samples = exp_config_dict["NUM_VAL_SAMPLES"]
         self.activation_hidden_layer = exp_config_dict["ACTIVATION_HIDDEN_LAYER"]
         self.activation_output_layer = exp_config_dict["ACTIVATION_OUTPUT_LAYER"]
         self.save_reconstructed_images = exp_config_dict["SAVE_RECONSTRUCTED_IMAGES"]
@@ -391,7 +393,7 @@ class ExperimentConfig:
         self.concept_id = exp_config["CONCEPT_ID"]
         self.concept_dict = exp_config["CONCEPT_DICT"]
         self.std_dev_concept_distribution = exp_config["STD_DEV_CONCEPT_DISTRIBUTION"]
-
+        self.class_weight = exp_config["CLASS_WEIGHT"]
 
 if __name__ == "__main__":
     _root_path = "/Users/sunilv/concept_learning_exp"
