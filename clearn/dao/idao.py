@@ -69,7 +69,9 @@ class IDao(ABC):
                        training_phase=None):
         x, y = self.load_train_images_and_label(data_dir,  split_location + MAP_FILE_NAME, training_phase=training_phase)
         print(f"saving to data dir {data_dir} images.csv")
-        pd.DataFrame(x.reshape((x.shape[0], 784))).to_csv( data_dir  +  "/images.csv")
+        frame = pd.DataFrame(x.reshape((x.shape[0], 784)))
+        frame["label"] = np.argmax(y, axis=1)
+        frame.to_csv(data_dir + "/images.csv", index=False)
         if percentage_to_be_sampled is None:
             if num_val_samples is None:
                 raise Exception("Parameters percentage_to_be_sampled and num_val_samples both can not be None")
