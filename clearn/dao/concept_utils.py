@@ -132,20 +132,18 @@ def segment_single_image_with_multiple_slices(image,
         cropped = image[ v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]]
         h_im, _ = ImageConcept.tight_bound_h(cropped)
         cropped_and_stripped, _= ImageConcept.tight_bound_v(h_im)
-        if digit_location_key == "4_13_16_0_28":
-            print(digit_location_key, np.sum(cropped_and_stripped), np.sum(cropped))
-        if np.sum(cropped_and_stripped) < 10:
-            print(f"Skipping {digit_location_key} {np.sum(cropped_and_stripped)} ")
-            continue
+        # if digit_location_key == "4_13_16_0_28":
+        #     print(digit_location_key, np.sum(cropped_and_stripped), np.sum(cropped))
+        # if np.sum(cropped_and_stripped) < 10:
+        #     print(f"Skipping {digit_location_key} {np.sum(cropped_and_stripped)} ")
+        #     continue
 
         if translate_image:
-            print("translate image is True")
             tops[image_number] = randint(0, height - cropped_and_stripped.shape[0])
             lefts[image_number] = randint(0, width - cropped_and_stripped.shape[1])
             masked_images[image_number, tops[image_number]:tops[image_number] + cropped_and_stripped.shape[0], lefts[image_number]:lefts[image_number] + cropped_and_stripped.shape[1]] = cropped_and_stripped
         else:
             masked_images[image_number, v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]] = cropped
-            print(digit_location_key, np.sum(masked_images[image_number]))
         image_number += 1
 
     if display_image:

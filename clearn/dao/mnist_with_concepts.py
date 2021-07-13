@@ -80,7 +80,7 @@ def grid_search(digit_image, concept_image):
 
 
 class MnistConceptsDao(IDao):
-    NUM_IMAGES_PER_CONCEPT =  100
+    NUM_IMAGES_PER_CONCEPT = 1900
 
     def __init__(self,
                  dataset_name: str,
@@ -397,8 +397,6 @@ class MnistConceptsDao(IDao):
                                              num_images_per_concept // (len(concept_image.digits) * num_images_to_sample_from_for_digit)
                                              )
                 label = get_label(digit, h_extend, v_extend, label_key_to_label_map)
-                if label != 33:
-                    continue
                 #print("Sample df shape",sample_df.shape)
                 # TODO modify this using apply
                 for index, sample_row in sample_df.iterrows():
