@@ -183,9 +183,9 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
     # v_extends_to_random = normal_distribution_int(v_extend[1], 1, 3, num_concepts_to_generate)
 
     concept_images, tops, lefts = segment_single_image_with_multiple_slices(digit_image,
-                                                                           list(zip(h_extends_from_random, widths)),
-                                                                           list(zip(v_extends_from_random, heights)),
-                                                                           h_extend,
+                                                                            list(zip(h_extends_from_random, widths)),
+                                                                            list(zip(v_extends_from_random, heights)),
+                                                                            h_extend,
                                                                            v_extend,
                                                                            concept_image.digit,
                                                                            path,
@@ -194,8 +194,8 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
                                                                            display_image=False,
                                                                            epochs_completed=concept_image.epochs_completed,
                                                                            translate_image=translate_image
-                                                               )
-    return concept_images, tops, lefts, widths, heights
+                                                                            )
+    return concept_images, tops, lefts, widths[0:concept_images.shape[0]], heights[0:concept_images.shape[0]]
 
 if __name__ == "__main__":
     digit = 7

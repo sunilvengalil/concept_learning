@@ -362,7 +362,7 @@ class MnistConceptsDao(IDao):
 
         samples = np.hstack([cluster_indices.reshape((num_samples_to_generate, 1)),
                              sample_indices.reshape(num_samples_to_generate, 1)])
-        #print(cluster_indices.shape, sample_indices.shape, samples.shape)
+        # print(cluster_indices.shape, sample_indices.shape, samples.shape)
         df = pd.DataFrame(samples,columns=["cluster_indices", "sample_indices"])
         return df
 
