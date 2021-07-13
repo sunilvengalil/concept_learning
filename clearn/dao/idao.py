@@ -68,10 +68,7 @@ class IDao(ABC):
                        num_val_samples=None,
                        training_phase=None):
         x, y = self.load_train_images_and_label(data_dir,  split_location + MAP_FILE_NAME, training_phase=training_phase)
-        print(f"saving to data dir {data_dir} images.csv")
-        frame = pd.DataFrame(x.reshape((x.shape[0], 784)))
-        frame["label"] = y
-        frame.to_csv(data_dir + "/images.csv", index=False)
+
         if percentage_to_be_sampled is None:
             if num_val_samples is None:
                 raise Exception("Parameters percentage_to_be_sampled and num_val_samples both can not be None")
@@ -120,6 +117,12 @@ class IDao(ABC):
             raise Exception("Split not implemented for more than two splits")
 
         data_dict = self.create_data_dict(train_x, train_y, val_x, val_y)
+
+        print(f"saving to data dir {data_dir} images.csv")
+        frame = pd.DataFrame(train_x.reshape((train_x.shape[0], 784)))
+        frame["label"] = np.argmax(train_y, axis = 1)
+        frame.to_csv(data_dir + "/images.csv", index=False)
+
         data_dict["TRAIN_INDICES"] = train_indices
         data_dict["VAL_INDICES"] = val_indices
         self.num_validation_samples = data_dict["VAL_INDICES"].shape[0]
