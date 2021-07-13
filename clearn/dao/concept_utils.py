@@ -145,6 +145,7 @@ def segment_single_image_with_multiple_slices(image,
             masked_images[image_number, tops[image_number]:tops[image_number] + cropped_and_stripped.shape[0], lefts[image_number]:lefts[image_number] + cropped_and_stripped.shape[1]] = cropped_and_stripped
         else:
             masked_images[image_number, v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]] = cropped
+            print(digit_location_key, np.sum(masked_images[image_number]))
         image_number += 1
 
     if display_image:
