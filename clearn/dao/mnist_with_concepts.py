@@ -290,7 +290,7 @@ class MnistConceptsDao(IDao):
             image_df["left"] = lefts
             image_df["widths"] = widths
             image_df["heights"] = heights
-            # image_df.to_csv(concept_image_filename, index=False)
+            image_df.to_csv(concept_image_filename, index=False)
 
         if training_phase == "CONCEPTS":
             _x = _x[(y >= self.num_original_classes) & (y < self.num_original_classes + self.num_concepts_label_generated)]
