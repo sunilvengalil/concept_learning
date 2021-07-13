@@ -118,11 +118,11 @@ class IDao(ABC):
 
         data_dict = self.create_data_dict(train_x, train_y, val_x, val_y)
 
-        print(f"saving to data dir {data_dir} images.csv")
-        frame = pd.DataFrame(train_x.reshape((train_x.shape[0], 784)))
-        print(train_y.shape)
-        frame["label"] = train_y
-        frame.to_csv(data_dir + "/images.csv", index=False)
+        # print(f"saving to data dir {data_dir} images.csv")
+        # frame = pd.DataFrame(train_x.reshape((train_x.shape[0], 784)))
+        # print(train_y.shape)
+        # frame["label"] = train_y
+        # frame.to_csv(data_dir + "/images.csv", index=False)
 
         data_dict["TRAIN_INDICES"] = train_indices
         data_dict["VAL_INDICES"] = val_indices
