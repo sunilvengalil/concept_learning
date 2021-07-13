@@ -154,7 +154,7 @@ def segment_single_image_with_multiple_slices(image,
                        title=title,
                        num_images_to_display=num_images
                        )
-    return masked_images, tops, lefts
+    return masked_images[0:image_number], tops[0:image_number], lefts[0:image_number]
 
 
 def get_label(digit,

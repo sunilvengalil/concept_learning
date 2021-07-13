@@ -455,7 +455,7 @@ class MnistConceptsDao(IDao):
                     widths[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = widths_for_concepts
                     heights[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = heights_for_concepts
                     num_samples_generated += image_for_concept.shape[0]
-            #plt.show()
+            # plt.show()
         return concepts_for_digit[0:num_samples_generated], labels[0:num_samples_generated], tops[0:num_samples_generated], lefts[0:num_samples_generated], widths[0:num_samples_generated], heights[0:num_samples_generated]
 
 
