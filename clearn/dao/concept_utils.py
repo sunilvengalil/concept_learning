@@ -186,16 +186,20 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
                                                                             list(zip(h_extends_from_random, widths)),
                                                                             list(zip(v_extends_from_random, heights)),
                                                                             h_extend,
-                                                                           v_extend,
-                                                                           concept_image.digit,
-                                                                           path,
-                                                                           concept_image.cluster_name,
+                                                                            v_extend,
+                                                                            concept_image.digit,
+                                                                            path,
+                                                                            concept_image.cluster_name,
                                                                            concept_image.sample_index,
                                                                            display_image=False,
                                                                            epochs_completed=concept_image.epochs_completed,
                                                                            translate_image=translate_image
                                                                             )
-    return concept_images, tops, lefts, widths[0:concept_images.shape[0]], heights[0:concept_images.shape[0]]
+    num_concepts_generated = concept_images.shape[0]
+    widths = widths[0:num_concepts_generated]
+    heights = heights[0:num_concepts_generated]
+    print("Number of images generated", num_concepts_generated)
+    return concept_images, tops, lefts, widths, heights
 
 if __name__ == "__main__":
     digit = 7
