@@ -417,12 +417,17 @@ class MnistConceptsDao(IDao):
                     #       )
                     h_extend, v_extend, corr = grid_search(digit_image,
                                                      concept_image)
-                    #print(h_extend, v_extend, digit_image.shape)
+                    if h_extend[1] - h_extend[0] == 0:
+                        raise Exception(f"Width of concept is zero for {concept_image.digit} {h_extend}")
+                    if concept_image.v_extend[1] - concept_image.v_extend[0] == 0:
+                        raise Exception(f"Height of concept is zero for {concept_image.digit} {v_extend}")
+
+                    # print(h_extend, v_extend, digit_image.shape)
                     # plt.figure()
                     # plt.imshow(np.squeeze(concept_image.digit_image))
-                    #print(concept_no, digit, index, sample_row["cluster_indices"], sample_index)
-                    #print("Digit image min and max", np.min(concept_image.digit_image), np.max(concept_image.digit_image))
-                    #print("Digit image from cluster min and max", np.min(digit_image), np.max(digit_image))
+                    # print(concept_no, digit, index, sample_row["cluster_indices"], sample_index)
+                    # print("Digit image min and max", np.min(concept_image.digit_image), np.max(concept_image.digit_image))
+                    # print("Digit image from cluster min and max", np.min(digit_image), np.max(digit_image))
 
                     if path is not None:
                         cv2.imwrite(path + f"/correlation_{digit}_{concept_no}_{index}.png", corr * 256)
