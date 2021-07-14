@@ -309,7 +309,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                   concept_id=concept_id,
                                   concept_dict=concept_dict,
                                   std_dev_concept_distribution=1,
-                                  class_weight=class_weight
+                                  class_weight=class_weight,
+                                  training_phase=training_phase
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)

@@ -5,8 +5,9 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-#MAP_FILE_NAME = "manually_generated_concepts.json"
+# MAP_FILE_NAME = "manually_generated_concepts.json"
 MAP_FILE_NAME = "manually_generated_concepts_icvgip.json"
+
 
 class IDao(ABC):
     VALIDATION_Y_RAW = "validation_y_raw"
@@ -78,7 +79,7 @@ class IDao(ABC):
         if stratified:
             _stratify = y
 
-        if len(split_names) == 2:
+        if len(split_names) == 2 and percentage_to_be_sampled > 0:
             splitted = train_test_split(x,
                                         y,
                                         np.asarray(list(range(x.shape[0]))),
