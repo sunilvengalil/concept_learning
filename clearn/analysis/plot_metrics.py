@@ -1,3 +1,4 @@
+import logging
 from typing import List, Dict
 import glob
 import pandas as pd
@@ -319,8 +320,8 @@ def plot_epoch_vs_accuracy(root_path: str,
                            num_cluster_config: str,
                            z_dim: int,
                            run_ids: List[int],
-                           strides:List[int],
-                           num_dense_layers:int,
+                           strides: List[int] = None,
+                           num_dense_layers:int = 0,
                            dataset_types: List[str] = ["train", "test"],
                            activation_output_layer="SIGMOID",
                            dataset_name="mnist",
@@ -337,8 +338,10 @@ def plot_epoch_vs_accuracy(root_path: str,
                            min_accuracy=0,
                            plot_filename=None,
                            grid="both",
-                           minor=False
-                           ):
+                           minor=False,
+                           loglevel=logging.info
+                           ) -> np.ndarray:
+
     axis_font = {'fontname':'Arial', 'size':'26', "fontweight":"bold"}
 
     if exp_config is None:
@@ -366,7 +369,7 @@ def plot_epoch_vs_accuracy(root_path: str,
                                       num_dense_layers=num_dense_layers
                                       )
 
-    if not exp_config.check_and_create_directories(run_id, False):
+    if not exp_config.check_and_create_directories(run_ids, False):
         raise Exception(" Result directories does not exist")
 
     file_prefix = f"/{metric}_*.csv"
