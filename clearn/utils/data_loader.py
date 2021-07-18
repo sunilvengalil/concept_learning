@@ -352,8 +352,8 @@ class TrainValDataIterator:
                     # manual_annotation_file_val = manual_annotation_file.rsplit("/", 1)[0] + "/" + fname.rsplit(".", 1)[0] +"_val" + ".csv"
                     # if os.path.isfile(manual_annotation_file_val):
                     #     raise Exception(f"File does not exist {manual_annotation_file_val}")
-                    _manual_annotation = _manual_annotation_all[self.dataset_dict["TRAIN_INDICES"]]
-                    _manual_annotation_val = _manual_annotation_all[self.dataset_dict["VAL_INDICES"]]
+                    _manual_annotation = _manual_annotation_all
+                    _manual_annotation_val = np.zeros((self.val_x.shape[0], 3))
                     print("Loaded manual annotation")
                     print(f"Number of samples with manual confidence {sum(_manual_annotation[:, 1] > 0)}")
                 else:
