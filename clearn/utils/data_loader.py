@@ -70,6 +70,8 @@ class TrainValDataIterator:
     @classmethod
     def load_manual_annotation(cls, manual_annotation_file):
         df = pd.read_csv(manual_annotation_file)
+        if "apply_loss_at_layer" not in df.columns:
+            df["apply_loss_at_layer"] = -1
         return df[["manual_annotation", "manual_annotation_confidence", "apply_loss_at_layer"]].values
 
     def load_train_val_existing_split(self, split_name, split_location):

@@ -12,7 +12,7 @@ from copy import deepcopy
 from scipy import signal
 
 from clearn.analysis import ImageConcept
-from clearn.dao.concept_utils import generate_concepts_from_digit_image, get_label, get_concept_map, display_images
+from clearn.dao.concept_utils import generate_concepts_from_digit_image, get_label, get_concept_map
 from clearn.dao.idao import IDao
 from clearn.concepts import OPERATORS, apply_operator
 
