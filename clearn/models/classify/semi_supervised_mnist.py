@@ -271,10 +271,10 @@ class SemiSupervisedClassifierMnist(VAE):
                                                     feed_dict=feed_dict)
                         loss = return_list[2]
                         nll_loss = return_list[3]
-                        kl_loss = return_list[4]
-                        supervised_loss = return_list[5]
-                        supervised_loss_concepts = return_list[6]
-                        correlation_loss = return_list[7]
+                        kl_loss = return_list[5]
+                        supervised_loss = return_list[6]
+                        supervised_loss_concepts = return_list[7]
+                        correlation_loss = return_list[8]
                     else:
                         if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                             for layer_num in self.exp_config.concept_dict.keys():
@@ -294,8 +294,8 @@ class SemiSupervisedClassifierMnist(VAE):
                         return_list = self.sess.run(tensor_list, feed_dict=feed_dict)
                         loss = return_list[2]
                         nll_loss = return_list[3]
-                        kl_loss = return_list[4]
-                        supervised_loss = return_list[5]
+                        kl_loss = return_list[5]
+                        supervised_loss = return_list[6]
 
                         supervised_loss_concepts = dict()
                         supervised_loss_concepts_total = dict()
