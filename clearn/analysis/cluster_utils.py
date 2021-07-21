@@ -27,6 +27,7 @@ from clearn.utils.utils import get_pmf_y_given_z, get_latent_vector_column
 MAX_IMAGES_TO_DISPLAY = 36
 NUM_IMAGES_IN_SINGLE_PLOT = 12
 
+
 def trace_dim(f, num_trace_steps, dim, feature_dim, z_min, z_max):
     """
     Returns a tensor of dimension (`num_trace_steps`, `feature_dim`) with each row containing feature vector `f`
@@ -349,13 +350,20 @@ def assign_manual_label_and_confidence(df,
                                        dist_to_conf,
                                        cluster_group_dict,
                                        cluster_column_name_2,
+                                       cluster_column_name_3=None,
                                        assign_only_correct=False,
-                                       estimate_type="distance_function"
+                                       estimate_type="distance_function",
+                                       filter_condition=None,
+                                       cluster_column_name=None
                                        ):
     def assign_label(_df, _manual_label):
-        _indices = np.where((np.asarray(cluster_labels) == cluster.id)
-                            & (_df[cluster_column_name_2].values == _cluster.id))[0]
-        _df["manual_annotation"].iloc[_indices] = _manual_label
+        # _indices = np.where((np.asarray(cluster_labels) == cluster.id)
+        #                     & (_df[cluster_column_name_2].values == _cluster.id))[0]
+        if filter_condition is not None:
+            _indices = filter_condition & (_df[cluster_column_name] == cluster.id) & (_df[cluster_column_name_2].values == _cluster.id)
+        else:
+            _indices = (_df[cluster_column_name] == cluster.id) & (_df[cluster_column_name_2].values == _cluster.id)
+        _df.loc[_indices, "manual_annotation"] = _manual_label
         if estimate_type == "distance_function":
             _distance_df = df[f"distance_level_2_{cluster.id}_{_cluster.id}"]
             dst = _distance_df.iloc[_indices]
@@ -363,6 +371,27 @@ def assign_manual_label_and_confidence(df,
             _df["distance_to_confidence"].iloc[_indices] = dist_to_conf(dst)
         elif estimate_type == "map":
             _confidence_df = df[f"confidence_level_2_{cluster.id}_{_cluster.id}"]
+            _df.loc[_indices, "manual_annotation_confidence"] = _cluster.manual_annotation.confidence * _confidence_df.loc[_indices]
+        if assign_only_correct:
+            if filter_condition is not None:
+                wrong_indices = filter_condition & (_df["manual_annotation"] == _manual_label) & (_df["label"] != _manual_label)
+            else:
+                wrong_indices = (_df["manual_annotation"] == _manual_label) & (_df["label"] != _manual_label)
+
+            _df["manual_annotation_confidence"].loc[wrong_indices] = 0
+
+    def assign_label_3(_df, _manual_label):
+        _indices = np.where((np.asarray(cluster_labels) == cluster.id)
+                            & (_df[cluster_column_name_2].values == _cluster.id)
+                            & (_df[cluster_column_name_3].values == level_3_cluster.id))[0]
+        _df["manual_annotation"].iloc[_indices] = _manual_label
+        if estimate_type == "distance_function":
+            _distance_df = df[f"distance_level_3_{cluster.id}_{_cluster.id}_{level_3_cluster.id}"]
+            dst = _distance_df.iloc[_indices]
+            _df["manual_annotation_confidence"].iloc[_indices] = _cluster.manual_annotation.confidence * dist_to_conf(dst)
+            _df["distance_to_confidence"].iloc[_indices] = dist_to_conf(dst)
+        elif estimate_type == "map":
+            _confidence_df = df[f"confidence_level_3_{cluster.id}_{_cluster.id}_{level_3_cluster.id}"]
             _df["manual_annotation_confidence"].iloc[_indices] = _cluster.manual_annotation.confidence * _confidence_df.iloc[_indices]
         if assign_only_correct:
             wrong_indices = (_df["manual_annotation"] == _manual_label) & (_df["label"] != _manual_label)
@@ -393,8 +422,14 @@ def assign_manual_label_and_confidence(df,
                     assign_label(df, _manual_label)
         elif manual_label != -1:
             print("Manual Label", manual_label)
-            indices = np.where(cluster_labels == annotate_cluster)
-            df["manual_annotation"].iloc[indices] = manual_label
+            if cluster_column_name is not None:
+                indices = df[cluster_column_name] == annotate_cluster
+            else:
+                indices = np.where(cluster_labels == annotate_cluster)
+
+            if filter_condition is not None:
+                indices = filter_condition & indices
+            df.loc[indices, "manual_annotation"] = manual_label
             _, cluster = get_cluster(annotate_cluster, cluster_group_dict)
             print(df[df["manual_annotation"] == manual_label].shape, cluster.details["cluster_data_frame"].shape)
             num_correct = df[(manual_label == df["manual_annotation"]) & (df["label"] == manual_label)].shape[0]
@@ -409,15 +444,14 @@ def assign_manual_label_and_confidence(df,
                 df["manual_annotation_confidence"].iloc[indices] = _manual_confidence * dist_to_conf(dist)
                 df["distance_to_confidence"].iloc[indices] = dist_to_conf(dist)
             elif estimate_type == "map":
-                confidence_df = df["confidence_{}".format(annotate_cluster)]
-                df["manual_annotation_confidence"].iloc[indices] = _manual_confidence * confidence_df.iloc[indices]
+                confidence_df = df[f"confidence_{annotate_cluster}"]
+                df.loc[indices, "manual_annotation_confidence"] = _manual_confidence * confidence_df.loc[indices]
             if assign_only_correct:
-                wrong_indices = (df["manual_annotation"] == manual_label) & (df["label"] != manual_label)
+                wrong_indices = (filter_condition & df["manual_annotation"] == manual_label) & (df["label"] != manual_label)
                 print(len(wrong_indices), wrong_indices.shape)
                 df["manual_annotation_confidence"].loc[wrong_indices] = 0
         else:
             print("unknown")
-            # TODO second level clustering is not used now so commenting the code
             # unknown, check if second level clustering is done or not
             _, cluster = get_cluster(annotate_cluster, cluster_group_dict)
             print(type(cluster.next_level_clusters))
@@ -437,16 +471,46 @@ def assign_manual_label_and_confidence(df,
                         assign_label(df, _manual_label)
                     else:
                         # Manual label is -1
-                        # Label all the ~600 samples in the second level cluster
-                        indices = np.where((np.asarray(cluster_labels) == cluster.id)
-                                           & (df[cluster_column_name_2].values == _cluster.id))[0]
-                        print(f"Annotating individual samples {indices.shape}")
-                        num_individual_samples_annotated += indices.shape[0]
-                        df["manual_annotation"].iloc[indices] = df["label"][indices].values
-                        df["manual_annotation_confidence"].iloc[indices] = 1
-                        if estimate_type =="distance_function":
-                            _dist = _distance_df.iloc[indices]
-                            df["distance_to_confidence"].iloc[indices] = dist_to_conf(_dist)
+                        # Look at third level cluster
+                        if cluster_column_name_3 is not None:
+                            for level_2_cluster_group_name, level_2_cluster_group in _cluster.next_level_clusters.items():
+                                for level_3_cluster in level_2_cluster_group:
+                                    print(f"Third level cluster id {level_3_cluster.id}")
+                                    _manual_label = level_3_cluster.manual_annotation.label
+                                    print(f"********{_manual_label}*******")
+                                    if isinstance(_manual_label, tuple) or isinstance(_manual_label, list):
+                                        # TODO add this code
+                                        pass
+                                    elif _manual_label != -1:
+                                        print("Manual_label", _manual_label)
+                                        assign_label_3(df, _manual_label)
+                                    else:
+                                        if filter_condition is not None:
+                                            indices = filter_condition & (df[cluster_column_name] == cluster.id) & (df[cluster_column_name_2].values == _cluster.id) & (df[cluster_column_name_3].values == level_3_cluster.id)
+                                        else:
+                                            indices =(df[cluster_column_name] == cluster.id) & (df[cluster_column_name_2].values == _cluster.id) & (df[cluster_column_name_3].values == level_3_cluster.id)
+                                        print(f"Annotating individual samples {indices.shape}")
+                                        num_individual_samples_annotated += indices.shape[0]
+                                        df.loc[indices, "manual_annotation"] = df["label"][indices].values
+                                        df.loc[indices, "manual_annotation"] = 1
+                                        if estimate_type =="distance_function":
+                                            _dist = _distance_df.iloc[indices]
+                                            df.iloc[indices, "distance_to_confidence"] = dist_to_conf(_dist)
+                        else:
+                            if filter_condition is not None:
+                                indices = filter_condition & (df[cluster_column_name] == cluster.id) & (
+                                            df[cluster_column_name_2].values == _cluster.id)
+                            else:
+                                indices = (df[cluster_column_name] == cluster.id) & (
+                                            df[cluster_column_name_2].values == _cluster.id)
+                            print(f"Annotating individual samples {np.sum(indices)}")
+                            num_individual_samples_annotated += np.sum(indices)
+                            df.loc[indices, "manual_annotation"] = df["label"][indices].values
+                            df.loc[indices, "manual_annotation"] = 1
+                            if estimate_type == "distance_function":
+                                _dist = _distance_df.iloc[indices]
+                                df.loc[indices, "distance_to_confidence"] = dist_to_conf(_dist)
+
         print("********************************")
 
     return num_individual_samples_annotated
@@ -553,16 +617,18 @@ def distance(row, inv_cov, cluster_center,z_col_names):
     return mahalanobis(row[z_col_names].values, cluster_center, inv_cov)
 
 
-def compute_distance(df, num_clusters, cluster_labels, z_col_names, cluster_centers):
-    for i in range(num_clusters):
-        df["distance_{}".format(i)] = 100000
+def compute_distance(df, num_clusters, cluster_column_name, z_col_names, cluster_centers, filter_conditions=None):
     for cluster_num in range(num_clusters):
-        indices = np.where( np.asarray(cluster_labels) == cluster_num)[0]
+        df[f"distance_{cluster_num}"] = 10000
+        if filter_conditions is None:
+            indices = df[cluster_column_name] == cluster_num
+        else:
+            indices = filter_conditions & (df[cluster_column_name] == cluster_num)
         lv = df[z_col_names].values[indices, :]
         print(lv.shape)
         cov = np.cov(lv.T)
         inv_cov = sp.linalg.inv(cov)
-        df["distance_{}".format(cluster_num)].iloc[indices] = df.iloc[indices].apply(lambda x:distance(x,
+        df.loc[filter_conditions, f"distance_{cluster_num}"] =  df.loc[filter_conditions].apply(lambda x:distance(x,
                                                                                                        inv_cov,
                                                                                                        cluster_centers[cluster_num],
                                                                                                        z_col_names),
