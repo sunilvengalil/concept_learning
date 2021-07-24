@@ -136,7 +136,9 @@ class VAE(GenerativeModel):
                                                          self.out,
                                                          reduction=tf.compat.v1.losses.Reduction.NONE
                                                          )
+            print("Mll", mll.shape)
             self.marginal_likelihood = -tf.compat.v1.reduce_mean(mll, axis=(1, 2, 3))
+            print("after reduction", self.marginal_likelihood.shape)
         self.neg_loglikelihood = -tf.reduce_mean(self.marginal_likelihood)
 
         kl = 0.5 * tf.reduce_sum(tf.square(self.mu) +
