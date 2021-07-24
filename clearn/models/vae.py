@@ -122,6 +122,7 @@ class VAE(GenerativeModel):
         out = self._decoder(self.z, reuse=False)
 
         # loss
+        print("Activation output layer", self.exp_config.activation_output_layer)
         if self.exp_config.activation_output_layer == "SIGMOID":
             self.out = tf.clip_by_value(out, 1e-8, 1 - 1e-8)
 
