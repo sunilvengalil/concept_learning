@@ -227,6 +227,10 @@ class SemiSupervisedClassifierMnist(VAE):
         num_samples_per_image = 64
         manifold_w = 4
         manifold_h = num_samples_per_image // manifold_w
+        if self.exp_config.save_per_class_metrics:
+            save_policies_classes = -1
+        else:
+            save_policies_classes = []
 
         for epoch in range(start_epoch, self.epoch):
             evaluation_run_for_last_epoch = False
@@ -362,17 +366,24 @@ class SemiSupervisedClassifierMnist(VAE):
 
             self.num_training_epochs_completed = epoch + 1
             print(f"Completed {epoch} epochs")
+
             if self.exp_config.run_evaluation_during_training:
                 if np.mod(epoch, self.exp_config.eval_interval_in_epochs) == 0:
                     train_val_data_iterator.reset_counter("val")
                     train_val_data_iterator.reset_counter("train")
                     self.evaluate(data_iterator=train_val_data_iterator,
-                                  dataset_type="val")
+                                  dataset_type="val",
+                                  save_policies_classes=save_policies_classes)
                     self.evaluate(data_iterator=train_val_data_iterator,
-                                  dataset_type="train")
+                                  dataset_type="train",
+                                  save_policies_classes=save_policies_classes
+                                  )
                     if self.test_data_iterator is not None:
                         self.test_data_iterator.reset_counter("test")
-                        self.evaluate(self.test_data_iterator, dataset_type="test")
+                        self.evaluate(self.test_data_iterator,
+                                      dataset_type="test",
+                                      save_policies_classes=save_policies_classes
+                                      )
                         self.test_data_iterator.reset_counter("test")
 
                     for metric in self.metrics_to_compute:
@@ -397,12 +408,18 @@ class SemiSupervisedClassifierMnist(VAE):
         train_val_data_iterator.reset_counter("train")
         if not evaluation_run_for_last_epoch:
             self.evaluate(data_iterator=train_val_data_iterator,
-                          dataset_type="val")
+                          dataset_type="val",
+                          save_policies_classes=save_policies_classes
+                          )
             self.evaluate(data_iterator=train_val_data_iterator,
-                          dataset_type="train")
+                          dataset_type="train",
+                          save_policies_classes=save_policies_classes
+                          )
             if self.test_data_iterator is not None:
                 self.test_data_iterator.reset_counter("test")
-                self.evaluate(self.test_data_iterator, dataset_type="test")
+                self.evaluate(self.test_data_iterator,
+                              dataset_type="test",
+                              save_policies_classes=save_policies_classes)
                 self.test_data_iterator.reset_counter("test")
         for metric in self.metrics_to_compute:
             print(f"Accuracy: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
