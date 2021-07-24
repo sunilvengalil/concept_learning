@@ -404,11 +404,13 @@ class VAE(GenerativeModel):
                                                 self.num_steps_completed)
         if class_label is not None:
             reconstructed_dir = check_and_create_folder(reconstructed_dir + f"class_{class_label}/")
-        num_samples_per_image = 64
-        manifold_w = 4
-        manifold_h = num_samples_per_image // manifold_w
+
         for rp in retention_policies:
-            num_images = rp.N // num_samples_per_image
+            num_samples_per_image = min(64, rp.size())
+            manifold_w = 4
+            manifold_h = num_samples_per_image // manifold_w
+
+            num_images = rp.size() // num_samples_per_image
             if dataset_type.upper() == rp.data_type.upper():
                 for image_no in range(num_images):
                     file_image = f"{dataset_type}_{rp.policy_type}_{image_no}.png"

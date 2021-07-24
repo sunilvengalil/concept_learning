@@ -24,6 +24,9 @@ class RetentionPolicy:
         self.data_type = data_type
         self.log = log
 
+    def size(self):
+        return len(self.data_queue)
+
     def _update_heap(self, exp_config: ExperimentConfig,  costs: np.ndarray, data):
 
         """"
