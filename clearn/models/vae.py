@@ -432,7 +432,10 @@ class VAE(GenerativeModel):
                         labels[sample_num] = e[2][1]
                         losses[sample_num] = e[2][2]
                         original_image[sample_num, :, :, :] = e[2][3]
-                    save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file_image)
+                    save_image(samples_to_save,
+                               [manifold_h, manifold_w],
+                               reconstructed_dir + file_image,
+                               normalize=True)
                     # print(f"Saving original image  to {reconstructed_dir + original_image_filename}")
                     save_image(original_image, [manifold_h, manifold_w], reconstructed_dir + original_image_filename)
 

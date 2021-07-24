@@ -184,7 +184,7 @@ def save_image(image, size, image_file_name, normalize=False):
             image_np = scaler.fit_transform(image_np.reshape(-1,
                                                              image_np.shape[1]  * image_np.shape[2] * image_np.shape[3] )).reshape(image_np.shape)
     im1 = inverse_transform(image_np)
-    return imsave(inverse_transform(im1), size, image_file_name)
+    return imsave(im1, size, image_file_name)
 
 
 def save_images(images, size, image_path):
