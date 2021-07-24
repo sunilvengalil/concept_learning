@@ -69,13 +69,9 @@ def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False):
         if len(n_units) > 0:
             x = add_zero_padding(x, model.padding_added_row[layer_num], model.padding_added_col[layer_num])
             if model.exp_config.activation_hidden_layer == "RELU":
-                model.encoder_dict[f"layer_{layer_num}"] = lrelu(conv2d(x,
-                                                                        n_units[layer_num],
-                                                                        3, 3,
-                                                                        strides[layer_num],
-                                                                        strides[layer_num],
-                                                                        name=f"layer_{layer_num}")
-                                                                 )
+                relu_out = lrelu(conv2d(x, n_units[layer_num], 3, 3, strides[layer_num], strides[layer_num],
+                                 name=f"layer_{layer_num}"))
+                model.encoder_dict[f"layer_{layer_num}"] = drop_out(relu_out, 0.8)
                 if model.exp_config.log_level == logging.DEBUG:
                     print(layer_num, model.encoder_dict[f"layer_{layer_num}"].shape)
                 for layer_num in range(1, len(n_units)):
@@ -168,18 +164,14 @@ def fully_deconv_n_layer(model, z, n_units,  out_channels, in_channels, reuse=Fa
             if model.exp_config.log_level == logging.DEBUG:
                 print(layer_num, model.decoder_dict[f"de_conv_{layer_num}"].shape)
             for layer_num in range(1, len(n_units)):
-                de_convolved = lrelu(deconv2d(model.decoder_dict[f"de_conv_{layer_num - 1}"],
-                                              [model.exp_config.BATCH_SIZE,
-                                               image_sizes[len(n_units) - layer_num][0],
-                                               image_sizes[len(n_units) - layer_num][0],
-                                               n_units[len(n_units) - layer_num - 1]],
-                                              3,
-                                              3,
-                                              strides[len(n_units) - layer_num],
-                                              strides[len(n_units) - layer_num],
-                                              name=f"de_conv_{layer_num}"
-                                              )
-                                     )
+                relu_out = lrelu(deconv2d(model.decoder_dict[f"de_conv_{layer_num - 1}"],
+                                   [model.exp_config.BATCH_SIZE, image_sizes[len(n_units) - layer_num][0],
+                                    image_sizes[len(n_units) - layer_num][0], n_units[len(n_units) - layer_num - 1]], 3,
+                                   3, strides[len(n_units) - layer_num], strides[len(n_units) - layer_num],
+                                   name=f"de_conv_{layer_num}"))
+                if layer_num == len(n_units) - 1:
+                    relu_out = drop_out(relu_out, 0.8)
+                de_convolved = relu_out
                 # padding_removed = remove_padding(de_convolved, model.padding_added_row[layer_num], model.padding_added_col[layer_num])
                 model.decoder_dict[f"de_conv_{layer_num}"] = de_convolved
                 if model.exp_config.log_level == logging.DEBUG:
