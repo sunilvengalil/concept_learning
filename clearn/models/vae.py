@@ -2,6 +2,7 @@
 from __future__ import division
 
 import json
+import math
 import traceback
 from typing import List, Tuple
 import os
@@ -408,7 +409,7 @@ class VAE(GenerativeModel):
         for rp in retention_policies:
             num_samples_per_image = min(64, rp.size())
             manifold_w = 4
-            manifold_h = num_samples_per_image // manifold_w
+            manifold_h = math.ceil(num_samples_per_image / manifold_w)
 
             num_images = rp.size() // num_samples_per_image
             if dataset_type.upper() == rp.data_type.upper():

@@ -175,6 +175,7 @@ def save_single_image(images, path, epoch, step, training_batch, eval_batch, eva
 
 def save_image(image, size, image_file_name, normalize=False):
     image_np = np.asarray(image)
+    print(image_np.shape, size)
     if normalize:
         scaler = MinMaxScaler(feature_range=(-0.99, 0.99))
         if len(image_np.shape) == 3:
