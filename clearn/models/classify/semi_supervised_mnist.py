@@ -606,8 +606,7 @@ class SemiSupervisedClassifierMnist(VAE):
 
                     _reconstruction_losses_per_class:Dict[int, np.ndarray] = dict()
 
-
-                    if len(save_policies_classes) > 0 or "reconstruction_losses_per_class" in self.metrics_to_compute:
+                    if len(save_policies_classes) > 0 and "reconstruction_losses_per_class" in self.metrics_to_compute:
                         for i, class_label in enumerate(self.active_class_labels):
                             label_indices = labels_for_batch == class_label
                             if any(label_indices):
