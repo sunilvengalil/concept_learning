@@ -537,13 +537,14 @@ class SemiSupervisedClassifierMnist(VAE):
                 data_iterator.reset_counter(dataset_type)
                 break
 
+            # Populate feed_dict
+            feed_dict = {
+                self.inputs: batch_images,
+                self.labels: manual_labels[:, :self.dao.num_classes],
+                self.is_manual_annotated: manual_labels[:, self.dao.num_classes]
+            }
+
             if self.exp_config.fully_convolutional:
-                # Get populate feed_dict
-                feed_dict = {
-                    self.inputs: batch_images,
-                    self.labels: manual_labels[:, :self.dao.num_classes],
-                    self.is_manual_annotated: manual_labels[:, self.dao.num_classes]
-                }
                 if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                     for layer_num in self.exp_config.concept_dict.keys():
                         # print(self.mask_for_concept_no[layer_num])
@@ -557,43 +558,22 @@ class SemiSupervisedClassifierMnist(VAE):
                                 masks[manual_labels[:, self.dao.num_classes + 1] == layer_num] = 1
                             feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
 
-                return_list = self.sess.run([self.out,
-                                             self.merged_summary_op,
-                                             self.mu,
-                                             self.sigma,
-                                             self.z,
-                                             self.y_pred,
-                                             self.neg_loglikelihood,
-                                             self.marginal_likelihood],
-                                            feed_dict=feed_dict)
-                reconstructed_image = return_list[0]
-                mu_for_batch = return_list[2]
-                sigma_for_batch = return_list[3]
-                z_for_batch = return_list[4]
-                y_pred = return_list[5]
-                nll = return_list[6]
-                nll_batch = return_list[7]
-            else:
-                return_list = self.sess.run([self.out,
-                                             self.merged_summary_op,
-                                             self.mu,
-                                             self.sigma,
-                                             self.z,
-                                             self.y_pred,
-                                             self.neg_loglikelihood,
-                                             self.marginal_likelihood],
-                                            feed_dict={
-                                                self.inputs: batch_images,
-                                                self.labels: manual_labels[:, :10],
-                                                self.is_manual_annotated: manual_labels[:, 10]
-                                            })
-                reconstructed_image = return_list[0]
-                mu_for_batch = return_list[2]
-                sigma_for_batch = return_list[3]
-                z_for_batch = return_list[4]
-                y_pred = return_list[5]
-                nll = return_list[6]
-                nll_batch = return_list[7]
+            return_list = self.sess.run([self.out,
+                                         self.merged_summary_op,
+                                         self.mu,
+                                         self.sigma,
+                                         self.z,
+                                         self.y_pred,
+                                         self.neg_loglikelihood,
+                                         self.marginal_likelihood],
+                                        feed_dict=feed_dict)
+            reconstructed_image = return_list[0]
+            mu_for_batch = return_list[2]
+            sigma_for_batch = return_list[3]
+            z_for_batch = return_list[4]
+            y_pred = return_list[5]
+            nll = return_list[6]
+            nll_batch = return_list[7]
 
             nll_batch = -nll_batch
             if len(nll_batch.shape) == 0:
