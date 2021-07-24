@@ -1,4 +1,5 @@
 # Column names in annotated csv file
+import enum
 from typing import List
 import numpy as np
 import cv2
@@ -14,6 +15,29 @@ COMBINED_AND_CORRECTED_COLUMN_NAME = "text"
 
 
 class ManualAnnotation:
+
+    class Label(enum.IntEnum):
+        ZERO = 0
+        ONE = 1
+        TWO = 2
+        THREE = 3
+        FOUR = 4
+        FIVE = 5
+        SIX = 6
+        SEVEN = 7
+        EIGHT = 8
+        NINE = 9
+        TOP_3 = 12
+
+        VERTICAL_LINE_HALF = 19
+        HORIZONTAL_LINE_TOP = 18
+        SMALL_CIRCLE = 17
+        TOP_FOUR_U = 35
+        TOP_5 = 14
+        LEFT_OPEN_CIRCLE = 15
+        RIGHT_SLANTED_VERTICAL_LINE = 16
+
+
     # All intervals are half open which is closed on lower bound and open on upper bound
     confidence_intervals = {"low_confidences_clusters": (0, 0.35),
                             "average_clusters": (0.35, 0.65),
@@ -235,7 +259,7 @@ class ImageConcept:
         non_zero_pixels_in_col = np.sum(single_col[single_col > 0.7 * max_value])
         if non_zero_pixels_in_col == 0:
             while non_zero_pixels_in_col == 0 and row < width:
-                #non_zero_pixels_in_col = np.sum(cropped[:, row])
+                # non_zero_pixels_in_col = np.sum(cropped[:, row])
                 single_col = cropped[:, row]
                 non_zero_pixels_in_col = np.sum(single_col[single_col > 0.7 * max_value])
                 row += 1
@@ -249,7 +273,7 @@ class ImageConcept:
         if non_zero_pixels_in_col == 0:
             while non_zero_pixels_in_col == 0 and row > from_row:
                 single_col = cropped[:, row]
-                non_zero_pixels_in_col = np.sum(cropped[:, row])
+                # non_zero_pixels_in_col = np.sum(cropped[:, row])
                 non_zero_pixels_in_col = np.sum(single_col[single_col > 0.7 * max_value])
                 row -= 1
             to_row = row + 1
@@ -266,12 +290,12 @@ class ImageConcept:
         col = 0
         # non_zero_pixels_in_row = np.sum(cropped[col, :])
         max_value = np.max(cropped)
-        single_row = cropped[col,:]
+        single_row = cropped[col, :]
         non_zero_pixels_in_row = np.sum(single_row[single_row > 0.7 * max_value])
         if non_zero_pixels_in_row == 0:
             while non_zero_pixels_in_row == 0 and col < height:
                 # non_zero_pixels_in_row = np.sum(cropped[col, :])
-                single_row = cropped[col,:]
+                single_row = cropped[col, :]
                 non_zero_pixels_in_row = np.sum(single_row[single_row > 0.7 * max_value])
                 col += 1
             from_col = col - 1
@@ -279,13 +303,13 @@ class ImageConcept:
             from_col = col
         col = height - 1
         # non_zero_pixels_in_row = np.sum(cropped[col, :])
-        single_row = cropped[col,:]
+        single_row = cropped[col, :]
         non_zero_pixels_in_row = np.sum(single_row[single_row > 0.7 * max_value])
 
         if non_zero_pixels_in_row == 0:
             while non_zero_pixels_in_row == 0 and col > from_col:
                 # non_zero_pixels_in_row = np.sum(cropped[col, :])
-                single_row = cropped[col,:]
+                single_row = cropped[col, :]
 
                 non_zero_pixels_in_row = np.sum(single_row[single_row > 0.7 * max_value])
                 col -= 1
@@ -342,7 +366,7 @@ class ImageConcept:
                        sample_index=image_concept_dict["sample_index"]
                         )
         if "epochs_completed" in image_concept_dict:
-            instance.epochs_completed=image_concept_dict["epochs_completed"],
+            instance.epochs_completed = image_concept_dict["epochs_completed"],
 
         if "name" in image_concept_dict:
             instance.name = image_concept_dict["name"],
@@ -364,7 +388,6 @@ class ImageConcept:
             instance.digits = image_concept_dict["digits"]
         else:
             instance.digits = [instance.digit]
-
         return instance
 
 

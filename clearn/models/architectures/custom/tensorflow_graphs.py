@@ -17,7 +17,11 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
         if model.exp_config.log_level == logging.DEBUG:
             print(x, x.shape)
         if num_convolutional_layers > 0:
-            model.cnn_out = fcnn_n_layer(model, x, n_units[0:num_convolutional_layers - 1], n_units[num_convolutional_layers - 1], reuse )
+            model.cnn_out = fcnn_n_layer(model,
+                                         x,
+                                         n_units[0:num_convolutional_layers - 1],
+                                         n_units[num_convolutional_layers - 1],
+                                         reuse )
         #
         if model.exp_config.num_dense_layers > 0:
             if model.exp_config.activation_hidden_layer == "RELU":

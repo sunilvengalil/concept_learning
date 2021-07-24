@@ -312,7 +312,6 @@ class VAE(GenerativeModel):
             if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                 data_iterator.reset_counter(dataset_type)
                 break
-            batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
             reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, nll, nll_batch = self.sess.run(
                 [self.out,
@@ -361,29 +360,32 @@ class VAE(GenerativeModel):
                     mu = np.vstack([mu, mu_for_batch])
                     sigma = np.hstack([sigma, sigma_for_batch])
                     z = np.vstack([z, z_for_batch])
-
-        if "reconstruction_loss" in self.metrics_to_compute:
-            reconstruction_loss = np.mean(reconstruction_losses)
-            self.metrics[dataset_type]["reconstruction_loss"].append(
-                [self.num_training_epochs_completed, reconstruction_loss, np.std(reconstruction_losses)])
+        encoded_df = None
+        if reconstruction_losses is not None and reconstruction_losses.shape[0] > 0:
+            if "reconstruction_loss" in self.metrics_to_compute:
+                reconstruction_loss = np.mean(reconstruction_losses)
+                self.metrics[dataset_type]["reconstruction_loss"].append(
+                    [self.num_training_epochs_completed, reconstruction_loss, np.std(reconstruction_losses)])
+                encoded_df = pd.DataFrame(reconstruction_losses,
+                                          columns=["reconstruction_loss"])
 
         if save_images:
             self.save_sample_reconstructed_images(dataset_type, retention_policies)
 
         data_iterator.reset_counter(dataset_type)
 
-        encoded_df = pd.DataFrame(reconstruction_losses,
-                                  columns=["reconstruction_loss"])
-        if self.exp_config.return_latent_vector:
+        if self.exp_config.return_latent_vector and mu is not None and mu.shape[0] > 0:
             mean_col_names, sigma_col_names, z_col_names, l3_col_names = get_latent_vector_column(self.exp_config.Z_DIM)
-            encoded_df = pd.DataFrame(mu, columns=mean_col_names)
+            if encoded_df is None:
+                encoded_df = pd.DataFrame(mu, columns=mean_col_names)
+            else:
+                encoded_df[mean_col_names] = mu
             for i, sigma_col_name in enumerate(sigma_col_names):
                 encoded_df[sigma_col_name] = sigma[:, i]
 
             for i, z_col_name in enumerate(z_col_names):
                 encoded_df[z_col_name] = z[:, i]
-        print("Write predictions", self.exp_config.write_predictions)
-        if self.exp_config.write_predictions:
+        if self.exp_config.write_predictions and encoded_df is not None:
             output_csv_file = get_encoded_csv_file(self.exp_config,
                                                    self.num_training_epochs_completed,
                                                    dataset_type
