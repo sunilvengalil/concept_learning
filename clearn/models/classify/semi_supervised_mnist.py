@@ -654,15 +654,15 @@ class SemiSupervisedClassifierMnist(VAE):
             batch_no += 1
         print(f"Number of evaluation batches completed {batch_no}")
         print(f"epoch:{self.num_training_epochs_completed} step:{self.num_steps_completed}")
-        if "reconstruction_loss" in self.metrics_to_compute:
+        if "reconstruction_loss" in self.metrics_to_compute and len(reconstruction_losses) > 0:
             reconstruction_loss = mean(reconstruction_losses)
             self.metrics[dataset_type]["reconstruction_loss"].append(
                 [self.num_training_epochs_completed, reconstruction_loss, np.std(reconstruction_losses)])
-        if "accuracy" in self.metrics_to_compute:
+        if "accuracy" in self.metrics_to_compute and labels_predicted is not None and labels_predicted.shape[0] > 0:
             accuracy = accuracy_score(labels, labels_predicted)
             self.metrics[dataset_type]["accuracy"].append([self.num_training_epochs_completed, accuracy])
 
-        if "reconstruction_losses_per_class" in self.metrics_to_compute:
+        if "reconstruction_losses_per_class" in self.metrics_to_compute and reconstruction_losses_per_class is not None and len(reconstruction_losses_per_class) > 0 :
             self.metrics[dataset_type]["reconstruction_losses_per_class"].append(reconstruction_losses_per_class)
 
         if save_images:
@@ -671,10 +671,12 @@ class SemiSupervisedClassifierMnist(VAE):
                 self.save_sample_reconstructed_images(dataset_type, retention_policies_class_wise[i], class_label)
 
         data_iterator.reset_counter(dataset_type)
-        encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
-                                  columns=["label", "label_predicted"])
+        encoded_df = None
+        if labels_predicted is not None and labels_predicted.shape[0] > 0:
+            encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
+                                      columns=["label", "label_predicted"])
 
-        if self.exp_config.return_latent_vector:
+        if self.exp_config.return_latent_vector and mu is not None and mu.shape > 0:
             mean_col_names, sigma_col_names, z_col_names, l3_col_names, predicted_proba_col_names = get_latent_vector_column(
                 self.exp_config.Z_DIM, self.dao.num_classes, True)
             # encoded_df[mean_col_names] = mu
@@ -690,7 +692,7 @@ class SemiSupervisedClassifierMnist(VAE):
             for i, predicted_proba_col_name in enumerate(predicted_proba_col_names):
                 encoded_df[predicted_proba_col_name] = labels_predicted_proba[:, i]
 
-        if self.exp_config.write_predictions:
+        if self.exp_config.write_predictions and encoded_df is not None:
             output_csv_file = get_encoded_csv_file(self.exp_config,
                                                    self.num_training_epochs_completed,
                                                    dataset_type
