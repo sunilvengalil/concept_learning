@@ -407,6 +407,8 @@ class VAE(GenerativeModel):
             reconstructed_dir = check_and_create_folder(reconstructed_dir + f"class_{class_label}/")
 
         for rp in retention_policies:
+            if rp.size() == 0:
+                continue
             num_samples_per_image = min(64, rp.size())
             manifold_w = 4
             manifold_h = math.ceil(num_samples_per_image / manifold_w)
