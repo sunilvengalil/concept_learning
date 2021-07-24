@@ -11,6 +11,7 @@ from clearn.utils.utils import is_convolutional_layer, DECONV_LAYER_PREFIX
 def cnn_n_layer(model, x, num_out_units, reuse=False):
     # Encoder models the probability  P(z/X)
     n_units = model.exp_config.num_units
+    num_drop_outs = 2
     with tf.compat.v1.variable_scope("encoder", reuse=reuse):
         # Add convolutional layers
         num_convolutional_layers = len(n_units) - model.exp_config.num_dense_layers
@@ -33,6 +34,7 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
                 model.dense_features_dict[layer_key] = batch_norm(relu_out)
                 if model.exp_config.log_level == logging.DEBUG:
                     print(layer_num, model.dense_features_dict[layer_key].shape)
+                drop_out_added = 0
                 for layer_num in range(layer_num + 1, len(n_units)):
                     layer_key = f"layer_{layer_num}"
                     previous_layer_key = f"layer_{layer_num-1}"
@@ -40,6 +42,9 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
                                              n_units[layer_num],
                                              scope=layer_key))
                     if layer_num % 2 == 0:
+                        if drop_out_added < num_drop_outs:
+                            relu_out = drop_out(relu_out, 0.8)
+                            drop_out_added += 1
                         relu_out = batch_norm(relu_out)
                     model.dense_features_dict[layer_key] = relu_out
                     if model.exp_config.log_level == logging.DEBUG:
@@ -207,6 +212,7 @@ def deconv_n_layer(model, z,  out_channels, reuse=False):
     num_de_convolutional_layers = len(n_units) - model.exp_config.num_dense_layers
     if model.exp_config.log_level == logging.DEBUG:
         print("z", z.shape)
+    num_drop_outs = 2
     with tf.compat.v1.variable_scope("decoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
             # Add dense layers
@@ -220,15 +226,20 @@ def deconv_n_layer(model, z,  out_channels, reuse=False):
                 model.decoder_dense_dict[layer_key] = lrelu(linear(z, num_features, scope= layer_key))
                 if model.exp_config.log_level == logging.DEBUG:
                     print(layer_num, model.decoder_dense_dict[layer_key].shape)
+                drop_out_added = 0
                 for layer_num in range(1, model.exp_config.num_dense_layers):
                     layer_key = f"layer_{layer_num}"
                     previous_layer_key = f"layer_{layer_num-1}"
                     num_features_index = len(n_units) - (layer_num + 1)
                     num_features = n_units[num_features_index]
-                    model.decoder_dense_dict[layer_key] = lrelu(linear(model.decoder_dense_dict[previous_layer_key],
-                                                                       num_features,
-                                                                       scope=layer_key)
-                                                                )
+                    relu_out = lrelu(linear(model.decoder_dense_dict[previous_layer_key], num_features, scope=layer_key))
+                    if layer_num % 2 == 0:
+                        if drop_out_added < num_drop_outs:
+                            relu_out = drop_out(relu_out, 0.8)
+                            drop_out_added += 1
+                        relu_out = batch_norm(relu_out)
+                    model.decoder_dense_dict[layer_key] = relu_out
+
                     if model.exp_config.log_level == logging.DEBUG:
                         print(layer_num, model.decoder_dense_dict[layer_key].shape)
 
