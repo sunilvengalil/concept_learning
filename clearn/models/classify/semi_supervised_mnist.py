@@ -236,6 +236,7 @@ class SemiSupervisedClassifierMnist(VAE):
                     if layer_num == len(self.exp_config.num_units) + 1:
                         continue
                     supervised_loss_concepts_epoch[layer_num] = []
+            batch = -1
             for batch in range(start_batch_id, self.num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
@@ -349,7 +350,9 @@ class SemiSupervisedClassifierMnist(VAE):
                 self.counter += 1
                 self.num_steps_completed = batch + 1
                 # self.writer.add_summary(summary_str, self.counter - 1)
-
+            if batch == -1 :
+                start_batch_id = 0
+                continue
             print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss}")
             if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                 for layer_num in self.exp_config.concept_dict.keys():
@@ -384,7 +387,6 @@ class SemiSupervisedClassifierMnist(VAE):
 
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model
-            start_batch_id = 0
             # save model
             train_val_data_iterator.reset_counter("train")
             if np.mod(epoch, self.exp_config.model_save_interval) == 0:
