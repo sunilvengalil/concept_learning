@@ -595,6 +595,7 @@ class SemiSupervisedClassifierMnist(VAE):
             """
             if save_images:
                 try:
+                    print(nll_batch.shape)
                     for rp in retention_policies:
                         rp.update_heap(cost=nll_batch,
                                        exp_config=self.exp_config,
