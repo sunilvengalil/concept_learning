@@ -255,14 +255,15 @@ class SemiSupervisedClassifierMnist(VAE):
                 if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                     break
 
+                tensor_list = [self.optim,
+                               self.merged_summary_op,
+                               self.loss,
+                               self.neg_loglikelihood,
+                               self.marginal_likelihood,
+                               self.KL_divergence,
+                               self.supervised_loss]
+
                 if self.exp_config.fully_convolutional:
-                    tensor_list = [self.optim,
-                                   self.merged_summary_op,
-                                   self.loss,
-                                   self.neg_loglikelihood,
-                                   self.marginal_likelihood,
-                                   self.KL_divergence,
-                                   self.supervised_loss]
                     feed_dict = {self.inputs: batch_images,
                                  self.labels: manual_labels[:, :self.dao.num_classes],
                                  self.is_manual_annotated: manual_labels[:, self.dao.num_classes]
@@ -468,7 +469,6 @@ class SemiSupervisedClassifierMnist(VAE):
         if df is not None:
             df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"metrics_{self.start_epoch}.csv"),
                       index=False)
-
 
     def evaluate(self,
                  data_iterator,
