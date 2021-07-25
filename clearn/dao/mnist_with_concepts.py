@@ -244,7 +244,7 @@ class MnistConceptsDao(IDao):
         if self.concept_id is None:
             raise Exception("Pass an integer for parameter concept_id while creating the instance of MnistConceptsDao")
 
-        if concepts_deduped or dao.concepts_deduped:
+        if concepts_deduped or self.concepts_deduped:
             concept_image_filename = data_dir + f"concept_deduped_{self.concept_id}.csv"
             derived_images_filename = data_dir + f"derived_{self.concept_id}.csv"
         else:
