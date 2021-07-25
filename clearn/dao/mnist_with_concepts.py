@@ -88,12 +88,14 @@ class MnistConceptsDao(IDao):
                  dataset_path: str,
                  concept_id: int,
                  translate_image,
-                 std_dev=1
+                 std_dev=1,
+                 concepts_deduped=False
                  ):
         self.translate_image = translate_image
         self.training_phase = "CONCEPTS"
         self.data_dict = None
         self.std_dev = std_dev
+        self.concepts_deduped = concepts_deduped
 
         self.dataset_name: str = "mnist_concepts"
         self.dataset_path = dataset_path
@@ -235,15 +237,19 @@ class MnistConceptsDao(IDao):
         orig_train_labels = np.asarray(data.reshape(60000)).astype(np.int)
         return orig_train_images/self.max_value, orig_train_labels
 
-    def load_train_images_and_label(self, data_dir, map_filename=None, training_phase=None):
+    def load_train_images_and_label(self, data_dir, map_filename=None, training_phase=None, concepts_deduped=False):
 
         if map_filename is None:
             raise Exception("parameter map_filename can be None. Pass a valid path for loading concepts dictionary")
         if self.concept_id is None:
             raise Exception("Pass an integer for parameter concept_id while creating the instance of MnistConceptsDao")
 
-        concept_image_filename = data_dir + f"concept_{self.concept_id}.csv"
-        derived_images_filename = data_dir + f"derived_{self.concept_id}.csv"
+        if concepts_deduped or dao.concepts_deduped:
+            concept_image_filename = data_dir + f"concept_deduped_{self.concept_id}.csv"
+            derived_images_filename = data_dir + f"derived_{self.concept_id}.csv"
+        else:
+            concept_image_filename = data_dir + f"concept_{self.concept_id}.csv"
+            derived_images_filename = data_dir + f"derived_{self.concept_id}.csv"
 
         feature_dim = self.image_shape[0] * self.image_shape[1] * self.image_shape[2]
 

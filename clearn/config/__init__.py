@@ -111,7 +111,8 @@ class ExperimentConfig:
                  std_dev_concept_distribution=1,
                  class_weight=1,
                  training_phase=None,
-                 save_per_class_metrics=-1
+                 save_per_class_metrics=-1,
+                 concepts_deduped=False
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -205,6 +206,7 @@ class ExperimentConfig:
         self.class_weight = class_weight
         self.training_phase = training_phase
         self.save_per_class_metrics = save_per_class_metrics
+        self.concepts_deduped = concepts_deduped
 
     @property
     def num_train_samples(self):
@@ -264,6 +266,7 @@ class ExperimentConfig:
         config_json["CLASS_WEIGHT"] = self.class_weight
         config_json["TRAINING_PHASE"] = self.training_phase
         config_json["SAVE_PER_CLASS_METRICS"] = self.save_per_class_metrics
+        config_json["CONCEPTS_DEDUPED"] = self.concepts_deduped
 
         return config_json
 
@@ -402,7 +405,7 @@ class ExperimentConfig:
         self.class_weight = exp_config["CLASS_WEIGHT"]
         self.training_phase = exp_config["TRAINING_PHASE"]
         self.save_per_class_metrics = exp_config["SAVE_PER_CLASS_METRICS"]
-
+        self.concepts_deduped = exp_config["CONCEPTS_DEDUPED"]
 
 if __name__ == "__main__":
     _root_path = "/Users/sunilv/concept_learning_exp"
