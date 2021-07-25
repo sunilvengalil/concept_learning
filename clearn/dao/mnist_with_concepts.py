@@ -103,7 +103,7 @@ class MnistConceptsDao(IDao):
         self.num_validation_samples: int = num_validation_samples
         self.num_concepts_label_generated = 0
         self.concept_id = concept_id
-        #print(self.dataset_path, self.split_name, MAP_FILE_NAME)
+        # print(self.dataset_path, self.split_name, MAP_FILE_NAME)
         map_filename = self.dataset_path + "/" + dataset_name + "/" + self.split_name + "/" + MAP_FILE_NAME
         print(f"Reading concepts map from {map_filename}")
         self.concepts_dict = get_concept_map(map_filename)
@@ -142,7 +142,7 @@ class MnistConceptsDao(IDao):
         level2_manual_annotations_good_cluster_filename = self.dataset_path + "/" + dataset_name + "/" + self.split_name + "/" + "level2_manual_annotations_good_cluster.json"
         with open(level2_manual_annotations_good_cluster_filename) as json_file:
             level2_manual_annotations_good_cluster = json.load(json_file)
-        #print([k for k in level2_manual_annotations_good_cluster.keys()])
+        # print([k for k in level2_manual_annotations_good_cluster.keys()])
         manual_labels =[ 6, 5, 9, 3, 7, 8, 2, 1, 0, 4]
 
         sample_index_file_name = self.dataset_path + "/" + dataset_name + "/" + "sample_for_concept.json"
@@ -162,7 +162,8 @@ class MnistConceptsDao(IDao):
             # print(f"Sample images for class {class_label} cluster id  {cluster_id}  Shape {df.shape}")
             self.image_set_dict[f"training_set_{class_label}"] = df.values[:, 0:784].reshape(df.shape[0], 28, 28, 1)
             shape = np.max(self.image_set_dict[f"training_set_{class_label}"])
-            
+        print(f"concept deduped inside dao constructor and label {self.concepts_deduped}")
+
     @property
     def number_of_training_samples(self):
         if self.data_dict is None:
@@ -247,7 +248,7 @@ class MnistConceptsDao(IDao):
             raise Exception("parameter map_filename can be None. Pass a valid path for loading concepts dictionary")
         if self.concept_id is None:
             raise Exception("Pass an integer for parameter concept_id while creating the instance of MnistConceptsDao")
-
+        print(f"concept deduped inside load_train_images and label {concepts_deduped} {self.concepts_deduped}")
         if concepts_deduped or self.concepts_deduped:
             concept_image_filename = data_dir + f"concept_deduped_{self.concept_id}.csv"
             derived_images_filename = data_dir + f"derived_{self.concept_id}.csv"
@@ -332,10 +333,11 @@ class MnistConceptsDao(IDao):
 
         num_concepts_generated = 0
         for digit, list_of_concept_dict in concepts_dict.items():
-            concepts_for_digit, labels_for_concepts_for_digit, tops_for_digit, lefts_for_digit, widths_for_digit, heights_for_digit = self.generate_concepts_for_digits(list_of_concept_dict,
-                                                                                                                                                                        num_images_per_concept,
-                                                                                                                                                                        self.label_key_to_label_map
-                                                                                                                                                                        )
+            ret_list = self.generate_concepts_for_digits(list_of_concept_dict,
+                                                         num_images_per_concept,
+                                                         self.label_key_to_label_map
+                                                         )
+            concepts_for_digit, labels_for_concepts_for_digit, tops_for_digit, lefts_for_digit, widths_for_digit, heights_for_digit = ret_list
             concepts[num_concepts_generated: num_concepts_generated + concepts_for_digit.shape[0]] = concepts_for_digit
             labels[num_concepts_generated: num_concepts_generated + concepts_for_digit.shape[0]] = labels_for_concepts_for_digit
             tops[num_concepts_generated: num_concepts_generated + concepts_for_digit.shape[0]] = tops_for_digit
@@ -457,12 +459,13 @@ class MnistConceptsDao(IDao):
                                                  epochs_completed=concept_image.epochs_completed
                                                  )
 
-                    image_for_concept, tops_for_concept, lefts_for_concept, widths_for_concepts, heights_for_concepts = generate_concepts_from_digit_image(image_concept,
-                                                                                                                                                           digit_image,
-                                                                                                                                                           num_images_per_concept//sample_df.shape[0],
-                                                                                                                                                           translate_image=self.translate_image,
-                                                                                                                                                           std_dev=self.std_dev
-                                                                                                                                                           )
+                    return_list = generate_concepts_from_digit_image(image_concept,
+                                                                     digit_image,
+                                                                     num_images_per_concept//sample_df.shape[0],
+                                                                     translate_image=self.translate_image,
+                                                                     std_dev=self.std_dev
+                                                                     )
+                    image_for_concept, tops_for_concept, lefts_for_concept, widths_for_concepts, heights_for_concepts = return_list
                     concepts_for_digit[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = image_for_concept
                     labels[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = label
                     tops[num_samples_generated:num_samples_generated + image_for_concept.shape[0]] = tops_for_concept
