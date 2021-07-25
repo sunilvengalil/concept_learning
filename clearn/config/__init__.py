@@ -171,7 +171,8 @@ class ExperimentConfig:
                                dataset_path=os.path.join(self.root_path, "datasets/"),
                                concept_id = concept_id,
                                translate_image=translate_image,
-                               std_dev=std_dev_concept_distribution
+                               std_dev=std_dev_concept_distribution,
+                               concepts_deduped=concepts_deduped
                           )
         else:
             self.dao = dao
