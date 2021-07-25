@@ -237,7 +237,11 @@ class MnistConceptsDao(IDao):
         orig_train_labels = np.asarray(data.reshape(60000)).astype(np.int)
         return orig_train_images/self.max_value, orig_train_labels
 
-    def load_train_images_and_label(self, data_dir, map_filename=None, training_phase=None, concepts_deduped=False):
+    def load_train_images_and_label(self,
+                                    data_dir,
+                                    map_filename=None,
+                                    training_phase=None,
+                                    concepts_deduped=False):
 
         if map_filename is None:
             raise Exception("parameter map_filename can be None. Pass a valid path for loading concepts dictionary")
@@ -255,6 +259,8 @@ class MnistConceptsDao(IDao):
 
         if os.path.isfile(concept_image_filename):
             concepts_df = pd.read_csv(concept_image_filename)
+            print(f"Loaded data from {concept_image_filename} shape {concepts_df.shape}")
+
             x = concepts_df.values[:, 0:feature_dim]
             y = concepts_df.values[:, feature_dim]
             _x = x.reshape((x.shape[0], self.image_shape[0], self.image_shape[1], self.image_shape[2]))
