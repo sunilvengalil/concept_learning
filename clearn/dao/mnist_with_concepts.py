@@ -126,6 +126,10 @@ class MnistConceptsDao(IDao):
                 self.key_to_image_concept_map[key] = concept_image
                 self.num_concepts_label_generated = self.num_concepts_label_generated + 1
 
+        if self.concepts_deduped:
+            # Todo remove this hard coding
+            self.num_concepts_label_generated = 12
+
         self.key_to_label_map = dict()
         for key in self.label_key_to_label_map.keys():
             self.key_to_label_map[self.label_key_to_label_map[key]] = key
