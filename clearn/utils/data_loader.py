@@ -353,8 +353,8 @@ class TrainValDataIterator:
                     #     raise Exception(f"File does not exist {manual_annotation_file_val}")
                     _manual_annotation = _manual_annotation_all
                     _manual_annotation_val = np.zeros((self.val_x.shape[0], 3))
-                    print("Loaded manual annotation")
-                    print(f"Number of samples with manual confidence {sum(_manual_annotation[:, 1] > 0)}")
+                    print(f"Loaded manual annotation from {manual_annotation_file}")
+                    print(f"Shape {_manual_annotation.shape}. Number of samples with manual confidence {sum(_manual_annotation[:, 1] > 0)}")
                 else:
                     # TODO if we are using random prior with uniform distribution, do we need to keep
                     # manual confidence as 0.5 or 0
