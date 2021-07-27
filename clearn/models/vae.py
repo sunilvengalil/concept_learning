@@ -128,7 +128,8 @@ class VAE(GenerativeModel):
             self.out = tf.clip_by_value(out, 1e-8, 1 - 1e-8)
 
             self.marginal_likelihood = tf.reduce_sum(self.inputs * tf.math.log(self.out) +
-                                                     self.exp_config.class_weight * (1 - self.inputs) * tf.math.log(1 - self.out),
+                                                     self.exp_config.class_weight * (1 - self.inputs) * tf.math.log(
+                1 - self.out),
                                                      [1, 2],
                                                      )
         else:
@@ -347,7 +348,8 @@ class VAE(GenerativeModel):
                     for rp in retention_policies:
                         rp.update_heap(cost=nll_batch,
                                        exp_config=self.exp_config,
-                                       data=[reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch, batch_images])
+                                       data=[reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch,
+                                             batch_images])
                 except:
                     print(f"Shape of mse is {nll_batch.shape}")
                     traceback.print_exc()
@@ -425,14 +427,14 @@ class VAE(GenerativeModel):
                                                 self.dao.image_shape[1],
                                                 self.dao.image_shape[2]))
                     original_image = np.zeros((num_samples_per_image,
-                                                self.dao.image_shape[0],
-                                                self.dao.image_shape[1],
-                                                self.dao.image_shape[2]))
+                                               self.dao.image_shape[0],
+                                               self.dao.image_shape[1],
+                                               self.dao.image_shape[2]))
 
                     labels = np.zeros(num_samples_per_image)
                     losses = np.zeros(num_samples_per_image)
-                    for sample_num, e in enumerate(rp.data_queue[image_no * num_samples_per_image: (
-                                                                                                           image_no + 1) * num_samples_per_image]):
+                    for sample_num, e in enumerate(
+                            rp.data_queue[image_no * num_samples_per_image: (image_no + 1) * num_samples_per_image]):
                         samples_to_save[sample_num, :, :, :] = e[2][0]
                         labels[sample_num] = e[2][1]
                         losses[sample_num] = e[2][2]
@@ -440,15 +442,19 @@ class VAE(GenerativeModel):
                     save_image(samples_to_save,
                                [manifold_h, manifold_w],
                                reconstructed_dir + file_image,
-                               normalize=True)
+                               normalize=False)
                     # print(f"Saving original image  to {reconstructed_dir + original_image_filename}")
-                    save_image(original_image, [manifold_h, manifold_w], reconstructed_dir + original_image_filename)
+                    save_image(original_image,
+                               [manifold_h, manifold_w],
+                               reconstructed_dir + original_image_filename)
 
                     with open(reconstructed_dir + file_label, "w") as fp:
-                        json.dump(labels.tolist(), fp)
+                        json.dump(labels.tolist(),
+                                  fp)
 
                     with open(reconstructed_dir + file_loss, "w") as fp:
-                        json.dump(losses.tolist(), fp)
+                        json.dump(losses.tolist(),
+                                  fp)
 
     @property
     def model_dir(self):
@@ -466,7 +472,7 @@ class VAE(GenerativeModel):
             num_deconv_layers = len(self.exp_config.num_units)
         else:
             num_deconv_layers = len(self.exp_config.num_units) - self.exp_config.num_dense_layers
-        param_names=[]
+        param_names = []
         for layer_num in range(num_deconv_layers):
             param_names.append(f"decoder/de_conv_{layer_num}/w:0")
             param_names.append(f"decoder/de_conv_{layer_num}/biases:0")
@@ -518,8 +524,8 @@ class VAE(GenerativeModel):
         features_list.extend(hidden_features)
 
         encoded_features = self.sess.run(features_list,
-                                                       feed_dict={self.inputs: images
-                                                                  })
+                                         feed_dict={self.inputs: images
+                                                    })
 
         return hidden_feature_names, encoded_features[0], encoded_features[1], encoded_features[2], encoded_features[3:]
 
@@ -531,7 +537,7 @@ class VAE(GenerativeModel):
             feature_list.append(value)
         return feature_names, feature_list
 
-    def decode_and_get_features(self, z: np.ndarray, layer_num=None, feature_num = None):
+    def decode_and_get_features(self, z: np.ndarray, layer_num=None, feature_num=None):
         features_list = [self.out]
         hidden_feature_names, hidden_features = self.get_decoder_features_list()
         features_list.extend(hidden_features)
@@ -540,30 +546,21 @@ class VAE(GenerativeModel):
                                                     }
                                          )
         if layer_num is not None:
-            for decoded_feature, f in zip( decoded_features[1:], hidden_feature_names):
+            for decoded_feature, f in zip(decoded_features[1:], hidden_feature_names):
                 if feature_num is not None:
                     if str(layer_num) in f:
                         if isinstance(feature_num, Tuple) or isinstance(feature_num, List):
-                            return [f], (decoded_features[0], decoded_feature[:, :, :, feature_num[0]:feature_num[1]] )
+                            return [f], (decoded_features[0], decoded_feature[:, :, :, feature_num[0]:feature_num[1]])
                         else:
                             return [f], (decoded_features[0], decoded_feature[:, :, :, feature_num])
                 else:
-                    return [f], (decoded_features[0], decoded_feature )
+                    return [f], (decoded_features[0], decoded_feature)
         else:
             return hidden_feature_names, decoded_features
 
     def decode(self, z):
         images = self.sess.run(self.out, feed_dict={self.z: z})
         return images
-
-    def decode_l3(self, z):
-        images = self.sess.run(self.out, feed_dict={self.dense2_en: z})
-        return images
-
-    def decode_layer1(self, z):
-        dense1_de = self.sess.run(self.dense1_de, feed_dict={self.z: z
-                                                             })
-        return dense1_de
 
     def load_from_checkpoint(self):
         # initialize all variables

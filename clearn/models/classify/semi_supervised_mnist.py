@@ -599,7 +599,7 @@ class SemiSupervisedClassifierMnist(VAE):
                                              nll_batch,
                                              batch_images])
 
-                    _reconstruction_losses_per_class:Dict[int, np.ndarray] = dict()
+                    _reconstruction_losses_per_class: Dict[int, np.ndarray] = dict()
 
                     if len(save_policies_classes) > 0 and "reconstruction_losses_per_class" in self.metrics_to_compute:
                         for i, class_label in enumerate(self.active_class_labels):
