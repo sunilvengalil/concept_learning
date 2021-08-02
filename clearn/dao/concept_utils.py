@@ -106,13 +106,7 @@ def segment_single_image_with_multiple_slices(image,
     image_shape = image.shape
     num_images = len(h_extends)
 
-    masked_images = np.zeros([
-        num_images,
-        image.shape[0],
-        image.shape[1],
-        1
-    ]
-    )
+    masked_images = np.zeros([num_images, image.shape[0], image.shape[1], 1])
 
     ld = location_description(h_extend_mean, v_extend_mean, image_shape)
     location_key = f"{h_extend_mean[0]}_{h_extend_mean[1]}_{v_extend_mean[0]}_{v_extend_mean[1]}"
@@ -129,14 +123,9 @@ def segment_single_image_with_multiple_slices(image,
     lefts = np.zeros(len(v_extends), dtype=int)
     image_number = 0
     for h_extend, v_extend in zip(h_extends, v_extends):
-        cropped = image[ v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]]
+        cropped = image[v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]]
         h_im, _ = ImageConcept.tight_bound_h(cropped)
-        cropped_and_stripped, _= ImageConcept.tight_bound_v(h_im)
-        # if digit_location_key == "4_13_16_0_28":
-        #     print(digit_location_key, np.sum(cropped_and_stripped), np.sum(cropped))
-        # if np.sum(cropped_and_stripped) < 10:
-        #     print(f"Skipping {digit_location_key} {np.sum(cropped_and_stripped)} ")
-        #     continue
+        cropped_and_stripped, _ = ImageConcept.tight_bound_v(h_im)
 
         if translate_image:
             tops[image_number] = randint(0, height - cropped_and_stripped.shape[0])
@@ -172,7 +161,7 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
     cropped_and_stripped, h_extend, v_extend = concept_image.get_cropped_and_stripped()
 
     h_extends_from_random = normal_distribution_int(h_extend[0], std_dev, 3, num_concepts_to_generate)
-    widths = normal_distribution_int(h_extend[1] - h_extend[0], std_dev, 3, num_concepts_to_generate)
+    widths = normal_distribution_int(h_extend[1] - h_extend[0],  std_dev, 3, num_concepts_to_generate)
     widths[widths == 0] = 1
     # width[width == 28] = 28
     v_extends_from_random = normal_distribution_int(v_extend[0], std_dev, 3, num_concepts_to_generate)
@@ -188,10 +177,10 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
                                                                             concept_image.digit,
                                                                             path,
                                                                             concept_image.cluster_name,
-                                                                           concept_image.sample_index,
-                                                                           display_image=False,
-                                                                           epochs_completed=concept_image.epochs_completed,
-                                                                           translate_image=translate_image
+                                                                            concept_image.sample_index,
+                                                                            display_image=False,
+                                                                            epochs_completed=concept_image.epochs_completed,
+                                                                            translate_image=translate_image
                                                                             )
     num_concepts_generated = concept_images.shape[0]
     widths = widths[0:num_concepts_generated]
