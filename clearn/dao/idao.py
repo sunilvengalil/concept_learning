@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+MAP_FILE_NAME = "manually_generated_concepts.json"
 
 class IDao(ABC):
     VALIDATION_Y_RAW = "validation_y_raw"
@@ -37,11 +38,11 @@ class IDao(ABC):
     def num_classes(self) -> int:
         pass
 
-    def load_train(self, data_dir, shuffle):
+    def load_train(self, data_dir, shuffle, split_location=None):
         pass
 
     @abstractmethod
-    def load_train_val_1(self, data_dir):
+    def load_train_images_and_label(self, data_dir, map_filename=None):
         pass
 
     @abstractmethod
@@ -63,7 +64,8 @@ class IDao(ABC):
                        split_location=None,
                        split_names=[],
                        seed=547):
-        x, y = self.load_train_val_1(data_dir)
+        x, y = self.load_train_images_and_label(data_dir,  split_location + MAP_FILE_NAME)
+        y = y.astype(int)
         _stratify = None
         if stratified:
             _stratify = y
@@ -71,6 +73,7 @@ class IDao(ABC):
         if len(split_names) == 2:
             splitted = train_test_split(x,
                                         y,
+                                        np.asarray(list(range(x.shape[0]))),
                                         test_size=percentage_to_be_sampled,
                                         stratify=_stratify,
                                         shuffle=shuffle,
@@ -80,8 +83,11 @@ class IDao(ABC):
             val_x = splitted[1]
             train_y = splitted[2]
             val_y = splitted[3]
+            train_indices = splitted[4]
+            val_indices = splitted[5]
             split_name = self.get_split_name(split_location)
             dataset_dict = {}
+
             num_splits = len(split_names)
             dataset_dict["split_names"] = split_names
 
@@ -103,9 +109,15 @@ class IDao(ABC):
             raise Exception("Split not implemented for more than two splits")
 
         data_dict = self.create_data_dict(train_x, train_y, val_x, val_y)
-        return data_dict
+        data_dict["TRAIN_INDICES"] = train_indices
+        data_dict["VAL_INDICES"] = val_indices
+        self.num_validation_samples = data_dict["VAL_INDICES"].shape[0]
+        self.data_dict = data_dict
+
+        return self.data_dict
 
     def create_data_dict(self, train_x, train_y, val_x, val_y):
+        print(type(val_y), val_y.dtype)
         _val_y = np.eye(self.num_classes)[val_y]
         _train_y = np.eye(self.num_classes)[train_y]
         data_dict = {self.TRAIN_X: train_x / self.max_value,

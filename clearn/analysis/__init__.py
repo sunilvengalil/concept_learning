@@ -4,6 +4,9 @@ from typing import List
 import numpy as np
 import cv2
 # Column names in annotated csv file
+from typing import List
+import numpy as np
+
 CSV_COL_NAME_EPOCH = "epoch"
 CSV_COL_NAME_STEP = "step"
 CSV_COL_NAME_IMAGE_ID = "_idx"
@@ -104,6 +107,7 @@ class ClusterGroup:
                 return cluster
 
 
+<<<<<<< HEAD
 from copy import deepcopy
 
 
@@ -144,11 +148,27 @@ class ImageConcept:
 
         self.should_use_original_cordinate = should_use_original_cordinate
 
+=======
+class ImageConcept:
+    def __init__(self,
+                 digit_image:np.ndarray,
+                 h_extend:List,
+                 v_extend:List,
+                 digit:int,
+                 num_clusters:int,
+                 cluster_name:str,
+                 sample_index:int,
+                 epochs_completed = 0):
+        self.digit_image = digit_image
+        self.h_extend = h_extend
+        self.v_extend = v_extend
+>>>>>>> concepts_loss
         self.digit = digit
         self.num_clusters = num_clusters
         self.cluster_name = cluster_name
         self.sample_index = sample_index
         self.epochs_completed = epochs_completed
+<<<<<<< HEAD
         if name is None:
             self.name = self.get_key()
         else:
@@ -282,10 +302,19 @@ class ImageConcept:
 
         concept_dict["v_extend"] = [int(self.v_extend[0]), int(self.v_extend[1])]
 
+=======
+
+    def todict(self):
+        concept_dict = dict()
+        concept_dict["digit_image"] = self.digit_image.tolist()
+        concept_dict["h_extend"] = self.h_extend
+        concept_dict["v_extend"] = self.v_extend
+>>>>>>> concepts_loss
         concept_dict["digit"] = self.digit
         concept_dict["num_clusters"] = self.num_clusters
         concept_dict["cluster_name"] = self.cluster_name
         concept_dict["sample_index"] = self.sample_index
+<<<<<<< HEAD
         concept_dict["epochs_completed"] = self.epochs_completed
         concept_dict["split_id"] = self.split_id
         concept_dict["mode_id"] = self.mode_id
@@ -295,6 +324,8 @@ class ImageConcept:
         concept_dict["orig_h_extend"] = [int(self.orig_h_extend[0]), int(self.orig_h_extend[1])]
         concept_dict["v_extend_largest_cc"] = [int(self.top_largest_cc), int(self.bottom_largest_cc)]
         concept_dict["h_extend_largest_cc"] = [int(self.left_largest_cc), int(self.right_largest_cc)]
+=======
+>>>>>>> concepts_loss
         return concept_dict
 
     @classmethod
@@ -305,6 +336,7 @@ class ImageConcept:
                        digit=image_concept_dict["digit"],
                        num_clusters=image_concept_dict["num_clusters"],
                        cluster_name=image_concept_dict["cluster_name"],
+<<<<<<< HEAD
                        sample_index=image_concept_dict["sample_index"],
                        epochs_completed=image_concept_dict["epochs_completed"])
 
@@ -560,10 +592,14 @@ class ImageConcept:
         if "right_largest_cc" in image_concept_dict:
             instance.right_largest_cc = image_concept_dict["right_largest_cc"]
 
+=======
+                       sample_index=image_concept_dict["sample_index"] )
+>>>>>>> concepts_loss
         return instance
 
     # classmethod
     def tolist(self, image_concept_dict):
+<<<<<<< HEAD
         return [image_concept_dict["digit_image"],
                 image_concept_dict["h_extend"],
                 image_concept_dict["v_extend"],
@@ -572,4 +608,14 @@ class ImageConcept:
                 image_concept_dict["cluster_name"],
                 image_concept_dict["sample_index"]
                 ]
+=======
+        return [ image_concept_dict["digit_image"],
+                       image_concept_dict["h_extend"],
+                       image_concept_dict["v_extend"],
+                       image_concept_dict["digit"],
+                       image_concept_dict["num_clusters"],
+                       image_concept_dict["cluster_name"],
+                       image_concept_dict["sample_index"]
+        ]
+>>>>>>> concepts_loss
 

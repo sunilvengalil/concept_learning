@@ -29,6 +29,8 @@ class RetentionPolicy:
         """
 
         if len(data) != 4:
+            raise ValueError(f"Parameter data should be a list of lenght 4. Got {type(data)} of length {len(data)} instead")
+        if len(data) != 4:
             raise ValueError(f"Parameter data should be a list of lenght 3. Got {type(data)} of length {len(data)} instead")
 
         reconstructed_images, labels, nlls, orig_images = data[0], data[1], data[2], data[3]
