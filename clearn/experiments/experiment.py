@@ -222,8 +222,14 @@ def initialize_model_train_and_get_features(experiment_name,
                                             total_confidence_of_wrong_annotation=0,
                                             uncorrelated_features=False,
                                             translate_image=False,
-                                            concept_id = -1,
-                                            concept_dict=None
+                                            concept_id=-1,
+                                            concept_dict=None,
+                                            training_phase=None,
+                                            run_test=True,
+                                            std_dev=1,
+                                            class_weight=1,
+                                            save_per_class_metrics=-1,
+                                            concepts_deduped=False
                                             ):
     if concept_id == -1 and dataset_name == "mnist_concepts":
         raise Exception("Parameter concept_id should be non-negative")
@@ -250,15 +256,15 @@ def initialize_model_train_and_get_features(experiment_name,
                                 f"Exp_{units_}_{num_units[0]}_{z_dim}_{num_cluster_config}_{run_id}/")
 
     if dao is None:
-        base_path = get_base_path()
-
-        analysis_path = os.path.join(base_path, "analysis/")
         print("root path",root_path)
         dao = get_dao(dataset_name,
                       split_name,
                       num_val_samples,
                       dataset_path=root_path+"/datasets/",
-                      concept_id = concept_id
+                      concept_id = concept_id,
+                      translate_image=translate_image,
+                      std_dev=std_dev,
+                      concepts_deduped=concepts_deduped
                       )
 
     if num_units is None:
@@ -304,7 +310,12 @@ def initialize_model_train_and_get_features(experiment_name,
                                   translate_image = translate_image,
                                   dao=dao,
                                   concept_id=concept_id,
-                                  concept_dict=concept_dict
+                                  concept_dict=concept_dict,
+                                  std_dev_concept_distribution=1,
+                                  class_weight=class_weight,
+                                  training_phase=training_phase,
+                                  save_per_class_metrics=save_per_class_metrics,
+                                  concepts_deduped=concepts_deduped
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)
@@ -316,10 +327,12 @@ def initialize_model_train_and_get_features(experiment_name,
                                                          dao,
                                                          exp_config,
                                                          num_epochs_completed,
-                                                         split_name
+                                                         split_name,
+                                                         translate_image=translate_image,
+                                                         training_phase=training_phase
                                                          )
 
-    if test_data_iterator is None:
+    if run_test and test_data_iterator is None:
         test_data_location = exp_config.DATASET_ROOT_PATH + "/test/"
         if exp_config.fully_convolutional:
             num_concepts_per_row, num_concepts_per_col = get_num_concepts_per_image(exp_config, dao)
@@ -374,7 +387,9 @@ def get_train_val_iterator(create_split: bool,
                            dao: IDao,
                            exp_config: ExperimentConfig,
                            num_epochs_completed: int,
-                           split_name: str):
+                           split_name: str,
+                           translate_image=False,
+                           training_phase=None):
     split_filename = exp_config.DATASET_PATH + split_name + ".json"
     manual_annotation_file_name = f"manual_annotation.csv"
 
@@ -411,7 +426,9 @@ def get_train_val_iterator(create_split: bool,
                                                        seed=exp_config.seed,
                                                        budget=exp_config.budget,
                                                        num_concepts_per_image_row=num_concepts_per_row,
-                                                       num_concepts_per_image_col=num_concepts_per_col
+                                                       num_concepts_per_image_col=num_concepts_per_col,
+                                                       translate_image=translate_image,
+                                                       training_phase=training_phase
                                                        )
     else:
         raise Exception(f"File does not exists {split_filename}")

@@ -3,6 +3,7 @@ from __future__ import division
 
 import traceback
 import os
+from collections import defaultdict
 from typing import List, Dict
 
 import numpy as np
@@ -14,9 +15,8 @@ from clearn.config.common_path import get_encoded_csv_file
 from clearn.dao.idao import IDao
 from clearn.models.classify.classifier import ClassifierModel
 from clearn.models.vae import VAE
-from clearn.utils import prior_factory as prior
 from clearn.utils.retention_policy.policy import RetentionPolicy
-from clearn.utils.utils import get_latent_vector_column, get_padding_info, save_images, get_layer_num
+from clearn.utils.utils import get_latent_vector_column, get_padding_info, save_images
 from scipy.special import softmax
 from sklearn.metrics import accuracy_score
 
@@ -30,7 +30,7 @@ class SemiSupervisedClassifierMnist(VAE):
     _model_name_ = "SemiSupervisedClassifierMnist"
 
     def __init__(self,
-                 exp_config:ExperimentConfig,
+                 exp_config: ExperimentConfig,
                  sess,
                  epoch,
                  dao: IDao,
@@ -45,7 +45,7 @@ class SemiSupervisedClassifierMnist(VAE):
         self.is_manual_annotated = placeholder(tf.float32, [exp_config.BATCH_SIZE], name="is_manual_annotated")
         self.labels = placeholder(tf.float32, [exp_config.BATCH_SIZE, dao.num_classes], name='manual_label')
         self.padding_added_row, self.padding_added_col, self.image_sizes = get_padding_info(exp_config,
-                                                                                                 dao.image_shape)
+                                                                                            dao.image_shape)
         self.num_individual_samples_annotated = num_individual_samples_annotated
         self.num_samples_wrongly_annotated = num_samples_wrongly_annotated
         self.total_confidence_of_wrong_annotation = total_confidence_of_wrong_annotation
@@ -64,27 +64,15 @@ class SemiSupervisedClassifierMnist(VAE):
             else:
                 self.num_concpets_per_col = (latent_image_dim[1] // self.concepts_stride) + 1
 
-            self.is_concepts_annotated = placeholder(tf.float32,
-                                                     [exp_config.BATCH_SIZE,
-                                                      self.num_concpets_per_row,
-                                                      self.num_concpets_per_col],
-                                                     name="is_concepts_annotated")
-            self.concepts_labels = placeholder(tf.float32,
-                                               [exp_config.BATCH_SIZE,
-                                                self.num_concpets_per_row,
-                                                self.num_concpets_per_col,
-                                                exp_config.dao.num_classes],
-                                               name='manual_label_concepts')
-
-        self.layers_to_apply_concept_loss = []
-        self.unique_concepts:Dict[int, List] = dict()
-        self.mask_for_concept_no = dict()
-        for layer_num in exp_config.concept_dict.keys():
-            self.unique_concepts[layer_num] = concept_dict[layer_num]["unique_concepts"]
-            self.mask_for_concept_no[layer_num] = dict()
-            for concept_no in self.unique_concepts[layer_num]:
-                self.mask_for_concept_no[layer_num][concept_no] = placeholder(tf.float32, exp_config.BATCH_SIZE)
-
+        if exp_config.concept_dict is not None and len(exp_config.concept_dict) > 0:
+            self.layers_to_apply_concept_loss = []
+            self.unique_concepts: Dict[int, List] = dict()
+            self.mask_for_concept_no = dict()
+            for layer_num in exp_config.concept_dict.keys():
+                self.unique_concepts[layer_num] = concept_dict[layer_num]["unique_concepts"]
+                self.mask_for_concept_no[layer_num] = dict()
+                for concept_no in self.unique_concepts[layer_num]:
+                    self.mask_for_concept_no[layer_num][concept_no] = placeholder(tf.float32, exp_config.BATCH_SIZE)
 
         super().__init__(exp_config=exp_config,
                          sess=sess,
@@ -93,6 +81,12 @@ class SemiSupervisedClassifierMnist(VAE):
                          test_data_iterator=test_data_iterator,
                          read_from_existing_checkpoint=read_from_existing_checkpoint,
                          check_point_epochs=check_point_epochs)
+
+        if self.exp_config.training_phase == "CONCEPTS":
+            self.active_class_labels = list(range(self.dao.number_of_training_samples,
+                                             self.dao.number_of_training_samples + self.dao.num_concepts_label_generated))
+        else:
+            self.active_class_labels = list(range(self.dao.num_classes))
 
         self.metrics_to_compute = ["accuracy", "reconstruction_loss"]
         self.metrics = dict()
@@ -105,53 +99,78 @@ class SemiSupervisedClassifierMnist(VAE):
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_test][metric] = []
 
     def compute_and_optimize_loss(self):
-        if self.exp_config.fully_convolutional :
+        if self.exp_config.fully_convolutional:
             concepts_stride = 1
             z_reshaped = tf.reshape(self.z, [self.exp_config.BATCH_SIZE,
                                              self.image_sizes[len(self.exp_config.num_units)][0],
                                              self.image_sizes[len(self.exp_config.num_units)][0],
                                              1
-                                            ]
-                                           )
+                                             ]
+                                    )
             self.concepts_pred = conv2d(z_reshaped,
                                         self.exp_config.dao.num_classes,
                                         k_h=2,
                                         k_w=2,
-                                        d_h= concepts_stride,
-                                        d_w= concepts_stride,
+                                        d_h=concepts_stride,
+                                        d_w=concepts_stride,
                                         stddev=0.02,
                                         name="predict_concepts")
 
         if self.exp_config.fully_convolutional:
             self.supervised_loss_concepts = 0
             self.supervised_loss_concepts_per_layer = dict()
-            for layer_num in list(self.exp_config.concept_dict.keys()):
-                if layer_num == 6:
-                    continue
-                decoder_feature = f"de_conv_{layer_num}"
-                print("layer_num", layer_num, decoder_feature)
-                f = self.decoder_dict[decoder_feature]
-                print(f.shape)
-                #f = tf.reshape(f, [-1, int(f.shape[1]) * int(f.shape[2]), int(f.shape[3])])
-                print(f.shape)
-                num_concepts = len(self.exp_config.concept_dict[layer_num]["unique_concepts"])
-                self.supervised_loss_concepts_per_layer[layer_num] = dict()
+            if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+                for layer_num in list(self.exp_config.concept_dict.keys()):
+                    if layer_num >= len(self.exp_config.num_units) + 1:
+                        continue
+                    if self.dao.training_phase == "CONCEPTS" and layer_num > len(self.exp_config.num_units) - 1:
+                        continue
+                    decoder_feature = f"de_conv_{layer_num}"
+                    print("layer_num", layer_num, decoder_feature)
+                    f = self.decoder_dict[decoder_feature]
+                    self.supervised_loss_concepts_per_layer[layer_num] = dict()
+                    self.mse_for_all_images = dict()
+                    self.mse_for_all_images_masked = dict()
+                    for concept_no in self.unique_concepts[layer_num]:
+                        # print("feature shape", f.shape)
+                        # print(f"Computing loss for {layer_num} concept {concept_no}")
+                        input_resized = tf.image.resize(self.inputs, [f.shape[1], f.shape[2]],
+                                                        preserve_aspect_ratio=True)
+                        # print("input shape ", input_resized.shape)
+                        mse = tf.compat.v1.losses.mean_squared_error(f[:, :, :, concept_no:concept_no + 1],
+                                                                     input_resized,
+                                                                     reduction=tf.compat.v1.losses.Reduction.NONE
+                                                                     )
+                        self.mse_for_all_images[concept_no] = tf.compat.v1.reduce_mean(mse, axis=(1, 2, 3))
+                        self.mse_for_all_images_masked[concept_no] = tf.math.multiply(
+                            self.mse_for_all_images[concept_no], self.mask_for_concept_no[layer_num][concept_no])
 
-                for concept_no in self.unique_concepts[layer_num]:
-                    print("feature shape",f.shape)
-                    print(f"Computing loss for {layer_num} concept {concept_no}")
-                    input_resized = tf.image.resize(self.inputs, [f.shape[1], f.shape[2]], preserve_aspect_ratio=True)
-                    print("input shape ",input_resized.shape)
-                    mse = tf.compat.v1.losses.mean_squared_error(f[:, :, :, concept_no:concept_no + 1],
-                                                                 input_resized,
-                                                                 reduction=tf.compat.v1.losses.Reduction.NONE
-                                                                 )
-                    mse_for_all_images = tf.compat.v1.reduce_mean(mse, axis=(1, 2, 3))
-                    #mse_for_all_images_masked = tf.math.multiply(mse_for_all_images, self.mask_for_concept_no[layer_num][concept_no])
-                    mse_for_all_images_masked = mse_for_all_images
-                    self.supervised_loss_concepts_per_layer[layer_num][concept_no] = tf.compat.v1.reduce_mean(mse_for_all_images_masked)
+                        self.supervised_loss_concepts_per_layer[layer_num][concept_no] = tf.math.divide_no_nan(
+                            tf.compat.v1.reduce_sum(
+                                self.mse_for_all_images_masked[concept_no]),
+                            tf.compat.v1.reduce_sum(self.mask_for_concept_no[layer_num][concept_no]))
 
-                    self.supervised_loss_concepts += self.supervised_loss_concepts_per_layer[layer_num][concept_no]
+                        self.supervised_loss_concepts += self.supervised_loss_concepts_per_layer[layer_num][concept_no]
+
+                        # Make response for other images zero
+                        # mse_other_images = tf.compat.v1.losses.mean_squared_error(f[:, :, :, concept_no:concept_no + 1],
+                        #                                                           tf.zeros_like(f[:, :, :, concept_no:concept_no + 1]),
+                        #                                                           reduction=tf.compat.v1.losses.Reduction.NONE)
+                        # print("Shape mse_other_images", mse_other_images.shape)
+                        # inverted_mask = tf.math.subtract(tf.ones_like(self.mask_for_concept_no[layer_num][concept_no]),
+                        #                             self.mask_for_concept_no[layer_num][concept_no])
+                        # mse_for_other_images_masked= tf.math.multiply(tf.compat.v1.reduce_mean(mse_other_images,axis=(1, 2, 3)),
+                        #                                               inverted_mask)
+                        # supervised_loss_concepts_per_layer_other = tf.math.divide_no_nan(tf.compat.v1.reduce_sum(mse_for_other_images_masked),
+                        #                                                                                         tf.compat.v1.reduce_sum(inverted_mask))
+                        # self.supervised_loss_concepts += supervised_loss_concepts_per_layer_other
+                        # Make sure all other feature maps are zero for this activation
+                        # mse_other_layers = tf.compat.v1.losses.mean_squared_error(f[:, :, :, 0:concept_no],
+                        #                                                           tf.zeros_like(f[:, :, :, 0:concept_no]),
+                        #                                                           reduction=tf.compat.v1.losses.Reduction.NONE
+                        #                                                           )
+                        #
+                        # self.mse_for_all_images[concept_no] = tf.compat.v1.reduce_mean(mse_other_layers, axis=(1, 2, 3))
 
         self.y_pred = linear(self.z, self.dao.num_classes)
         self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
@@ -166,8 +185,8 @@ class SemiSupervisedClassifierMnist(VAE):
                         self.exp_config.supervise_weight_concepts * self.supervised_loss_concepts
         else:
             self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
-              self.exp_config.beta * self.KL_divergence + \
-              self.exp_config.supervise_weight * self.supervised_loss
+                        self.exp_config.beta * self.KL_divergence + \
+                        self.exp_config.supervise_weight * self.supervised_loss
 
         # if self.exp_config.uncorrelated_features:
         # last_feature = list(self.decoder_dict.keys())[-1]
@@ -186,10 +205,6 @@ class SemiSupervisedClassifierMnist(VAE):
             self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate,
                                                           beta1=self.exp_config.beta1_adam) \
                 .minimize(self.loss, var_list=t_vars)
-
-        """" Testing """
-        # for test
-        #self.fake_images = self._decoder(self.standard_normal, reuse=True)
 
         """ Summary """
         tf.compat.v1.summary.scalar("Negative Log Likelihood", self.neg_loglikelihood)
@@ -211,22 +226,26 @@ class SemiSupervisedClassifierMnist(VAE):
         num_samples_per_image = 64
         manifold_w = 4
         manifold_h = num_samples_per_image // manifold_w
+        if self.exp_config.save_per_class_metrics:
+            save_policies_classes = -1
+        else:
+            save_policies_classes = []
 
-        # self.layers_to_apply_concept_loss = np.unique(train_val_data_iterator.manual_annotation[2], return_counts=False)
-        # self.unique_concepts = dict()
-        # for layer_num in self.layers_to_apply_concept_loss:
-        #     # Get the list of uniques concepts to be aplied on this layer
-        #     labels = np.argmax(train_val_data_iterator.train_y)
-        #     self.unique_concepts[layer_num] = np.unique(labels[train_val_data_iterator.manual_annotation[2] == layer_num])
         for epoch in range(start_epoch, self.epoch):
             evaluation_run_for_last_epoch = False
-            # get batch data
-            supervised_loss_concepts_batch = []
-            supervised_loss_concepts_for_epoch = 0
+            supervised_loss_concepts_epoch = dict()
+            if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+                for layer_num in self.exp_config.concept_dict.keys():
+                    if layer_num == len(self.exp_config.num_units) + 1:
+                        continue
+                    supervised_loss_concepts_epoch[layer_num] = []
+            batch = -1
             for batch in range(start_batch_id, self.num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
-                batch_images, batch_labels, manual_labels, manual_labels_concepts = train_val_data_iterator.get_next_batch("train")
+                batch_images, batch_labels, manual_labels, manual_labels_concepts = train_val_data_iterator.get_next_batch(
+                    "train")
+                labels_categorical = np.argmax(batch_labels, axis=1)
                 if num_images_to_save > images_saved:
                     save_images(batch_images[0:64],
                                 [manifold_h, manifold_w],
@@ -235,123 +254,93 @@ class SemiSupervisedClassifierMnist(VAE):
 
                 if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                     break
-                batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
+
+                tensor_list = [self.optim,
+                               self.merged_summary_op,
+                               self.loss,
+                               self.neg_loglikelihood,
+                               self.marginal_likelihood,
+                               self.KL_divergence,
+                               self.supervised_loss]
+
                 if self.exp_config.fully_convolutional:
+                    feed_dict = {self.inputs: batch_images,
+                                 self.labels: manual_labels[:, :self.dao.num_classes],
+                                 self.is_manual_annotated: manual_labels[:, self.dao.num_classes]
+                                 }
 
-                    concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.dao.num_classes],
-                                                (self.exp_config.BATCH_SIZE,
-                                                self.num_concpets_per_row,
-                                                self.num_concpets_per_col,
-                                                self.exp_config.dao.num_classes)
-                                                )
-                    # is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts],
-                    #                                   (self.exp_config.BATCH_SIZE,
-                    #                                     self.num_concpets_per_row,
-                    #                                     self.num_concpets_per_col)
-                    #                                   )
-
-                    is_concepts_annotated = np.zeros(
-                                  (self.exp_config.BATCH_SIZE,
-                                    self.num_concpets_per_row,
-                                    self.num_concpets_per_col)
-                                  )
-
-                # update autoencoder and classifier parameters
-                if self.exp_config.fully_convolutional:
                     if self.exp_config.uncorrelated_features:
-                        _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts, correlation_loss = self.sess.run(
-                            [self.optim,
-                             self.merged_summary_op,
-                             self.loss,
-                             self.neg_loglikelihood,
-                             self.marginal_likelihood,
-                             self.KL_divergence,
-                             self.supervised_loss,
-                             self.supervised_loss_concepts,
-                             self.corr_loss
-                             ],
-                            feed_dict={
-                                self.inputs: batch_images,
-                                self.labels: manual_labels[
-                                             :,
-                                             :self.dao.num_classes],
-                                self.is_manual_annotated: manual_labels[
-                                                          :,
-                                                          self.dao.num_classes],
-                                self.concepts_labels: concepts_label,
-                                self.is_concepts_annotated: is_concepts_annotated
-                            }
-                            )
+                        tensor_list.append(self.supervised_loss_concepts)
+                        tensor_list.append(self.corr_loss)
+                        return_list = self.sess.run(tensor_list,
+                                                    feed_dict=feed_dict)
+                        loss = return_list[2]
+                        nll_loss = return_list[3]
+                        kl_loss = return_list[5]
+                        supervised_loss = return_list[6]
+                        supervised_loss_concepts = return_list[7]
+                        correlation_loss = return_list[8]
                     else:
-                        feed_dict = {
-                            self.inputs: batch_images,
-                            self.labels: manual_labels[
-                                         :,
-                                         :self.dao.num_classes],
-                            self.is_manual_annotated: manual_labels[
-                                                      :,
-                                                      self.dao.num_classes],
-                            self.concepts_labels: concepts_label,
-                            self.is_concepts_annotated: is_concepts_annotated
-                        }
+                        if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+                            for layer_num in self.exp_config.concept_dict.keys():
+                                if layer_num >= len(self.exp_config.num_units) + 1:
+                                    # skip decoder output layer
+                                    continue
+
+                                if self.exp_config.training_phase == "CONCEPTS" and layer_num > len(self.exp_config.num_units) - 1:
+                                    continue
+
+                                for concept_no in self.unique_concepts[layer_num]:
+                                    masks = np.zeros(self.exp_config.BATCH_SIZE)
+                                    if concept_no != -1:
+                                        masks[(manual_labels[:, self.dao.num_classes + 1] == layer_num) * (
+                                                labels_categorical == concept_no)] = 1
+                                    feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
+                        return_list = self.sess.run(tensor_list, feed_dict=feed_dict)
+                        loss = return_list[2]
+                        nll_loss = return_list[3]
+                        kl_loss = return_list[5]
+                        supervised_loss = return_list[6]
+
+                        supervised_loss_concepts = dict()
+                        supervised_loss_concepts_total = dict()
+                        if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+                            for i, layer_num in enumerate(self.exp_config.concept_dict.keys()):
+                                if layer_num >= len(self.exp_config.num_units) + 1:
+                                    continue
+                                if self.dao.training_phase == "CONCEPTS" and layer_num > len(
+                                        self.exp_config.num_units) - 1:
+                                    continue
+                                supervised_loss_concepts[layer_num] = return_list[6 + i]
+                                supervised_loss_concepts_total[layer_num] = 0
+                                for k, v in supervised_loss_concepts[layer_num].items():
+                                    supervised_loss_concepts_total[layer_num] += v
+                else:
+                    feed_dict = {self.inputs: batch_images,
+                                 self.labels: manual_labels[:, :self.dao.num_classes],
+                                 self.is_manual_annotated: manual_labels[:, self.dao.num_classes]}
+                    if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                         for layer_num in self.exp_config.concept_dict.keys():
+                            print(f"Generating mask for layer {layer_num} features {self.unique_concepts[layer_num]} ")
                             for concept_no in self.unique_concepts[layer_num]:
-                                #print("concept number", layer_num, concept_no)
-                                #print(self.mask_for_concept_no[layer_num][concept_no])
-                                #print(np.argmax(batch_labels))
                                 masks = np.zeros(self.exp_config.BATCH_SIZE)
                                 if concept_no == -1:
+                                    # special case for handling samples from the original classes
                                     masks[manual_labels[:, self.dao.num_classes + 1] <= 9] = 1
                                 else:
-                                    masks[manual_labels[:, self.dao.num_classes + 1] == concept_no] = 1
-                                #print("label", manual_labels[:, self.dao.num_classes + 1])
-                                #print("masks", masks)
-
-                                #print(f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
+                                    masks[manual_labels[:, self.dao.num_classes + 1] == layer_num] = 1
+                                print(
+                                    f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
                                 feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
-
-                        _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss, supervised_loss_concepts, supervised_loss_concepts_for_l3 = self.sess.run([self.optim,
-                                                                                                             self.merged_summary_op,
-                                                                                                             self.loss,
-                                                                                                             self.neg_loglikelihood,
-                                                                                                             self.marginal_likelihood,
-                                                                                                             self.KL_divergence,
-                                                                                                             self.supervised_loss,
-                                                                                                             self.supervised_loss_concepts,
-                                                                                                             self.supervised_loss_concepts_per_layer[3]],
-                                                                                                            feed_dict=feed_dict
-                                                                                                            )
-                        print(supervised_loss_concepts_for_l3)
-                        for k, v in supervised_loss_concepts_for_l3.items():
-                            supervised_loss_concepts_for_epoch += v
-                else:
-                    feed_dict = {
-                        self.inputs: batch_images,
-                        self.labels: manual_labels[:, :self.dao.num_classes],
-                        self.is_manual_annotated: manual_labels[:, self.dao.num_classes],
-                    }
-                    for layer_num in self.exp_config.concept_dict.keys():
-                        print(f"Generating mask for layer {layer_num} features {self.unique_concepts[layer_num]} ")
-                        for concept_no in self.unique_concepts[layer_num]:
-                            masks = np.zeros(self.exp_config.BATCH_SIZE)
-                            if concept_no == -1 :
-                                # special case for handling samples from the original classes
-                                masks[manual_labels[:, self.dao.num_classes + 1]  <=9 ] = 1
-                            else:
-                                masks[manual_labels[:, self.dao.num_classes + 1] == layer_num] = 1
-                            print(f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
-                            feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
-
-                    _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss = self.sess.run([self.optim,
-                                                                                                         self.merged_summary_op,
-                                                                                                         self.loss,
-                                                                                                         self.neg_loglikelihood,
-                                                                                                         self.marginal_likelihood,
-                                                                                                         self.KL_divergence,
-                                                                                                         self.supervised_loss],
-                                                                                                        feed_dict=feed_dict
+                    _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss = self.sess.run(tensor_list,
+                                                                                                        feed_dict
                                                                                                         )
-                supervised_loss_concepts_batch.append(supervised_loss_concepts)
+                if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+                    for i, layer_num in enumerate(self.exp_config.concept_dict.keys()):
+                        if layer_num == len(self.exp_config.num_units) + 1:
+                            continue
+                        supervised_loss_concepts_epoch[layer_num].append(supervised_loss_concepts_total[layer_num])
+
                 if self.exp_config.fully_convolutional:
                     if self.exp_config.uncorrelated_features:
                         print(
@@ -360,30 +349,48 @@ class SemiSupervisedClassifierMnist(VAE):
                         print(f"Epoch: {epoch}/{batch}, Loss:{loss} Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}")
 
                 else:
-                    print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} ")
+                    print(f"Epoch: {epoch}/{batch}, Loss:{loss} Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} ")
+
                 self.counter += 1
                 self.num_steps_completed = batch + 1
                 # self.writer.add_summary(summary_str, self.counter - 1)
-            print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss},  Supervised loss concept {supervised_loss_concepts_for_epoch}")
+            if batch == -1 :
+                start_batch_id = 0
+                continue
+            print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss}")
+            if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+                for layer_num in self.exp_config.concept_dict.keys():
+                    if layer_num == len(self.exp_config.num_units) + 1:
+                        continue
+                    print(f"Supervised loss concept Layer {layer_num} {sum(supervised_loss_concepts_epoch[layer_num])}")
+
             self.num_training_epochs_completed = epoch + 1
             print(f"Completed {epoch} epochs")
+
             if self.exp_config.run_evaluation_during_training:
                 if np.mod(epoch, self.exp_config.eval_interval_in_epochs) == 0:
                     train_val_data_iterator.reset_counter("val")
                     train_val_data_iterator.reset_counter("train")
                     self.evaluate(data_iterator=train_val_data_iterator,
-                                  dataset_type="val")
+                                  dataset_type="val",
+                                  save_policies_classes=save_policies_classes)
                     self.evaluate(data_iterator=train_val_data_iterator,
-                                  dataset_type="train")
+                                  dataset_type="train",
+                                  save_policies_classes=save_policies_classes
+                                  )
                     if self.test_data_iterator is not None:
                         self.test_data_iterator.reset_counter("test")
-                        self.evaluate(self.test_data_iterator, dataset_type="test")
+                        self.evaluate(self.test_data_iterator,
+                                      dataset_type="test",
+                                      save_policies_classes=save_policies_classes
+                                      )
                         self.test_data_iterator.reset_counter("test")
 
                     for metric in self.metrics_to_compute:
                         print(f"{metric}: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
                         print(f"{metric}: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
-                        print(f"{metric}: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
+                        if self.test_data_iterator is not None:
+                            print(f"{metric}: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
                     self.save_metrics()
                     evaluation_run_for_last_epoch = True
             train_val_data_iterator.reset_counter("train")
@@ -391,7 +398,6 @@ class SemiSupervisedClassifierMnist(VAE):
 
             # After an epoch, start_batch_id is set to zero
             # non-zero value is only for the first epoch after loading pre-trained model
-            start_batch_id = 0
             # save model
             train_val_data_iterator.reset_counter("train")
             if np.mod(epoch, self.exp_config.model_save_interval) == 0:
@@ -402,18 +408,24 @@ class SemiSupervisedClassifierMnist(VAE):
         train_val_data_iterator.reset_counter("train")
         if not evaluation_run_for_last_epoch:
             self.evaluate(data_iterator=train_val_data_iterator,
-                          dataset_type="val")
+                          dataset_type="val",
+                          save_policies_classes=save_policies_classes
+                          )
             self.evaluate(data_iterator=train_val_data_iterator,
-                          dataset_type="train")
+                          dataset_type="train",
+                          save_policies_classes=save_policies_classes
+                          )
             if self.test_data_iterator is not None:
                 self.test_data_iterator.reset_counter("test")
-                self.evaluate(self.test_data_iterator, dataset_type="test")
+                self.evaluate(self.test_data_iterator,
+                              dataset_type="test",
+                              save_policies_classes=save_policies_classes)
                 self.test_data_iterator.reset_counter("test")
         for metric in self.metrics_to_compute:
             print(f"Accuracy: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
             print(f"Accuracy: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
-            print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
-
+            if self.test_data_iterator is not None:
+                print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
         self.save_metrics()
 
     def save_metrics(self):
@@ -430,17 +442,25 @@ class SemiSupervisedClassifierMnist(VAE):
                 df[column_name] = np.asarray(self.metrics["train"][metric])[:, 1]
 
             df[f"val_{metric}_mean"] = np.asarray(self.metrics["val"][metric])[:, 1]
-            df[f"test_{metric}_mean"] = np.asarray(self.metrics["test"][metric])[:, 1]
+            if self.test_data_iterator is not None:
+                df[f"test_{metric}_mean"] = np.asarray(self.metrics["test"][metric])[:, 1]
 
             if np.asarray(self.metrics["val"][metric]).shape[1] == 3:
                 df[f"train_{metric}_std"] = np.asarray(self.metrics["train"][metric])[:, 2]
                 df[f"val_{metric}_std"] = np.asarray(self.metrics["val"][metric])[:, 2]
-                df[f"test_{metric}_std"] = np.asarray(self.metrics["test"][metric])[:, 2]
+                if self.test_data_iterator is not None:
+                    df[f"test_{metric}_std"] = np.asarray(self.metrics["test"][metric])[:, 2]
 
-            max_value = df[f"test_{metric}_mean"].max()
-            print(f"Max test {metric}_mean", max_value)
-            min_value = df[f"test_{metric}_mean"].min()
-            print(f"Minimum test {metric}_mean", min_value)
+            if self.test_data_iterator is not None:
+                max_value = df[f"test_{metric}_mean"].max()
+                print(f"Max test {metric}_mean", max_value)
+                min_value = df[f"test_{metric}_mean"].min()
+                print(f"Minimum test {metric}_mean", min_value)
+
+            # Save validation class-wise metrics
+            if "reconstruction_losses_per_class" in self.metrics_to_compute:
+                for class_label in self.active_class_labels:
+                    df[f"reconstruction_losses_per_class_{class_label}"] = self.metrics["val"]["reconstruction_losses_per_class"][class_label][0] / self.metrics["val"]["reconstruction_losses_per_class"][class_label][1]
 
         df["num_individual_samples_annotated"] = self.num_individual_samples_annotated
         df["num_samples_wrongly_annotated"] = self.num_samples_wrongly_annotated
@@ -458,7 +478,8 @@ class SemiSupervisedClassifierMnist(VAE):
                  metrics=[],
                  save_policies=("TEST_TOP_128", "TEST_BOTTOM_128",
                                 "TRAIN_TOP_128", "TRAIN_BOTTOM_128",
-                                "VAL_TOP_128", "VAL_BOTTOM_128")
+                                "VAL_TOP_128", "VAL_BOTTOM_128"),
+                 save_policies_classes=-1
                  ):
         if metrics is None or len(metrics) == 0:
             metrics = self.metrics_to_compute
@@ -476,7 +497,19 @@ class SemiSupervisedClassifierMnist(VAE):
         data_iterator.reset_counter(dataset_type)
         reconstruction_losses = []
         retention_policies: List[RetentionPolicy] = list()
+        retention_policies_class_wise: List[List[RetentionPolicy]] = []
+
+        if save_policies_classes == -1:
+            save_policies_classes = self.active_class_labels
+
+        def def_fun():
+            return [0, 0]
+        reconstruction_losses_per_class:Dict[int, List] = defaultdict(def_fun)
+
         if save_images:
+            for i in range(len(save_policies_classes)):
+                retention_policies_class_wise.append([])
+
             for policy in save_policies:
                 if dataset_type.upper() == policy.split("_")[0]:
                     policy_type = policy.split("_")[1]
@@ -486,75 +519,62 @@ class SemiSupervisedClassifierMnist(VAE):
                                              N=int(policy.split("_")[2])
                                              )
                         retention_policies.append(rp)
+                        for i in range(len(save_policies_classes)):
+                            rp = RetentionPolicy(dataset_type.upper(),
+                                                 policy_type=policy_type,
+                                                 N=int(policy.split("_")[2]),
+                                                 log=False
+                                                 )
+
+                            retention_policies_class_wise[i].append(rp)
+        num_samples_completed_for_class = 0
         while data_iterator.has_next(dataset_type):
-            batch_images, batch_labels, manual_labels, manual_labels_concepts = data_iterator.get_next_batch(dataset_type)
+            batch_images, batch_labels, manual_labels, manual_labels_concepts = data_iterator.get_next_batch(
+                dataset_type)
 
             # skip last batch
             if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                 data_iterator.reset_counter(dataset_type)
                 break
-            batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
-            if self.exp_config.fully_convolutional:
-                concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.dao.num_classes],
-                                            (self.exp_config.BATCH_SIZE,
-                                            self.num_concpets_per_row,
-                                            self.num_concpets_per_col,
-                                            self.exp_config.dao.num_classes)
-                                            )
-                is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.dao.num_classes],
-                                                  (self.exp_config.BATCH_SIZE,
-                                                    self.num_concpets_per_row,
-                                                    self.num_concpets_per_col)
-                                                  )
+
+            # Populate feed_dict
+            feed_dict = {
+                self.inputs: batch_images,
+                self.labels: manual_labels[:, :self.dao.num_classes],
+                self.is_manual_annotated: manual_labels[:, self.dao.num_classes]
+            }
 
             if self.exp_config.fully_convolutional:
-                feed_dict = {
-                    self.inputs: batch_images,
-                    self.labels: manual_labels[:, :self.dao.num_classes],
-                    self.is_manual_annotated: manual_labels[:, self.dao.num_classes],
-                    self.concepts_labels: concepts_label,
-                    self.is_concepts_annotated: is_concepts_annotated
-                }
+                if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+                    for layer_num in self.exp_config.concept_dict.keys():
+                        # print(self.mask_for_concept_no[layer_num])
+                        for concept_no in self.unique_concepts[layer_num]:
+                            # print("concept number", concept_no)
+                            # print(self.mask_for_concept_no[layer_num][concept_no])
+                            masks = np.zeros(self.exp_config.BATCH_SIZE)
+                            if concept_no == -1:
+                                masks[manual_labels[:, self.dao.num_classes + 1] <= 9] = 1
+                            else:
+                                masks[manual_labels[:, self.dao.num_classes + 1] == layer_num] = 1
+                            feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
 
-                for layer_num in self.exp_config.concept_dict.keys():
-                    # print(self.mask_for_concept_no[layer_num])
-                    for concept_no in self.unique_concepts[layer_num]:
-                        # print("concept number", concept_no)
-                        # print(self.mask_for_concept_no[layer_num][concept_no])
+            return_list = self.sess.run([self.out,
+                                         self.merged_summary_op,
+                                         self.mu,
+                                         self.sigma,
+                                         self.z,
+                                         self.y_pred,
+                                         self.neg_loglikelihood,
+                                         self.marginal_likelihood],
+                                        feed_dict=feed_dict)
+            reconstructed_image = return_list[0]
+            mu_for_batch = return_list[2]
+            sigma_for_batch = return_list[3]
+            z_for_batch = return_list[4]
+            y_pred = return_list[5]
+            nll = return_list[6]
+            nll_batch = return_list[7]
 
-                        masks = np.zeros(self.exp_config.BATCH_SIZE)
-                        if concept_no == -1:
-                            masks[manual_labels[:, self.dao.num_classes + 1] <= 9] = 1
-                        else:
-                            masks[manual_labels[:, self.dao.num_classes + 1] == layer_num] = 1
-                        # print(
-                        #    f"Number of samples with gt for layer {layer_num} concept {concept_no} {np.sum(masks)}")
-                        feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
-
-                reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, y_pred, nll, nll_batch = self.sess.run([self.out,
-                                                                                                                                  self.merged_summary_op,
-                                                                                                                                  self.mu,
-                                                                                                                                  self.sigma,
-                                                                                                                                  self.z,
-                                                                                                                                  self.y_pred,
-                                                                                                                                  self.neg_loglikelihood,
-                                                                                                                                  self.marginal_likelihood],
-                                                                                                                                 feed_dict=feed_dict
-                                                                                                                                 )
-            else:
-                reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, y_pred, nll, nll_batch = self.sess.run([self.out,
-                                                                                                                                  self.merged_summary_op,
-                                                                                                                                  self.mu,
-                                                                                                                                  self.sigma,
-                                                                                                                                  self.z,
-                                                                                                                                  self.y_pred,
-                                                                                                                                  self.neg_loglikelihood,
-                                                                                                                                  self.marginal_likelihood],
-                                                                                                                                 feed_dict={
-                                                                                                                                     self.inputs: batch_images,
-                                                                                                                                     self.labels: manual_labels[:, :10],
-                                                                                                                                     self.is_manual_annotated: manual_labels[:, 10]
-                                                                                                                                 })
             nll_batch = -nll_batch
             if len(nll_batch.shape) == 0:
                 data_iterator.reset_counter(dataset_type)
@@ -562,6 +582,8 @@ class SemiSupervisedClassifierMnist(VAE):
                 print(
                     f"Length of batch_images: {batch_images.shape} Nll_batch shape: {nll_batch.shape} Nll shape: {nll.shape} Nll:{nll} ")
                 break
+            labels_for_batch = np.argmax(batch_labels, axis=1)
+
             # if len(nll_batch.shape) != 2:
             #     raise Exception(f"Shape of nll_batch {nll_batch.shape}")
             """
@@ -572,14 +594,38 @@ class SemiSupervisedClassifierMnist(VAE):
                     for rp in retention_policies:
                         rp.update_heap(cost=nll_batch,
                                        exp_config=self.exp_config,
-                                       data=[reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch, batch_images])
+                                       data=[reconstructed_image,
+                                             labels_for_batch,
+                                             nll_batch,
+                                             batch_images])
+
+                    _reconstruction_losses_per_class: Dict[int, np.ndarray] = dict()
+
+                    if len(save_policies_classes) > 0 and "reconstruction_losses_per_class" in self.metrics_to_compute:
+                        for i, class_label in enumerate(self.active_class_labels):
+                            label_indices = labels_for_batch == class_label
+                            if any(label_indices):
+                                nll_for_class = nll[label_indices]
+                                _reconstruction_losses_per_class[class_label] = nll_for_class
+                                reconstruction_losses_per_class[class_label] = [reconstruction_losses_per_class[class_label][0] + np.sum(nll_for_class) + reconstruction_losses_per_class[class_label][1] + nll_for_class.shape[0]]
+
+                    for i, class_label in enumerate(save_policies_classes):
+                        for rp in retention_policies_class_wise[i]:
+                            label_indices = labels_for_batch == class_label
+                            if class_label in _reconstruction_losses_per_class.keys():
+                                rp.update_heap(cost=reconstruction_losses_per_class[num_samples_completed_for_class],
+                                               exp_config=self.exp_config,
+                                               data=[reconstructed_image[label_indices],
+                                                     labels_for_batch[label_indices],
+                                                     _reconstruction_losses_per_class[class_label],
+                                                     batch_images[label_indices]])
                 except:
                     print(f"Shape of mse is {nll_batch.shape}")
                     traceback.print_exc()
 
             predicted_proba_batch = softmax(y_pred)
             labels_predicted_for_batch = np.argmax(predicted_proba_batch, axis=1)
-            labels_for_batch = np.argmax(batch_labels, axis=1)
+
             reconstruction_losses.append(nll)
 
             if labels_predicted is None:
@@ -603,24 +649,31 @@ class SemiSupervisedClassifierMnist(VAE):
             batch_no += 1
         print(f"Number of evaluation batches completed {batch_no}")
         print(f"epoch:{self.num_training_epochs_completed} step:{self.num_steps_completed}")
-        if "reconstruction_loss" in self.metrics_to_compute:
+        if "reconstruction_loss" in self.metrics_to_compute and len(reconstruction_losses) > 0:
             reconstruction_loss = mean(reconstruction_losses)
             self.metrics[dataset_type]["reconstruction_loss"].append(
                 [self.num_training_epochs_completed, reconstruction_loss, np.std(reconstruction_losses)])
-        if "accuracy" in self.metrics_to_compute:
+        if "accuracy" in self.metrics_to_compute and labels_predicted is not None and labels_predicted.shape[0] > 0:
             accuracy = accuracy_score(labels, labels_predicted)
             self.metrics[dataset_type]["accuracy"].append([self.num_training_epochs_completed, accuracy])
 
+        if "reconstruction_losses_per_class" in self.metrics_to_compute and reconstruction_losses_per_class is not None and len(reconstruction_losses_per_class) > 0 :
+            self.metrics[dataset_type]["reconstruction_losses_per_class"].append(reconstruction_losses_per_class)
+
         if save_images:
             self.save_sample_reconstructed_images(dataset_type, retention_policies)
+            for i, class_label in enumerate(save_policies_classes):
+                self.save_sample_reconstructed_images(dataset_type, retention_policies_class_wise[i], class_label)
 
         data_iterator.reset_counter(dataset_type)
-        encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
-                                  columns=["label", "label_predicted"])
+        encoded_df = None
+        if labels_predicted is not None and labels_predicted.shape[0] > 0:
+            encoded_df = pd.DataFrame(np.transpose(np.vstack([labels, labels_predicted])),
+                                      columns=["label", "label_predicted"])
 
-
-        if self.exp_config.return_latent_vector:
-            mean_col_names, sigma_col_names, z_col_names, l3_col_names, predicted_proba_col_names = get_latent_vector_column(self.exp_config.Z_DIM, self.dao.num_classes, True)
+        if self.exp_config.return_latent_vector and mu is not None and mu.shape[0] > 0:
+            mean_col_names, sigma_col_names, z_col_names, l3_col_names, predicted_proba_col_names = get_latent_vector_column(
+                self.exp_config.Z_DIM, self.dao.num_classes, True)
             # encoded_df[mean_col_names] = mu
             for i, mean_col_name in enumerate(mean_col_names):
                 encoded_df[mean_col_name] = mu[:, i]
@@ -634,7 +687,7 @@ class SemiSupervisedClassifierMnist(VAE):
             for i, predicted_proba_col_name in enumerate(predicted_proba_col_names):
                 encoded_df[predicted_proba_col_name] = labels_predicted_proba[:, i]
 
-        if self.exp_config.write_predictions:
+        if self.exp_config.write_predictions and encoded_df is not None:
             output_csv_file = get_encoded_csv_file(self.exp_config,
                                                    self.num_training_epochs_completed,
                                                    dataset_type

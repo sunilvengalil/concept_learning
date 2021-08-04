@@ -3,7 +3,7 @@ Most codes from https://github.com/carpedm20/DCGAN-tensorflow
 """
 from __future__ import division
 
-from typing import List, Tuple
+from typing import Tuple
 
 import pandas as pd
 import scipy.misc
@@ -12,7 +12,6 @@ from skimage import img_as_ubyte
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
-#import tensorflow.contrib.slim as slim
 import os
 import imageio
 from collections import defaultdict
@@ -27,17 +26,19 @@ from sklearn.preprocessing import MinMaxScaler
 DECONV_LAYER_PREFIX = "de_conv"
 SIGNIFICANT_THRESHOLD = 0.15
 
+
 def get_layer_num(deconv_layer_key):
     return deconv_layer_key.split("_")[2]
 
+
 def is_convolutional_layer(layer_num, num_units, num_dense_layers):
-    if layer_num >= len(num_units) - num_dense_layers :
+    if layer_num >= len(num_units) - num_dense_layers:
         return False
     else:
         return True
 
 
-def get_padding_info(exp_config:ExperimentConfig,
+def get_padding_info(exp_config: ExperimentConfig,
                      image_shape: Tuple[int]
                      ):
     num_units = exp_config.num_units
@@ -49,7 +50,7 @@ def get_padding_info(exp_config:ExperimentConfig,
     print("Image shape", image_shape)
     height = image_shape[0]
     width = image_shape[1]
-    channels =  image_shape[2]
+    channels = image_shape[2]
     image_sizes.append((height, width, channels))
     layer_num = 0
     for layer_num, stride in enumerate(strides[:-1]):
@@ -136,7 +137,7 @@ def find_absolute_largest_weights(weights, num_out_units):
     Find the maximum of absolute value of weights (MAVoW) connecting to each output unit
     @return returns an array of shape (num_out_units) containing MAVoW for each output unit
     """
-    max_abs_for_each_out_dimension_weight = np.asarray([np.max(np.abs(weights[:, i])) for i in range(num_out_units)] )
+    max_abs_for_each_out_dimension_weight = np.asarray([np.max(np.abs(weights[:, i])) for i in range(num_out_units)])
     max_abs_for_each_out_dimension_weight = np.reshape(max_abs_for_each_out_dimension_weight, (num_out_units, 1))
     return max_abs_for_each_out_dimension_weight
 
@@ -168,19 +169,24 @@ def save_single_image(images, path, epoch, step, training_batch, eval_batch, eva
         imageio.imwrite(path + file, img_as_ubyte(image))
 
 
-def save_image(image, size, image_file_name):
-    return imsave(inverse_transform(np.asarray(image)), size, image_file_name)
-
 # def save_image(image, size, image_file_name):
-#     scaler = MinMaxScaler(feature_range=(-0.99, 0.99))
-#     image_np = np.asarray(image)
-#     if len(image_np.shape) == 3:
-#         im = scaler.fit_transform(image_np.reshape(-1, image_np.shape[1]  * image_np.shape[2] )).reshape(image_np.shape)
-#     if len(image_np.shape) == 4:
-#         im = scaler.fit_transform(image_np.reshape(-1, image_np.shape[1]  * image_np.shape[2] * image_np.shape[3] )).reshape(image_np.shape)
-#     im1 = inverse_transform(im)
-#
-#     return imsave(im1, size, image_file_name)
+#     return imsave(inverse_transform(np.asarray(image)), size, image_file_name)
+
+
+def save_image(image, size, image_file_name, normalize=False):
+    image_np = np.asarray(image)
+    print(image_np.shape, size)
+    if normalize:
+        scaler = MinMaxScaler(feature_range=(-0.99, 0.99))
+        if len(image_np.shape) == 3:
+            image_np = scaler.fit_transform(image_np.reshape(-1,
+                                                             image_np.shape[1]  * image_np.shape[2] )).reshape(image_np.shape)
+        if len(image_np.shape) == 4:
+            image_np = scaler.fit_transform(image_np.reshape(-1,
+                                                             image_np.shape[1]  * image_np.shape[2] * image_np.shape[3] )).reshape(image_np.shape)
+    im1 = inverse_transform(image_np)
+    return imsave(im1, size, image_file_name)
+
 
 def save_images(images, size, image_path):
     return imsave(inverse_transform(images), size, image_path)
@@ -217,6 +223,7 @@ def merge(images, size):
     else:
         raise ValueError('in merge(images,size) images parameter ''must have dimensions: HxW or HxWx3 or HxWx4')
 
+
 def imsave(images, size, path):
     image = np.squeeze(merge(images, size))
     imageio.imwrite(path, img_as_ubyte(image))
@@ -241,6 +248,7 @@ def transform(image, input_height, input_width, resize_height=64, resize_width=6
 
 def inverse_transform(images):
     return (images+1.)/2.
+
 
 def inverse_transform(images):
     return (images + 1)/2.

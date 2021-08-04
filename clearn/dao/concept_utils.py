@@ -129,9 +129,9 @@ def segment_single_image_with_multiple_slices(image,
     lefts = np.zeros(len(v_extends), dtype=int)
     image_number = 0
     for h_extend, v_extend in zip(h_extends, v_extends):
-        cropped = image[ v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]]
+        cropped = image[v_extend[0]:v_extend[0] + v_extend[1], h_extend[0]:h_extend[0] + h_extend[1]]
         h_im, _ = ImageConcept.tight_bound_h(cropped)
-        cropped_and_stripped, _= ImageConcept.tight_bound_v(h_im)
+        cropped_and_stripped, _ = ImageConcept.tight_bound_v(h_im)
 
         if translate_image:
             tops[image_number] = randint(0, height - cropped_and_stripped.shape[0])
@@ -147,7 +147,7 @@ def segment_single_image_with_multiple_slices(image,
                        title=title,
                        num_images_to_display=num_images
                        )
-    return masked_images, tops, lefts
+    return masked_images[0:image_number], tops[0:image_number], lefts[0:image_number]
 
 
 def get_label(digit,
@@ -167,7 +167,7 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
     cropped_and_stripped, h_extend, v_extend = concept_image.get_cropped_and_stripped()
 
     h_extends_from_random = normal_distribution_int(h_extend[0], std_dev, 3, num_concepts_to_generate)
-    widths = normal_distribution_int(h_extend[1] - h_extend[0], std_dev, 3, num_concepts_to_generate)
+    widths = normal_distribution_int(h_extend[1] - h_extend[0],  std_dev, 3, num_concepts_to_generate)
     widths[widths == 0] = 1
     # width[width == 28] = 28
     v_extends_from_random = normal_distribution_int(v_extend[0], std_dev, 3, num_concepts_to_generate)
@@ -176,18 +176,22 @@ def generate_concepts_from_digit_image(concept_image:ImageConcept,
     # v_extends_to_random = normal_distribution_int(v_extend[1], 1, 3, num_concepts_to_generate)
 
     concept_images, tops, lefts = segment_single_image_with_multiple_slices(digit_image,
-                                                                           list(zip(h_extends_from_random, widths)),
-                                                                           list(zip(v_extends_from_random, heights)),
-                                                                           h_extend,
-                                                                           v_extend,
-                                                                           concept_image.digit,
-                                                                           path,
-                                                                           concept_image.cluster_name,
-                                                                           concept_image.sample_index,
-                                                                           display_image=False,
-                                                                           epochs_completed=concept_image.epochs_completed,
-                                                                           translate_image=translate_image
-                                                               )
+                                                                            list(zip(h_extends_from_random, widths)),
+                                                                            list(zip(v_extends_from_random, heights)),
+                                                                            h_extend,
+                                                                            v_extend,
+                                                                            concept_image.digit,
+                                                                            path,
+                                                                            concept_image.cluster_name,
+                                                                            concept_image.sample_index,
+                                                                            display_image=False,
+                                                                            epochs_completed=concept_image.epochs_completed,
+                                                                            translate_image=translate_image
+                                                                            )
+    num_concepts_generated = concept_images.shape[0]
+    widths = widths[0:num_concepts_generated]
+    heights = heights[0:num_concepts_generated]
+    # print("Number of images generated", num_concepts_generated)
     return concept_images, tops, lefts, widths, heights
 
 if __name__ == "__main__":

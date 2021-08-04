@@ -1,41 +1,40 @@
 import os
 import gzip
-from copy import deepcopy
 
 import numpy as np
 import pandas as pd
 import json
 import imageio
-from sklearn.model_selection import train_test_split
 
 from clearn.config import ExperimentConfig
 from clearn.dao.dao_factory import get_dao
 from clearn.dao.idao import IDao
-from random import randint
+from numpy.random import randint
 
 
-def translate_random(im, max_pixels):
+def translate_random(im_with_num_pixels_and_dir):
+    num_pixels = int(im_with_num_pixels_and_dir[784])
+    direction = int(im_with_num_pixels_and_dir[785])
+    im = im_with_num_pixels_and_dir[0:784]
     im = im.reshape(28, 28)
-    print(im.shape, max_pixels)
-    num_pixels = randint(0, max_pixels)
-    direction = randint(0, 3)
     if num_pixels > 0:
         if direction == 0:
             # move down
-            im = np.pad(im, pad_width=((num_pixels,0), (0, 0)), mode="edge")[0:-num_pixels]
+            im = np.pad(im, pad_width=((num_pixels, 0), (0, 0)), mode="edge")[0:-num_pixels]
         elif direction == 1:
             # move up
             im = np.pad(im, pad_width=((0, num_pixels), (0, 0)), mode="edge")[num_pixels:]
         elif direction == 2:
             # move left
-            im = np.pad(im, pad_width=( (0, 0), (0, num_pixels)), mode="edge")[:, num_pixels:]
+            im = np.pad(im, pad_width=((0, 0), (0, num_pixels)), mode="edge")[:, num_pixels:]
         elif direction == 3:
-            im = np.pad(im, pad_width=( (0, 0), (num_pixels, 0)), mode="edge")[:, 0:-num_pixels]
-    im = im.reshape(1, 784)
+            im = np.pad(im, pad_width=((0, 0), (num_pixels, 0)), mode="edge")[:, 0:-num_pixels]
+    im = im.reshape(784)
     return im
 
 
 def load_images(_config, train_val_data_iterator, dataset_type="train"):
+    # dao = get_dao(_config.dataset_name, _config.split_name, _config.num_val_samples)
     dao = _config.dao
     num_images = train_val_data_iterator.get_num_samples(dataset_type)
     feature_shape = list(train_val_data_iterator.get_feature_shape())
@@ -57,46 +56,22 @@ def load_images(_config, train_val_data_iterator, dataset_type="train"):
     return train_images, train_labels, manual_annotations
 
 
-def generate_concepts(train_x_in, train_y, concept_map, percentage_concepts):
-    train_y, test_y, indices_train, indices_test, train_x, test_x = train_test_split(train_y,
-                                list(range(train_y.shape[0])),
-                                train_x_in,
-                                test_size=percentage_concepts,
-                                stratify=train_y,
-                                shuffle=True
-                                )
-    for i in test_y:
-        v_extend = concept_map[i]["v_extend"]
-        h_extend = concept_map[i]["h_extend"]
-
-        cropped = train_x[i, v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]]
-        masked_images = np.zeros([
-            1,
-            train_x.shape[1],
-            train_x.shape[2],
-            1
-        ]
-        )
-        masked_images[:, v_extend[0]:v_extend[1], h_extend[0]:h_extend[1]] = cropped
-
-        train_x[i] = masked_images
-
-    return train_x, train_y
-
-
 class TrainValDataIterator:
     VALIDATION_Y_RAW = "validation_y_raw"
     VALIDATION_Y_ONE_HOT = "validation_y"
     VALIDATION_X = "validation_x"
     TRAIN_Y = "train_y"
     TRAIN_X = "train_x"
-#    num_concepts = 20
+
+    #    num_concepts = 20
     num_concepts_per_image_row: int
     num_concepts_per_image_col: int
 
     @classmethod
     def load_manual_annotation(cls, manual_annotation_file):
         df = pd.read_csv(manual_annotation_file)
+        if "apply_loss_at_layer" not in df.columns:
+            df["apply_loss_at_layer"] = -1
         return df[["manual_annotation", "manual_annotation_confidence", "apply_loss_at_layer"]].values
 
     def load_train_val_existing_split(self, split_name, split_location):
@@ -223,8 +198,6 @@ class TrainValDataIterator:
             #                                                    )
 
             _manual_annotation_concepts = np.zeros((len(instance.train_x), 13))
-
-
         instance.manual_annotation = instance.get_manual_annotation(manual_annotation_file,
                                                                     _manual_annotation,
                                                                     dao.num_classes,
@@ -235,17 +208,23 @@ class TrainValDataIterator:
                                                                                       instance.dao.num_classes,
                                                                                       instance.concepts_gt
                                                                                       )
-
         print(f"Total Manual annotation confidence {np.sum(instance.manual_annotation[:, 10])}")
-
-        if percentage_concepts > 0:
-            instance.train_x_orig = deepcopy(instance.train_x)
-            instance.train_x = generate_concepts(instance.train_x_orig, instance.train_y, percentage_concepts)
-        if instance.translate_image:
-            translated = np.apply_along_axis(translate_random, 1,
-                                             instance.train_x.reshape(instance.train_x.shape[0], 784),
-                                             max_pixels=instance.max_pixels_to_translate)
-            instance.train_x = translated.reshape((instance.train_x.shape[0], 28, 28, 1))
+        # if instance.translate_image:
+        #     instance.num_pixels = np.reshape(randint(low=0,
+        #                                          high=instance.max_pixels_to_translate,
+        #                                          size=instance.train_x.shape[0]),
+        #                                  (instance.train_x.shape[0], 1)
+        #                                  )
+        #     instance.directions = np.reshape(randint(low=0,
+        #                                          high=4,
+        #                                          size=instance.train_x.shape[0]),
+        #                                  (instance.train_x.shape[0], 1)
+        #                                  )
+        #     reshaped = instance.train_x.reshape(instance.train_x.shape[0], 784)
+        #     im_with_num_pixels_and_dir = np.hstack([reshaped, instance.num_pixels, instance.directions])
+        #     translated = np.apply_along_axis(translate_random, 1, im_with_num_pixels_and_dir)
+        #     print("translated shape", translated.shape)
+        #     instance.train_x = translated.reshape((instance.train_x.shape[0], 28, 28, 1))
 
         instance.train_idx = 0
         instance.val_idx = 0
@@ -255,7 +234,7 @@ class TrainValDataIterator:
         if self.manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
             manual_annotation = np.zeros((len(_manual_annotation),
                                           TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col,
-                                          num_labels + 1), dtype=np.float)
+                                          num_labels + 1), dtype=float)
             if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
                 for i in range(len(_manual_annotation)):
                     for j in range(
@@ -277,12 +256,12 @@ class TrainValDataIterator:
                 manual_annotation[:, :, 0:num_labels] = actual_labels
                 manual_annotation[:, :, num_labels] = 1  # set manual annotation confidence as 1
             else:
-                raise Exception("Grount truth not set")
+                raise Exception("Ground truth not set")
         return manual_annotation
 
     def get_manual_annotation(self, manual_annotation_file, _manual_annotation, num_labels, actual_labels):
         if self.manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
-            manual_annotation = np.zeros((len(_manual_annotation), num_labels + 2), dtype=np.float)
+            manual_annotation = np.zeros((len(_manual_annotation), num_labels + 2), float)
             if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
                 for i, label in enumerate(_manual_annotation):
                     manual_annotation[i, int(_manual_annotation[i, 0])] = 1.0
@@ -294,15 +273,14 @@ class TrainValDataIterator:
                     manual_annotation[i, num_labels] = 0  # set manual annotation confidence as 0
                     manual_annotation[i, num_labels + 1] = 3
         elif self.manual_labels_config == ExperimentConfig.USE_ACTUAL:
-            if actual_labels is not None and actual_labels.shape[0] == len(self.trai_xn):
-                manual_annotation = np.zeros((len(self.train_x), num_labels + 1), dtype=np.float)
+            if actual_labels is not None and actual_labels.shape[0] == len(self.train_x):
+                manual_annotation = np.zeros((len(self.train_x), num_labels + 2), dtype=np.float)
                 if self.budget < 1:
                     indices = np.random.choice(len(self.train_x), int(self.budget * len(self.train_x)), replace=False)
                     print(f"Using labels of {len(indices)} samples")
                     manual_annotation[indices, 0:num_labels] = actual_labels[indices]
                     manual_annotation[indices, num_labels] = 1  # set manual annotation confidence as 1
                     manual_annotation[indices, num_labels + 1] = 3  # set manual annotation confidence as 1
-
                 else:
                     manual_annotation[:, 0:num_labels] = actual_labels
                     manual_annotation[:, num_labels] = 1  # set manual annotation confidence as 1
@@ -328,8 +306,10 @@ class TrainValDataIterator:
                  manual_annotation_file_concepts=None,
                  num_concepts_per_image_row=7,
                  num_concepts_per_image_col=7,
-                 translate_image=False
+                 translate_image=False,
+                 training_phase=None
                  ):
+        self.training_phase = training_phase
         TrainValDataIterator.num_concepts_per_image_row = num_concepts_per_image_row
         TrainValDataIterator.num_concepts_per_image_col = num_concepts_per_image_col
         self.translate_image = translate_image
@@ -340,11 +320,10 @@ class TrainValDataIterator:
         self.batch_size = batch_size
         self.dao = dao
         if dataset_path is not None:
-            self.entire_data_x, self.entire_data_y = load_train(dataset_path, dao=dao, split_location=split_location)
             if validation_samples == -1:
                 percentage_to_be_sampled = 0.3
             else:
-                percentage_to_be_sampled = validation_samples / len(self.entire_data_y)
+                percentage_to_be_sampled = None
 
             self.dataset_dict = load_train_val(dataset_path,
                                                shuffle=shuffle,
@@ -353,7 +332,9 @@ class TrainValDataIterator:
                                                split_location=split_location,
                                                split_names=split_names,
                                                dao=dao,
-                                               seed=seed)
+                                               seed=seed,
+                                               num_val_samples=validation_samples,
+                                               training_phase=self.training_phase)
             self.train_x = self.dataset_dict[TrainValDataIterator.TRAIN_X]
             self.train_y = self.dataset_dict[TrainValDataIterator.TRAIN_Y]
             self.val_x = self.dataset_dict[TrainValDataIterator.VALIDATION_X]
@@ -370,10 +351,10 @@ class TrainValDataIterator:
                     # manual_annotation_file_val = manual_annotation_file.rsplit("/", 1)[0] + "/" + fname.rsplit(".", 1)[0] +"_val" + ".csv"
                     # if os.path.isfile(manual_annotation_file_val):
                     #     raise Exception(f"File does not exist {manual_annotation_file_val}")
-                    _manual_annotation = _manual_annotation_all[self.dataset_dict["TRAIN_INDICES"]]
-                    _manual_annotation_val = _manual_annotation_all[self.dataset_dict["VAL_INDICES"]]
-                    print("Loaded manual annotation")
-                    print(f"Number of samples with manual confidence {sum(_manual_annotation[:, 1] > 0)}")
+                    _manual_annotation = _manual_annotation_all
+                    _manual_annotation_val = np.zeros((self.val_x.shape[0], 3))
+                    print(f"Loaded manual annotation from {manual_annotation_file}")
+                    print(f"Shape {_manual_annotation.shape}. Number of samples with manual confidence {sum(_manual_annotation[:, 1] > 0)}")
                 else:
                     # TODO if we are using random prior with uniform distribution, do we need to keep
                     # manual confidence as 0.5 or 0
@@ -386,7 +367,7 @@ class TrainValDataIterator:
                     _manual_annotation = np.random.choice(self.unique_labels,
                                                           len(self.train_x))
                     _manual_annotation_val = np.random.choice(self.unique_labels,
-                                                          len(self.val_x))
+                                                              len(self.val_x))
 
             _manual_annotation_concepts = None
             if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
@@ -413,10 +394,9 @@ class TrainValDataIterator:
                                                                 dao.num_classes,
                                                                 self.train_y)
             self.val_manual_annotation = self.get_manual_annotation(manual_annotation_file,
-                                                                _manual_annotation_val,
-                                                                dao.num_classes,
-                                                                self.val_y)
-
+                                                                    _manual_annotation_val,
+                                                                    dao.num_classes,
+                                                                    self.val_y)
 
             self.manual_annotation_concepts = self.get_manual_annotation_concepts(manual_annotation_file_concepts,
                                                                                   _manual_annotation_concepts,
@@ -424,10 +404,25 @@ class TrainValDataIterator:
                                                                                   self.concepts_gt
                                                                                   )
             self.max_pixels_to_translate = 4
-            if translate_image:
-                translated = np.apply_along_axis(translate_random, 1, self.train_x.reshape(self.train_x.shape[0], 784),
-                                                 max_pixels=self.max_pixels_to_translate)
-                self.train_x = translated.reshape((self.train_x.shape[0], 28, 28, 1))
+            # if translate_image:
+            #     self.num_pixels = np.reshape(randint(low=0,
+            #                                          high=self.max_pixels_to_translate,
+            #                                          size=self.train_x.shape[0]),
+            #                                  (self.train_x.shape[0], 1)
+            #                                  )
+            #     self.directions = np.reshape(randint(low=0,
+            #                                          high=4,
+            #                                          size=self.train_x.shape[0]),
+            #                                  (self.train_x.shape[0], 1)
+            #                                  )
+            #     reshaped = self.train_x.reshape(self.train_x.shape[0], 784)
+            #     im_with_num_pixels_and_dir = np.hstack([reshaped,
+            #                                             self.num_pixels,
+            #                                             self.directions])
+            #     # save_to_csv(im_with_num_pixels_and_dir, np.argmax(self.train_y, axis=1), "/Users/sunilv/concept_learning_exp/test/datasets/mnist_concepts/original_concepts.csv")
+            #     translated = np.apply_along_axis(translate_random, 1,  im_with_num_pixels_and_dir)
+            #     print("translated shape", translated.shape)
+            #     self.train_x = translated.reshape((self.train_x.shape[0], 28, 28, 1))
             self.train_idx = 0
             self.val_idx = 0
 
@@ -482,10 +477,23 @@ class TrainValDataIterator:
             raise ValueError("dataset_type should be either 'train' or 'val' ")
 
     def reset_counter(self, dataset_type):
-        if self.translate_image:
-            translated = np.apply_along_axis(translate_random, 1, self.train_x.reshape(self.train_x.shape[0], 784),
-                                             max_pixels=self.max_pixels_to_translate)
-            self.train_x = translated.reshape((self.train_x.shape[0], 28, 28, 1))
+        # if self.translate_image:
+        #     self.num_pixels = np.reshape(randint(low=0,
+        #                                          high=self.max_pixels_to_translate,
+        #                                          size=self.train_x.shape[0]),
+        #                                  (self.train_x.shape[0], 1)
+        #                                  )
+        #     self.directions = np.reshape(randint(low=0,
+        #                                          high=4,
+        #                                          size=self.train_x.shape[0]),
+        #                                  (self.train_x.shape[0], 1)
+        #                                  )
+        #
+        #     reshaped = self.train_x.reshape(self.train_x.shape[0], 784)
+        #     im_with_num_pixels_and_dir = np.hstack([reshaped, self.num_pixels, self.directions])
+        #     translated = np.apply_along_axis(translate_random, 1, im_with_num_pixels_and_dir)
+        #     print("translated shape", translated.shape)
+        #     self.train_x = translated.reshape((self.train_x.shape[0], 28, 28, 1))
         if dataset_type == "train":
             self.train_idx = 0
         elif dataset_type == "val":
@@ -572,15 +580,19 @@ def load_train_val(data_dir,
                    percentage_to_be_sampled=0.7,
                    split_location=None,
                    split_names=[],
-                   seed=547):
-
+                   seed=547,
+                   num_val_samples=None,
+                   training_phase=None):
     return dao.load_train_val(data_dir,
                               shuffle,
                               stratified,
                               percentage_to_be_sampled,
                               split_location,
                               split_names,
-                              seed=seed)
+                              seed=seed,
+                              num_val_samples=num_val_samples,
+                              training_phase=training_phase
+                              )
 
 
 def load_test(data_dir,
@@ -593,7 +605,8 @@ class DataIterator:
     Y_RAW = "test_y"
     Y_ONE_HOT = "test_y_one_hot"
     X = "test_x"
-    #num_concepts = 20
+
+    # num_concepts = 20
 
     def __init__(self,
                  dao: IDao,
@@ -658,27 +671,153 @@ class DataIterator:
         return self.unique_labels
 
 
-if __name__ == "__main__":
-    # Test cases for load_images
+def save_to_csv(train_x, train_y, file_name, num_pixels=None, directions=None):
+    df = pd.DataFrame(train_x)
+    df["label"] = train_y
+    if  num_pixels is not None:
+        df["num_pixels"] = num_pixels
+    if directions is not None:
+        df["directions"] = directions
+    df.to_csv(file_name, index=False)
 
-    dataset_path_1 = "/Users/sunilv/concept_learning_exp/datasets/cifar_10/"
-    split_location_1 = dataset_path_1 + "test/"
-    cifar_10_dao = get_dao("cifar_10", "test", 128)
+
+if __name__ == "__main__":
+
+    # Test translate_random
+    concept_id = 9999
+    num_cluster_config = None
+    root_path = "/Users/sunilv/concept_learning_exp/test"
+    experiment_name = "train_val_iterator_tests"
+    dataset_name = "mnist_concepts"
+    split_name = "split_70_30"
+    num_val_samples = -1
+    z_dim = 16
+    run_id = 9999
+    num_dense_layers = 0
+    num_units = [64, 128, 32]
+
+    def get_base_path() -> str:
+        """
+        :rtype:
+        """
+        if len(num_units) >= 3:
+            units_ = str(num_units[-1])
+            for i in num_units[1:-1][::-1]:
+                units_ += "_" + str(i)
+        else:
+            if len(num_units) == 2:
+                units_ = "0"
+            else:
+                units_ = "0_0"
+        if num_cluster_config is None:
+            return os.path.join(os.path.join(root_path, experiment_name),
+                                f"Exp_{units_}_{num_units[0]}_{z_dim}_{run_id}/")
+        else:
+            return os.path.join(os.path.join(root_path, experiment_name),
+                                f"Exp_{units_}_{num_units[0]}_{z_dim}_{num_cluster_config}_{run_id}/")
+
+    base_path = get_base_path()
+
+    analysis_path = os.path.join(base_path, "analysis/")
+    print("root path", root_path)
+    dao = get_dao(dataset_name,
+                  split_name,
+                  num_val_samples,
+                  dataset_path=root_path+"/datasets/",
+                  concept_id=concept_id
+                  )
+
+    strides=[1, 1, 1, 1]
+    translate_image = True
+    manual_label_config = ExperimentConfig.USE_CLUSTER_CENTER
+    exp_config = ExperimentConfig(root_path=root_path,
+                                  num_decoder_layer=len(num_units),
+                                  z_dim=z_dim,
+                                  num_units=num_units,
+                                  num_dense_layers=num_dense_layers,
+                                  num_cluster_config=num_cluster_config,
+                                  confidence_decay_factor=5,
+                                  beta=5,
+                                  supervise_weight=300,
+                                  dataset_name=dataset_name,
+                                  split_name=split_name,
+                                  model_name="VAE",
+                                  batch_size=64,
+                                  eval_interval_in_epochs=1,
+                                  name=experiment_name,
+                                  num_val_samples=num_val_samples,
+                                  total_training_samples=dao.number_of_training_samples,
+                                  manual_labels_config=ExperimentConfig.USE_CLUSTER_CENTER,
+                                  reconstruction_weight=1,
+                                  activation_hidden_layer="RELU",
+                                  activation_output_layer="SIGMOID",
+                                  save_reconstructed_images=False,
+                                  learning_rate=1e-3,
+                                  run_evaluation_during_training=True,
+                                  write_predictions=False,
+                                  model_save_interval=1,
+                                  fully_convolutional=True,
+                                  num_concepts=dao.num_concepts_label_generated,
+                                  supervise_weight_concepts=300,
+                                  strides=strides,
+                                  uncorrelated_features=False,
+                                  translate_image = translate_image,
+                                  dao=dao,
+                                  concept_id=concept_id
+                                  )
+    exp_config.check_and_create_directories(run_id, create=True)
+    split_filename = exp_config.DATASET_PATH + split_name + ".json"
+    manual_annotation_file_name = f"manual_annotation.csv"
+
+    manual_annotation_file = os.path.join(exp_config.ANALYSIS_PATH,
+                                          manual_annotation_file_name
+                                          )
+    train_val_data_iterator = TrainValDataIterator(dataset_path=exp_config.DATASET_ROOT_PATH,
+                                                   dao=dao,
+                                                   shuffle=True,
+                                                   stratified=True,
+                                                   validation_samples=exp_config.num_val_samples,
+                                                   split_names=["train", "validation"],
+                                                   split_location=exp_config.DATASET_PATH,
+                                                   batch_size=exp_config.BATCH_SIZE,
+                                                   manual_labels_config=exp_config.manual_labels_config,
+                                                   manual_annotation_file=manual_annotation_file,
+                                                   seed=exp_config.seed,
+                                                   budget=exp_config.budget,
+                                                   num_concepts_per_image_row=2,
+                                                   num_concepts_per_image_col=2,
+                                                   translate_image=translate_image,
+                                                   training_phase="CONCEPTS"
+                                                   )
+    # save_to_csv(train_val_data_iterator.train_x.reshape(train_val_data_iterator.train_x.shape[0],
+    #                                                     784),
+    #             np.argmax(train_val_data_iterator.train_y,
+    #                       axis=1),
+    #             "/Users/sunilv/concept_learning_exp/test/datasets/mnist_concepts/translated_concepts.csv")
+
+    print(dao.num_classes, dao.num_concepts_label_generated)
+
+    """
+     Test cases for load_images
+    """
+    # dataset_path_1 = "/Users/sunilv/concept_learning_exp/datasets/cifar_10/"
+    # split_location_1 = dataset_path_1 + "test/"
+    # cifar_10_dao = get_dao("cifar_10", "test", 128)
     # DataIterator = DataIterator(dataset_path=dataset_path,
     #                             split_location=split_location,
     #                             split_names=["test"],
     #                             batch_size=128,
     #                             dao=cifar_10_dao)
 
-    data_iterator = DataIterator.from_existing_split("test",
-                                                     split_location=split_location_1,
-                                                     dao=cifar_10_dao)
-    while data_iterator.has_next("test"):
-        x, y, _ = data_iterator.get_next_batch("test")
-        print(x.shape)
-        print(y.shape)
-
-    print("completed_iteration")
+    # data_iterator = DataIterator.from_existing_split("test",
+    #                                                  split_location=split_location_1,
+    #                                                  dao=cifar_10_dao)
+    # while data_iterator.has_next("test"):
+    #     x, y, _ = data_iterator.get_next_batch("test")
+    #     print(x.shape)
+    #     print(y.shape)
+    #
+    # print("completed_iteration")
     # N_3 = 16
     # N_2 = 128
     # Z_DIM = 20

@@ -27,6 +27,7 @@ from clearn.utils.utils import get_pmf_y_given_z, get_latent_vector_column
 MAX_IMAGES_TO_DISPLAY = 36
 NUM_IMAGES_IN_SINGLE_PLOT = 12
 
+
 def trace_dim(f, num_trace_steps, dim, feature_dim, z_min, z_max):
     """
     Returns a tensor of dimension (`num_trace_steps`, `feature_dim`) with each row containing feature vector `f`
@@ -614,16 +615,18 @@ def distance(row, inv_cov, cluster_center,z_col_names):
     return mahalanobis(row[z_col_names].values, cluster_center, inv_cov)
 
 
-def compute_distance(df, num_clusters, cluster_labels, z_col_names, cluster_centers):
-    for i in range(num_clusters):
-        df["distance_{}".format(i)] = 100000
+def compute_distance(df, num_clusters, cluster_column_name, z_col_names, cluster_centers, filter_conditions=None):
     for cluster_num in range(num_clusters):
-        indices = np.where( np.asarray(cluster_labels) == cluster_num)[0]
+        df[f"distance_{cluster_num}"] = 10000
+        if filter_conditions is None:
+            indices = df[cluster_column_name] == cluster_num
+        else:
+            indices = filter_conditions & (df[cluster_column_name] == cluster_num)
         lv = df[z_col_names].values[indices, :]
         print(lv.shape)
         cov = np.cov(lv.T)
         inv_cov = sp.linalg.inv(cov)
-        df["distance_{}".format(cluster_num)].iloc[indices] = df.iloc[indices].apply(lambda x:distance(x,
+        df.loc[filter_conditions, f"distance_{cluster_num}"] =  df.loc[filter_conditions].apply(lambda x:distance(x,
                                                                                                        inv_cov,
                                                                                                        cluster_centers[cluster_num],
                                                                                                        z_col_names),

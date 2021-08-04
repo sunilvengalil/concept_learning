@@ -107,7 +107,12 @@ class ExperimentConfig:
                  translate_image=False,
                  dao=None,
                  concept_id=-1,
-                 concept_dict=None
+                 concept_dict=None,
+                 std_dev_concept_distribution=1,
+                 class_weight=1,
+                 training_phase=None,
+                 save_per_class_metrics=-1,
+                 concepts_deduped=False
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -161,10 +166,13 @@ class ExperimentConfig:
             # base_path = get_base_path()
             #
             self.dao = get_dao(dataset_name,
-                          split_name,
+                               split_name,
                                num_val_samples,
                                dataset_path=os.path.join(self.root_path, "datasets/"),
-                               concept_id = concept_id
+                               concept_id = concept_id,
+                               translate_image=translate_image,
+                               std_dev=std_dev_concept_distribution,
+                               concepts_deduped=concepts_deduped
                           )
         else:
             self.dao = dao
@@ -195,6 +203,11 @@ class ExperimentConfig:
         self.translate_image = translate_image
         self.concept_id = concept_id
         self.concept_dict = concept_dict
+        self.std_dev_concept_distribution = std_dev_concept_distribution
+        self.class_weight = class_weight
+        self.training_phase = training_phase
+        self.save_per_class_metrics = save_per_class_metrics
+        self.concepts_deduped = concepts_deduped
 
     @property
     def num_train_samples(self):
@@ -250,6 +263,11 @@ class ExperimentConfig:
         config_json["TRANSLATE_IMAGE"] = self.translate_image
         config_json["CONCEPT_ID"] = self.concept_id
         config_json["CONCEPT_DICT"] = self.concept_dict
+        config_json["STD_DEV_CONCEPT_DISTRIBUTION"] = self.std_dev_concept_distribution
+        config_json["CLASS_WEIGHT"] = self.class_weight
+        config_json["TRAINING_PHASE"] = self.training_phase
+        config_json["SAVE_PER_CLASS_METRICS"] = self.save_per_class_metrics
+        config_json["CONCEPTS_DEDUPED"] = self.concepts_deduped
 
         return config_json
 
@@ -276,6 +294,7 @@ class ExperimentConfig:
         self.reconstructed_images_path = os.path.join(self.PREDICTION_RESULTS_PATH, "reconstructed_images/")
         self.LOG_PATH = os.path.join(self.BASE_PATH, "logs/")
         self.ANALYSIS_PATH = os.path.join(self.BASE_PATH, "analysis/")
+
         paths = [self.root_path,
                  self.BASE_PATH,
                  self.DATASET_ROOT_PATH,
@@ -331,8 +350,8 @@ class ExperimentConfig:
         exp_config.name = experiment_name
 
         dao = get_dao(dataset_name, split_name, exp_config.num_val_samples)
-        total_training_samples = dao.number_of_training_samples()
-        exp_config.num_train_samples = ((total_training_samples - exp_config.num_val_samples) // exp_config.BATCH_SIZE) * exp_config.BATCH_SIZE
+        #total_training_samples = dao.number_of_training_samples()
+        # exp_config.num_train_samples = ((total_training_samples - exp_config.num_val_samples) // exp_config.BATCH_SIZE) * exp_config.BATCH_SIZE
 
         return exp_config
 
@@ -359,7 +378,6 @@ class ExperimentConfig:
         self.confidence_decay_factor = exp_config_dict["CONFIDENCE_DECAY_FACTOR"]
         self.manual_labels_config = exp_config_dict["MANUAL_LABELS_CONFIG"]
         self.reconstruction_weight = exp_config_dict["RECONSTRUCTION_WEIGHT"]
-        self.num_val_samples = exp_config_dict["NUM_VAL_SAMPLES"]
         self.activation_hidden_layer = exp_config_dict["ACTIVATION_HIDDEN_LAYER"]
         self.activation_output_layer = exp_config_dict["ACTIVATION_OUTPUT_LAYER"]
         self.save_reconstructed_images = exp_config_dict["SAVE_RECONSTRUCTED_IMAGES"]
@@ -384,6 +402,11 @@ class ExperimentConfig:
         self.translate_image = exp_config["TRANSLATE_IMAGE"]
         self.concept_id = exp_config["CONCEPT_ID"]
         self.concept_dict = exp_config["CONCEPT_DICT"]
+        self.std_dev_concept_distribution = exp_config["STD_DEV_CONCEPT_DISTRIBUTION"]
+        self.class_weight = exp_config["CLASS_WEIGHT"]
+        self.training_phase = exp_config["TRAINING_PHASE"]
+        self.save_per_class_metrics = exp_config["SAVE_PER_CLASS_METRICS"]
+        self.concepts_deduped = exp_config["CONCEPTS_DEDUPED"]
 
 if __name__ == "__main__":
     _root_path = "/Users/sunilv/concept_learning_exp"
