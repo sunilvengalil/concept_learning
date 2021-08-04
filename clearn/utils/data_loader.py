@@ -35,9 +35,7 @@ def translate_random(im, max_pixels):
     return im
 
 
-
 def load_images(_config, train_val_data_iterator, dataset_type="train"):
-    #dao = get_dao(_config.dataset_name, _config.split_name, _config.num_val_samples)
     dao = _config.dao
     num_images = train_val_data_iterator.get_num_samples(dataset_type)
     feature_shape = list(train_val_data_iterator.get_feature_shape())
@@ -389,7 +387,6 @@ class TrainValDataIterator:
                                                           len(self.train_x))
                     _manual_annotation_val = np.random.choice(self.unique_labels,
                                                           len(self.val_x))
-
 
             _manual_annotation_concepts = None
             if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
