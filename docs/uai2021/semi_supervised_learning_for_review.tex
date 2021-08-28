@@ -38,7 +38,7 @@
 %% Self-defined macros
 \newcommand{\swap}[3][-]{#3#1#2} % just an example
 
-\title{Image Classification using Unlabelled Data - A Semisupervised Approach using Variational Autoencoder and Topdown Hierarchical Clustering}
+\title{Image Classification using Unlabelled Data - A Semi-supervised Approach using Variational Autoencoder and Topdown Hierarchical Clustering}
 
 % The standard author block has changed for UAI 2021 to provide
 % more space for long author lists and allow for complex affiliations
@@ -63,54 +63,29 @@
 \maketitle
 
 \begin{abstract}
-The success of deep learning for solving complex tasks like image classification, segmentation, speech and natural language processing, has caused wide-spread interest in the machine learning community to focus on developing models and representations that are more explainable, and generalize better.
-In this work, we propose an approach for using representations learned by unsupervised generative learning for solving tasks like image classification at a reduced manual annotation cost.
-Our method is an alternate paradigm for supervised learning.
-In existing supervised learning methods,  all samples are labelled prior to start of training whereas we propose an active learning mechanism where manual hints are given at regular intervals during training.
-We demonstrate the proposed idea by training a  variational autoencoder on MNIST data set.
-After every epoch of training, the low dimensional latent vectors are clustered and cluster centers are annotated.
-The loss function in successive training is modified to incorporate the manual annotation.
-In addition to achieving classification of digits, the approach also results in improved reconstruction accuracy and more regular features of autoencoder.
-Our network architecture and cost function look similar to multi task learning with hard parameter sharing.
-However, unlike other multi task learning models, our main goal is to reduce the manual annotation required for supervised tasks like image classification and segmentation.
-The approach is demonstrated by classifying the images in MNIST data without using the label provided in the dataset.
-We obtain a classification accuracy of 75\% on MNIST test images with 5 epochs of training by manually annotating only 10 to 16 images after each epoch
+The success of deep learning for solving complex tasks like image classification, segmentation, speech and natural language processing, has caused wide-spread interest in the machine learning community to focus on developing deep learning models and representations that are more explainable, and generalize better. In this work, we propose an active learning framework for using representations learned by unsupervised generative models for solving tasks like image classification at a reduced manual annotation cost. Our method is an alternate paradigm for supervised learning. In existing supervised learning methods,  all samples are labelled prior to start of training whereas we propose an active learning mechanism where manual hints are given at regular intervals during training. We demonstrate the proposed idea by training a  variational autoencoder on MNIST data set. After every epoch of training, the low dimensional latent vectors are clustered and cluster centers are annotated. The loss function in successive training is modified to incorporate the manual annotation. In addition to achieving classification of digits, the approach also results in improved reconstruction accuracy and more regular features of autoencoder. Our network architecture and cost function look similar to multi task learning with hard parameter sharing. However, unlike other multi-tasking learning models, our main goal is to reduce the manual annotation required for supervised tasks like image classification and segmentation. The approach is demonstrated by classifying the images in MNIST data without using the label provided in the dataset. We obtain a classification accuracy of 75\% on MNIST test images with 5 epochs of training by manually annotating only 10 to 16 images after each epoch. We report the results of our studies on multiple datasets with increasing complexity- MNIST, CIFAR-10, CIFAR-100 and cat-vs-dog datasets.
 \end{abstract}
 
 \section{Introduction}\label{sec:intro}
-Classifying images is one of the first use cases proven to give good results using deep neural networks.
-Recently, there has been a lot of work on generative models like variational autoencoder(VAE)\cite{kingma2013auto} and generative adversarial network(GAN) \cite{goodfellow2014generative} on using deep neural network for learning distribution of high dimensional data.
-In this work, we propose a method whereby a generative model like VAE can easily be converted into a classification model which is currently solved by a supervised classification method.
-Note that the existing deep learning approaches for classification  need a lot of annotated training data and enormous training time on GPU\cite{krizhevsky2012imagenet}\cite{simonyan2014very}\cite{he2016deep}.
-The approach proposed in this paper needs very less amount of manual annotation ( 10-16 samples in case of MNIST dataset)  and less computing resources.
-We demonstrate our claim by building a classification model for MNIST dataset using all traning images in an unsupervised way and annotations are done only for selected representative samples.
-The proposed approach augments a  variational autoencoder with a classification layer the loss component of which is tuned using manually annotated samples at regular training intervals.
+Classifying images is one of the first use cases proven to give good results using deep neural networks. Recently, there has been a lot of work on generative models like variational autoencoder(VAE)\cite{kingma2013auto} and generative adversarial network(GAN) \cite{goodfellow2014generative} on using deep neural networks for learning distribution of high dimensional data. In this work, we propose a method whereby a generative model like VAE can easily be converted into a classification model which is currently solved by supervised classification methods. Note that the existing deep learning approaches for classification  need a lot of annotated training data and enormous training time on GPU\cite{krizhevsky2012imagenet}\cite{simonyan2014very}\cite{he2016deep}. The approach proposed in this paper needs very less amount of manual annotation (10-16 samples in case of MNIST dataset,  dd-dd samples in case of CIFAR-10, dd-dd samples in case of CIFAR-100 and  dd-dd samples in case of Cat-Vs-Dos dataset)  and less(dd) computing resources. We demonstrate our claim by building a classification model for MNIST dataset using all training images in an unsupervised way and annotations are done only for selected representative samples. The proposed approach augments a  variational autoencoder with a classification layer the loss component of which is tuned using manually annotated samples at regular training intervals.
 
 
-A generative model learns the distribution of data $p(x_{ij})$ where $y$ is the class label.
-A new image of a given digit can be generated by sampling from this distribution.
-In the case of an image, this is usually a complex distribution in a high dimensional space of dimension $W \times H$.
-Such a distribution in the original high dimensional space is not of much use as it is not easy to visualize and contains too many  minute details.
-Specifically, the properties of interest, like line thickness in case of handwritten digit, are not explicitly evident from such a distribution.
-All generative models essentially solve this problem by transforming the original image into a much low dimensional latent space, which we denote by  $Z$.
-For each image $x^n \in X$, there exists a latent vector  $z^n \in Z$  where $z^n$ is of dimension $z_{dim}$.
-The dimension of latent space $z_{dim}$ is much less compared to the original image dimension.
-However, one of the major issues with these trained models is that the concepts represented by latent dimensions need not make any sense and hence they lack one of the much needed properties: the model explainability.
+A generative model learns the distribution of data $p(x_{n})$ where $n$ is the number of samples in the training set. A new image of a given class can be generated by sampling from this distribution. In the case of an image, this is usually a complex distribution in a high dimensional space of dimension $W \times H$. Such a distribution in the original high dimensional space is not of much use as it is not easy to visualize and contains too many  minute details.
+Specifically, the properties of interest, like line thickness in case of handwritten digit or font type in the case of character, are not explicitly evident from such a distribution.
+All generative models essentially solve this problem \cite{kingma2013auto}{goodfellow2014generative} by transforming the original image into a much lower dimensional latent space, which we denote by $Z$. For each image $x^n \in X$, there exists a latent vector  $z^n \in Z$  where $z^n$ is of dimension $z_{dim}$. The dimension of latent space $z_{dim}$ is much less compared to the original image dimension. However, one of the major issues with these trained models is that the concepts represented by latent dimensions need not make any sense and hence they lack one of the much needed properties: the model explainability.
 
 
 In this work, we propose an active learning framework using variational autoencoder for the task of  image classification.
 Variational autoencoder is used for learning a low dimensional latent representation which is used for classification task.
 
-
-Our model is similar to multi task learning since the loss term has both reconstruction and classification losses.
-However, unlike most other multi-task models, see \cite{ruder2017overview} and \cite{crawshaw2020multi} for a complete review of existing multi-task learning techniques, our approach combines  different types of machine learning tasks like classification, generative modeling and representation learning.
-The approach described can easily be extended to even more complex tasks like semantic segmentation.
+Our model is similar to multi-task learning since the loss term has both reconstruction and classification losses.
+However, unlike most multi-tasking models, see \cite{rudeir2017overview} and \cite{crawshaw2020multi} for an extensive review of existing multi-task learning techniques, our approach combines  different types of machine learning tasks like classification, generative modeling and representation learning. The approach described can easily be extended to even more complex tasks like semantic image segmentation.
 
 The major contributions of this paper are
 \begin{enumerate}
-    \item We propose a novel active learning framework where a  deep learning model incrementally learns to perform a task like image classification, while at the same time learning a low dimensional representation for the input data.
-    \item We show that compared to existing deep active learning frameworks our approach requires very less number of training samples and also learns a latent representation and  probability distribution in the latent space from which new data samples can be drawn easily
-    \item The proposed approach reduces the manual annotation task and can be trained quickly on a CPU, as opposed to complex models that usually needs several hours of training on GPU
+    \item We propose a novel active learning framework where a  deep learning model incrementally learns to perform a task like image classification, while at the same time learning an explainable low dimensional representation for the input data.
+    \item We show that compared to existing deep active learning frameworks our approach requires very less number of training samples and also learns a latent representation and  probability distribution in the latent space from which new data samples can be drawn easily.
+    \item The proposed approach reduces the manual annotation task and can be trained quickly on a CPU, as opposed to complex models that usually needs several hours of training on GPU.
 \end{enumerate}
 
 The rest of the paper is organized as follows.
@@ -136,23 +111,25 @@ Our approach results in reduced manual annotation and less number of training ep
 \section{Proposed Method} \label{proposed_method}
 
 \subsection{Problem Formulation} \label{problem_formulation}
-Consider a grey-scale image, $I_n$  $1\leq n \leq N$,  of height  $H$ and width $W$. The grey value at a location $(i, j)$ of the image is denoted  as $x_{ij}^{n} \in [0,1]$  where $1 \leq i \leq H$  and  $1\leq j \leq W$.
+Consider a grey-scale image, $I_n$  ($1\leq n \leq N$),  of height  $H$ and width $W$. The grey value at a location $(i, j)$ of the image is denoted  as $x_{ij}^{n} \in [0,1]$  where $1 \leq i \leq H$  and  $1\leq j \leq W$.
 In our experiments, we use MNIST in which $N= 59872, H=28,  W= 28$. During the training phase, we did not use the labels of the training set.
 The labels of the validation set were used to compute the classification and reconstruction accuracy.
 
 \subsection{Dataset}
-We used MNIST dataset\cite{lecun-mnisthandwrittendigit-2010} to demonstrate the proposed approach.
-The primary reason for selecting MNIST dataset is to reduce the manual annotation cost required for identifying the reconstructed images.
+We used MNIST \cite{lecun-mnisthandwrittendigit-2010}, CIFAR-10\cite{cifar10}, CIFAR-100\cite{CIFAR-100} and Cat-Vs-Dog datasets  to demonstrate the proposed approach. Table \ref{dataset_table}, shows the various parameters associated with each of this dataset.
 Images in the MNIST training set were split into training and validation sets with stratified sampling on the label column.
 The validation set, which consists of 128 images, were used to compute the reconstruction accuracy of the autoencoder.
-Rest of the 59872 images were used to train the model.
-The images were normalized  before feeding to the input of the network so that the 256 grey values are converted into real numbers in the unit interval [0,1].
+Rest of the 59872 images were used to train the model. The images were normalized  before feeding it to the input of the network so that the 256 grey values are converted into real numbers in the unit interval [0,1].
 
 \subsection{Neural network architecture and loss function}
 Figure \ref{vae_architecture} shows the architecture of the proposed model.
+The hyper parameters for different datasets are given in table \ref{hyper_parameter_table}.
 We used a variational autoencoder\cite{kingma2013auto}, with 4 layers of encoder and 4 layers in the decoder, augmented by adding a $K-$node softmax classification layer in order to classify the latent vector $z$ into one of $K$ different classes.
 The encoder output has linear activation function so that the image is encoded into a latent vector, $z$  of dimension $z_{dim}$, each dimension taking continuous values.
-The decoder output activation is sigmoid so that most of the reconstructed pixel values  are concentrated around 0 or 1 by design.
+The decoder output activation is sigmoid for binary images so that most of the reconstructed pixel values  are concentrated around 0 or 1 by design.
+For grey-scale and color images no activation function was added at final layer. The loss used for grey scale or color image was mean-squared-error.
+
+
 Initially, for the first few epochs, the network is trained only using the autoencoder loss function and hence labels are not required.
 The loss function used for training during initial epochs is
 \begin{equation} \label{vae_loss_eqn}
@@ -188,7 +165,7 @@ The new term added to the loss is the weighted multi-class cross entropy loss fo
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=3.5in]{vae_model_architecture_classification.jpg}
+\includegraphics[width=3.5in]{images/cnn_arch.pdf}
 % where an .eps filename suffix will be assumed under latex,
 % and a .pdf suffix will be assumed for pdflatex; or what has been declared
 % via
@@ -233,7 +210,7 @@ The figure shows that the reconstruction accuracy of VAE is improved significant
 
 \begin{figure}[]
 \centering
-\includegraphics[width=\linewidth]{cluster_centers_epoch_5.0}
+\includegraphics[width=\linewidth]{cluster_centers_epoch_1.0}
 \caption{Images of decoded cluster center after 5th epoch}
 \label{cluster_center_6}
 \end{figure}
@@ -303,7 +280,7 @@ It is also observed that the reconstruction accuracy of the generative model imp
 %For example, see Figure~\ref{fig:toronto}.
 %\begin{figure}
 %  \centering
-%  \includegraphics[width=0.7\linewidth,page=3]{toronto}
+%  \includegraphics[width=0.7\linewidth, page=3]{toronto}
 %  \caption{A View of a Nice City.}\label{fig:toronto}
 %\end{figure}
 %
@@ -346,7 +323,6 @@ It is also observed that the reconstruction accuracy of the generative model imp
                          % so you can already fill it to test with the
                          % ‘accepted’ class option
     Briefly acknowledge people and organizations here.
-
     \emph{All} acknowledgements go in this section.
 \end{acknowledgements}
 
