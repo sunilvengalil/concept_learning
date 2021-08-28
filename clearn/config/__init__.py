@@ -107,7 +107,8 @@ class ExperimentConfig:
                  translate_image=False,
                  dao=None,
                  concept_id=-1,
-                 concept_dict=None
+                 concept_dict=None,
+                 normalize_before_saving=False
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
