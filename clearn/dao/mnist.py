@@ -14,7 +14,7 @@ class MnistDao(IDao):
 
     @property
     def number_of_training_samples(self):
-        return 60000 - self.num_validation_samples
+        return 50000 - self.num_validation_samples
 
     @property
     def number_of_testing_samples(self):
@@ -70,9 +70,9 @@ class MnistDao(IDao):
                                  28 * 28)
         print(data.shape)
 
-        x = data.reshape((60000, 28, 28, 1))
+        x = data.reshape((50000, 28, 28, 1))
 
         data = self.extract_data(data_dir + '/train-labels-idx1-ubyte.gz', self.number_of_training_samples, 8, 1)
 
-        y = np.asarray(data.reshape(60000)).astype(np.int)
+        y = np.asarray(data.reshape(50000)).astype(np.int)
         return x, y
