@@ -78,7 +78,7 @@ class FashionMnistDao(IDao):
         #                          28 * 28)
 
         data = pd.read_csv(data_dir + "/fashion-mnist_train.csv")
-        x = data[x_columns].values.reshape((59872, 28, 28, 1))
+        x = data[x_columns].values.reshape((60000, 28, 28, 1))
 
 
         #data = self.extract_data(data_dir + '/train-labels-idx1-ubyte.gz', self.number_of_training_samples, 8, 1)
