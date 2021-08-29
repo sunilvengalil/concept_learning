@@ -1,6 +1,5 @@
 import os
 import gzip
-from copy import deepcopy
 
 import numpy as np
 import pandas as pd
@@ -46,7 +45,7 @@ def load_images(_config, train_val_data_iterator, dataset_type="train"):
     train_images = np.zeros(feature_shape)
     i = 0
     train_labels = np.zeros([num_images, dao.num_classes])
-    manual_annotations = np.zeros([num_images, dao.num_classes + 1])
+    manual_annotations = np.zeros([num_images, dao.num_classes + 2])
     train_val_data_iterator.reset_counter(dataset_type)
     while train_val_data_iterator.has_next(dataset_type):
         batch_images, batch_labels, batch_annotations, _ = train_val_data_iterator.get_next_batch(dataset_type)
@@ -325,8 +324,10 @@ class TrainValDataIterator:
                  manual_annotation_file_concepts=None,
                  num_concepts_per_image_row=7,
                  num_concepts_per_image_col=7,
-                 translate_image=False
+                 translate_image=False,
+                 training_phase=None
                  ):
+        self.training_phase = training_phase
         TrainValDataIterator.num_concepts_per_image_row = num_concepts_per_image_row
         TrainValDataIterator.num_concepts_per_image_col = num_concepts_per_image_col
         self.translate_image = translate_image
@@ -337,11 +338,10 @@ class TrainValDataIterator:
         self.batch_size = batch_size
         self.dao = dao
         if dataset_path is not None:
-            self.entire_data_x, self.entire_data_y = load_train(dataset_path, dao=dao, split_location=split_location)
             if validation_samples == -1:
                 percentage_to_be_sampled = 0.3
             else:
-                percentage_to_be_sampled = validation_samples / len(self.entire_data_y)
+                percentage_to_be_sampled = None
 
             self.dataset_dict = load_train_val(dataset_path,
                                                shuffle=shuffle,
@@ -350,7 +350,10 @@ class TrainValDataIterator:
                                                split_location=split_location,
                                                split_names=split_names,
                                                dao=dao,
-                                               seed=seed)
+                                               seed=seed,
+                                               num_val_samples=validation_samples,
+                                               training_phase=self.training_phase
+                                               )
             self.train_x = self.dataset_dict[TrainValDataIterator.TRAIN_X]
             self.train_y = self.dataset_dict[TrainValDataIterator.TRAIN_Y]
             self.val_x = self.dataset_dict[TrainValDataIterator.VALIDATION_X]
@@ -382,6 +385,8 @@ class TrainValDataIterator:
                     """
                     _manual_annotation = np.random.choice(self.unique_labels,
                                                           len(self.train_x))
+                    _manual_annotation_val = np.random.choice(self.unique_labels,
+                                                              len(self.val_x))
 
             _manual_annotation_concepts = None
             if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
@@ -419,10 +424,25 @@ class TrainValDataIterator:
                                                                                   self.concepts_gt
                                                                                   )
             self.max_pixels_to_translate = 4
-            if translate_image:
-                translated = np.apply_along_axis(translate_random, 1, self.train_x.reshape(self.train_x.shape[0], 784),
-                                                 max_pixels=self.max_pixels_to_translate)
-                self.train_x = translated.reshape((self.train_x.shape[0], 28, 28, 1))
+            # if translate_image:
+            #     self.num_pixels = np.reshape(randint(low=0,
+            #                                          high=self.max_pixels_to_translate,
+            #                                          size=self.train_x.shape[0]),
+            #                                  (self.train_x.shape[0], 1)
+            #                                  )
+            #     self.directions = np.reshape(randint(low=0,
+            #                                          high=4,
+            #                                          size=self.train_x.shape[0]),
+            #                                  (self.train_x.shape[0], 1)
+            #                                  )
+            #     reshaped = self.train_x.reshape(self.train_x.shape[0], 784)
+            #     im_with_num_pixels_and_dir = np.hstack([reshaped,
+            #                                             self.num_pixels,
+            #                                             self.directions])
+            #     # save_to_csv(im_with_num_pixels_and_dir, np.argmax(self.train_y, axis=1), "/Users/sunilv/concept_learning_exp/test/datasets/mnist_concepts/original_concepts.csv")
+            #     translated = np.apply_along_axis(translate_random, 1,  im_with_num_pixels_and_dir)
+            #     print("translated shape", translated.shape)
+            #     self.train_x = translated.reshape((self.train_x.shape[0], 28, 28, 1))
             self.train_idx = 0
             self.val_idx = 0
 
@@ -567,15 +587,19 @@ def load_train_val(data_dir,
                    percentage_to_be_sampled=0.7,
                    split_location=None,
                    split_names=[],
-                   seed=547):
-
+                   seed=547,
+                   num_val_samples=None,
+                   training_phase=None):
     return dao.load_train_val(data_dir,
                               shuffle,
                               stratified,
                               percentage_to_be_sampled,
                               split_location,
                               split_names,
-                              seed=seed)
+                              seed=seed,
+                              num_val_samples=num_val_samples,
+                              training_phase=training_phase
+                              )
 
 
 def load_test(data_dir,
