@@ -64,7 +64,7 @@ class IDao(ABC):
                        split_location=None,
                        split_names=[],
                        seed=547):
-        x, y = self.load_train_images_and_label(data_dir,  split_location + MAP_FILE_NAME)
+        x, y = self.load_train_images_and_label(data_dir=data_dir,  map_filename=split_location + MAP_FILE_NAME)
         y = y.astype(int)
         _stratify = None
         if stratified:
