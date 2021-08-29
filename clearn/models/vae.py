@@ -3,7 +3,7 @@ from __future__ import division
 
 import json
 import traceback
-from typing import List
+from typing import List, Tuple
 import os
 import numpy as np
 import pandas as pd
@@ -18,7 +18,7 @@ from clearn.models.generative_model import GenerativeModel
 from clearn.utils import prior_factory as prior
 from clearn.utils.retention_policy.policy import RetentionPolicy
 from clearn.utils.utils import save_image, get_latent_vector_column, get_padding_info
-from clearn.utils.dir_utils import get_eval_result_dir
+from clearn.utils.dir_utils import get_eval_result_dir, check_and_create_folder
 
 import tensorflow as tf
 
@@ -127,7 +127,7 @@ class VAE(GenerativeModel):
             self.out = tf.clip_by_value(out, 1e-8, 1 - 1e-8)
 
             self.marginal_likelihood = tf.reduce_sum(self.inputs * tf.math.log(self.out) +
-                                                     (1 - self.inputs) * tf.math.log(1 - self.out),
+                                                     self.exp_config.class_weight * (1 - self.inputs) * tf.math.log(1 - self.out),
                                                      [1, 2],
                                                      )
         else:
@@ -137,11 +137,7 @@ class VAE(GenerativeModel):
                                                          self.out,
                                                          reduction=tf.compat.v1.losses.Reduction.NONE
                                                          )
-
-            mse_for_all_images = -tf.compat.v1.reduce_mean(mll, axis=(1, 2, 3))
-            self.marginal_likelihood = tf.math.multiply(mse_for_all_images,
-                                                         self.mask_for_concept_no[6][-1])
-
+            self.marginal_likelihood = -tf.compat.v1.reduce_mean(mll, axis=(1, 2, 3))
         self.neg_loglikelihood = -tf.reduce_mean(self.marginal_likelihood)
 
         kl = 0.5 * tf.reduce_sum(tf.square(self.mu) +
@@ -398,10 +394,12 @@ class VAE(GenerativeModel):
 
         return encoded_df
 
-    def save_sample_reconstructed_images(self, dataset_type, retention_policies):
+    def save_sample_reconstructed_images(self, dataset_type, retention_policies, class_label=None):
         reconstructed_dir = get_eval_result_dir(self.exp_config.PREDICTION_RESULTS_PATH,
                                                 self.num_training_epochs_completed,
                                                 self.num_steps_completed)
+        if class_label is not None:
+            reconstructed_dir = check_and_create_folder(reconstructed_dir + f"class_{class_label}/")
         num_samples_per_image = 64
         manifold_w = 4
         manifold_h = num_samples_per_image // manifold_w
@@ -430,19 +428,8 @@ class VAE(GenerativeModel):
                         labels[sample_num] = e[2][1]
                         losses[sample_num] = e[2][2]
                         original_image[sample_num, :, :, :] = e[2][3]
-                    if self.exp_config.normalize_before_saving:
-                        scaler = MinMaxScaler(feature_range=(0, 0.99))
-                        image_np = np.asarray(samples_to_save)
-                        if len(image_np.shape) == 3:
-                            im = scaler.fit_transform(
-                                image_np.reshape(-1, image_np.shape[1] * image_np.shape[2])).reshape(image_np.shape)
-                        if len(image_np.shape) == 4:
-                            im = scaler.fit_transform(image_np.reshape(-1, image_np.shape[1] * image_np.shape[2] *
-                                                                       image_np.shape[3])).reshape(image_np.shape)
-                    else:
-                        im = samples_to_save
-                    save_image(im, [manifold_h, manifold_w], reconstructed_dir + file_image)
-                    print(f"Saving original image  to {reconstructed_dir + original_image_filename}")
+                    save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file_image)
+                    # print(f"Saving original image  to {reconstructed_dir + original_image_filename}")
                     save_image(original_image, [manifold_h, manifold_w], reconstructed_dir + original_image_filename)
 
                     with open(reconstructed_dir + file_label, "w") as fp:
@@ -533,7 +520,7 @@ class VAE(GenerativeModel):
             feature_list.append(value)
         return feature_names, feature_list
 
-    def decode_and_get_features(self, z: np.ndarray):
+    def decode_and_get_features(self, z: np.ndarray, layer_num=None, feature_num=None):
         features_list = [self.out]
         hidden_feature_names, hidden_features = self.get_decoder_features_list()
         features_list.extend(hidden_features)
@@ -541,8 +528,18 @@ class VAE(GenerativeModel):
                                          feed_dict={self.z: z
                                                     }
                                          )
-
-        return hidden_feature_names, decoded_features
+        if layer_num is not None:
+            for decoded_feature, f in zip( decoded_features[1:], hidden_feature_names):
+                if feature_num is not None:
+                    if str(layer_num) in f:
+                        if isinstance(feature_num, Tuple) or isinstance(feature_num, List):
+                            return [f], (decoded_features[0], decoded_feature[:, :, :, feature_num[0]:feature_num[1]] )
+                        else:
+                            return [f], (decoded_features[0], decoded_feature[:, :, :, feature_num])
+                else:
+                    return [f], (decoded_features[0], decoded_feature )
+        else:
+            return hidden_feature_names, decoded_features
 
     def decode(self, z):
         images = self.sess.run(self.out, feed_dict={self.z: z})

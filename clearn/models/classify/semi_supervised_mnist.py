@@ -30,7 +30,7 @@ class SemiSupervisedClassifierMnist(VAE):
     _model_name_ = "SemiSupervisedClassifierMnist"
 
     def __init__(self,
-                 exp_config:ExperimentConfig,
+                 exp_config: ExperimentConfig,
                  sess,
                  epoch,
                  dao: IDao,
@@ -45,7 +45,7 @@ class SemiSupervisedClassifierMnist(VAE):
         self.is_manual_annotated = placeholder(tf.float32, [exp_config.BATCH_SIZE], name="is_manual_annotated")
         self.labels = placeholder(tf.float32, [exp_config.BATCH_SIZE, dao.num_classes], name='manual_label')
         self.padding_added_row, self.padding_added_col, self.image_sizes = get_padding_info(exp_config,
-                                                                                                 dao.image_shape)
+                                                                                            dao.image_shape)
         self.num_individual_samples_annotated = num_individual_samples_annotated
         self.num_samples_wrongly_annotated = num_samples_wrongly_annotated
         self.total_confidence_of_wrong_annotation = total_confidence_of_wrong_annotation
@@ -64,27 +64,15 @@ class SemiSupervisedClassifierMnist(VAE):
             else:
                 self.num_concpets_per_col = (latent_image_dim[1] // self.concepts_stride) + 1
 
-            self.is_concepts_annotated = placeholder(tf.float32,
-                                                     [exp_config.BATCH_SIZE,
-                                                      self.num_concpets_per_row,
-                                                      self.num_concpets_per_col],
-                                                     name="is_concepts_annotated")
-            self.concepts_labels = placeholder(tf.float32,
-                                               [exp_config.BATCH_SIZE,
-                                                self.num_concpets_per_row,
-                                                self.num_concpets_per_col,
-                                                exp_config.dao.num_classes],
-                                               name='manual_label_concepts')
-
-        self.layers_to_apply_concept_loss = []
-        self.unique_concepts:Dict[int, List] = dict()
-        self.mask_for_concept_no = dict()
-        for layer_num in exp_config.concept_dict.keys():
-            self.unique_concepts[layer_num] = concept_dict[layer_num]["unique_concepts"]
-            self.mask_for_concept_no[layer_num] = dict()
-            for concept_no in self.unique_concepts[layer_num]:
-                self.mask_for_concept_no[layer_num][concept_no] = placeholder(tf.float32, exp_config.BATCH_SIZE)
-
+        if exp_config.concept_dict is not None and len(exp_config.concept_dict) > 0:
+            self.layers_to_apply_concept_loss = []
+            self.unique_concepts: Dict[int, List] = dict()
+            self.mask_for_concept_no = dict()
+            for layer_num in exp_config.concept_dict.keys():
+                self.unique_concepts[layer_num] = concept_dict[layer_num]["unique_concepts"]
+                self.mask_for_concept_no[layer_num] = dict()
+                for concept_no in self.unique_concepts[layer_num]:
+                    self.mask_for_concept_no[layer_num][concept_no] = placeholder(tf.float32, exp_config.BATCH_SIZE)
 
         super().__init__(exp_config=exp_config,
                          sess=sess,
@@ -93,6 +81,12 @@ class SemiSupervisedClassifierMnist(VAE):
                          test_data_iterator=test_data_iterator,
                          read_from_existing_checkpoint=read_from_existing_checkpoint,
                          check_point_epochs=check_point_epochs)
+
+        if self.exp_config.training_phase == "CONCEPTS":
+            self.active_class_labels = list(range(self.dao.number_of_training_samples,
+                                             self.dao.number_of_training_samples + self.dao.num_concepts_label_generated))
+        else:
+            self.active_class_labels = list(range(self.dao.num_classes))
 
         self.metrics_to_compute = ["accuracy", "reconstruction_loss"]
         self.metrics = dict()
@@ -103,7 +97,6 @@ class SemiSupervisedClassifierMnist(VAE):
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_train][metric] = []
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_val][metric] = []
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_test][metric] = []
-
     def compute_and_optimize_loss(self):
         if self.exp_config.fully_convolutional :
             concepts_stride = 1
