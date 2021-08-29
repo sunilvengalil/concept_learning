@@ -62,7 +62,7 @@ class MnistDao(IDao):
             _data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
         return _data
 
-    def load_train_images_and_label(self, data_dir):
+    def load_train_images_and_label(self, data_dir, map_filename=None):
         data_dir = os.path.join(data_dir, "images/")
         data = self.extract_data(data_dir + 'train-images-idx3-ubyte.gz',
                                  self.number_of_training_samples,
