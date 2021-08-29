@@ -3,6 +3,7 @@ from __future__ import division
 
 import traceback
 import os
+from collections import defaultdict
 from typing import List, Dict
 
 import numpy as np
@@ -97,55 +98,85 @@ class SemiSupervisedClassifierMnist(VAE):
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_train][metric] = []
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_val][metric] = []
             self.metrics[SemiSupervisedClassifierMnist.dataset_type_test][metric] = []
-    def compute_and_optimize_loss(self):
-        if self.exp_config.fully_convolutional :
-            concepts_stride = 1
 
+    def compute_and_optimize_loss(self):
+        if self.exp_config.fully_convolutional:
+            concepts_stride = 1
             z_reshaped = tf.reshape(self.z, [self.exp_config.BATCH_SIZE,
                                              self.image_sizes[len(self.exp_config.num_units)][0],
                                              self.image_sizes[len(self.exp_config.num_units)][0],
                                              1
-                                            ]
-                                           )
+                                             ]
+                                    )
             self.concepts_pred = conv2d(z_reshaped,
                                         self.exp_config.dao.num_classes,
                                         k_h=2,
                                         k_w=2,
-                                        d_h= concepts_stride,
-                                        d_w= concepts_stride,
+                                        d_h=concepts_stride,
+                                        d_w=concepts_stride,
                                         stddev=0.02,
                                         name="predict_concepts")
 
         if self.exp_config.fully_convolutional:
             self.supervised_loss_concepts = 0
             self.supervised_loss_concepts_per_layer = dict()
-            for layer_num in list(self.exp_config.concept_dict.keys()):
-                if layer_num == 6:
-                    continue
-                decoder_feature = f"de_conv_{layer_num}"
-                print("layer_num", layer_num, decoder_feature)
-                f = self.decoder_dict[decoder_feature]
-                print(f.shape)
-                #f = tf.reshape(f, [-1, int(f.shape[1]) * int(f.shape[2]), int(f.shape[3])])
-                print(f.shape)
-                num_concepts = len(self.exp_config.concept_dict[layer_num]["unique_concepts"])
-                self.supervised_loss_concepts_per_layer[layer_num] = dict()
+            if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+                for layer_num in list(self.exp_config.concept_dict.keys()):
+                    if layer_num >= len(self.exp_config.num_units) + 1:
+                        continue
+                    if self.dao.training_phase == "CONCEPTS" and layer_num > len(self.exp_config.num_units) - 1:
+                        continue
+                    decoder_feature = f"de_conv_{layer_num}"
+                    print("layer_num", layer_num, decoder_feature)
+                    f = self.decoder_dict[decoder_feature]
+                    print(f.shape)
+                    self.supervised_loss_concepts_per_layer[layer_num] = dict()
+                    self.mse_for_all_images = dict()
+                    self.mse_for_all_images_masked = dict()
 
-                for concept_no in self.unique_concepts[layer_num]:
-                    print("feature shape",f.shape)
-                    print(f"Computing loss for {layer_num} concept {concept_no}")
-                    input_resized = tf.image.resize(self.inputs, [f.shape[1], f.shape[2]], preserve_aspect_ratio=True)
-                    print("input shape ",input_resized.shape)
-                    mse = tf.compat.v1.losses.mean_squared_error(f[:, :, :, concept_no:concept_no + 1],
-                                                                 input_resized,
-                                                                 reduction=tf.compat.v1.losses.Reduction.NONE
-                                                                 )
-                    mse_for_all_images = tf.compat.v1.reduce_mean(mse, axis=(1, 2, 3))
-                    mse_for_all_images_masked = tf.math.multiply(mse_for_all_images, self.mask_for_concept_no[layer_num][concept_no])
-                    self.supervised_loss_concepts_per_layer[layer_num][concept_no] = tf.compat.v1.reduce_mean(mse_for_all_images_masked)
+                    #f = tf.reshape(f, [-1, int(f.shape[1]) * int(f.shape[2]), int(f.shape[3])])
+                    print(f.shape)
+                    num_concepts = len(self.exp_config.concept_dict[layer_num]["unique_concepts"])
+                    self.supervised_loss_concepts_per_layer[layer_num] = dict()
 
-                    self.supervised_loss_concepts += self.supervised_loss_concepts_per_layer[layer_num][concept_no]
+                    for concept_no in self.unique_concepts[layer_num]:
+                        # print("feature shape", f.shape)
+                        # print(f"Computing loss for {layer_num} concept {concept_no}")
 
+                        input_resized = tf.image.resize(self.inputs, [f.shape[1], f.shape[2]],preserve_aspect_ratio=True)
+
+
+                       # print("input shape ", input_resized.shape)
+
+                        mse = tf.compat.v1.losses.mean_squared_error(f[:, :, :, concept_no:concept_no + 1],
+                                                                     input_resized,
+                                                                     reduction=tf.compat.v1.losses.Reduction.NONE
+                                                                     )
+                        self.mse_for_all_images[concept_no] = tf.compat.v1.reduce_mean(mse, axis=(1, 2, 3))
+                        self.mse_for_all_images_masked[concept_no] = tf.math.multiply(self.mse_for_all_images, self.mask_for_concept_no[layer_num][concept_no])
+                        self.supervised_loss_concepts_per_layer[layer_num][concept_no] = tf.compat.v1.reduce_mean(self.mse_for_all_images_masked)
+
+                        self.supervised_loss_concepts += self.supervised_loss_concepts_per_layer[layer_num][concept_no]
+
+                        # Make response for other images zero
+                        # mse_other_images = tf.compat.v1.losses.mean_squared_error(f[:, :, :, concept_no:concept_no + 1],
+                        #                                                           tf.zeros_like(f[:, :, :, concept_no:concept_no + 1]),
+                        #                                                           reduction=tf.compat.v1.losses.Reduction.NONE)
+                        # print("Shape mse_other_images", mse_other_images.shape)
+                        # inverted_mask = tf.math.subtract(tf.ones_like(self.mask_for_concept_no[layer_num][concept_no]),
+                        #                             self.mask_for_concept_no[layer_num][concept_no])
+                        # mse_for_other_images_masked= tf.math.multiply(tf.compat.v1.reduce_mean(mse_other_images,axis=(1, 2, 3)),
+                        #                                               inverted_mask)
+                        # supervised_loss_concepts_per_layer_other = tf.math.divide_no_nan(tf.compat.v1.reduce_sum(mse_for_other_images_masked),
+                        #                                                                                         tf.compat.v1.reduce_sum(inverted_mask))
+                        # self.supervised_loss_concepts += supervised_loss_concepts_per_layer_other
+                        # Make sure all other feature maps are zero for this activation
+                        # mse_other_layers = tf.compat.v1.losses.mean_squared_error(f[:, :, :, 0:concept_no],
+                        #                                                           tf.zeros_like(f[:, :, :, 0:concept_no]),
+                        #                                                           reduction=tf.compat.v1.losses.Reduction.NONE
+                        #                                                           )
+                        #
+                        # self.mse_for_all_images[concept_no] = tf.compat.v1.reduce_mean(mse_other_layers, axis=(1, 2, 3))
 
         self.y_pred = linear(self.z, self.dao.num_classes)
         self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
@@ -182,10 +213,6 @@ class SemiSupervisedClassifierMnist(VAE):
             self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate,
                                                           beta1=self.exp_config.beta1_adam) \
                 .minimize(self.loss, var_list=t_vars)
-
-        """" Testing """
-        # for test
-        #self.fake_images = self._decoder(self.standard_normal, reuse=True)
 
         """ Summary """
         tf.compat.v1.summary.scalar("Negative Log Likelihood", self.neg_loglikelihood)
