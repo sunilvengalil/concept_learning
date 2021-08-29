@@ -70,7 +70,7 @@ class MnistDao(IDao):
                                  28 * 28)
         print(data.shape)
 
-        x = data.reshape((50000, 28, 28, 1))
+        x = data.reshape((49872, 28, 28, 1))
 
         data = self.extract_data(data_dir + '/train-labels-idx1-ubyte.gz', self.number_of_training_samples, 8, 1)
 
