@@ -14,7 +14,7 @@ class FashionMnistDao(IDao):
 
     @property
     def number_of_training_samples(self):
-        return 60000 - self.num_validation_samples
+        return 50000 - self.num_validation_samples
 
     @property
     def number_of_testing_samples(self):
@@ -49,8 +49,8 @@ class FashionMnistDao(IDao):
 
         return x, y
 
-    def load_train(self, data_dir, shuffle):
-        tr_x, tr_y = self.load_train_val_1(data_dir)
+    def load_train(self, data_dir, shuffle, split_location=None):
+        tr_x, tr_y = self.load_train_images_and_label(data_dir)
         if shuffle:
             seed = 547
             np.random.seed(seed)
@@ -68,7 +68,7 @@ class FashionMnistDao(IDao):
             _data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
         return _data
 
-    def load_train_val_1(self, data_dir):
+    def load_train_images_and_label(self, data_dir, map_filename=None, training_phase=None):
         x_columns = [f"pixel{i}" for i in range(1, 785)]
 
         # data_dir = os.path.join(data_dir, "images/")
