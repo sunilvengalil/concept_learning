@@ -74,5 +74,5 @@ class MnistDao(IDao):
 
         data = self.extract_data(data_dir + '/train-labels-idx1-ubyte.gz', self.number_of_training_samples, 8, 1)
 
-        y = np.asarray(data.reshape(50000)).astype(np.int)
+        y = np.asarray(data.reshape(49872)).astype(np.int)
         return x, y
