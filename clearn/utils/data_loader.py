@@ -366,9 +366,10 @@ class TrainValDataIterator:
                     # manual_annotation_file_val = manual_annotation_file.rsplit("/", 1)[0] + "/" + fname.rsplit(".", 1)[0] +"_val" + ".csv"
                     # if os.path.isfile(manual_annotation_file_val):
                     #     raise Exception(f"File does not exist {manual_annotation_file_val}")
+                    print(f"Loaded manual annotation. Shape:{_manual_annotation_all}")
+
                     _manual_annotation = _manual_annotation_all[self.dataset_dict["TRAIN_INDICES"]]
                     _manual_annotation_val = _manual_annotation_all[self.dataset_dict["VAL_INDICES"]]
-                    print(f"Loaded manual annotation. Shape:{_manual_annotation_all}")
                     print(f"Number of samples with manual confidence {sum(_manual_annotation[:, 1] > 0)}")
                 else:
                     # TODO if we are using random prior with uniform distribution, do we need to keep
