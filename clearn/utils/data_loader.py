@@ -367,7 +367,7 @@ class TrainValDataIterator:
                     #     raise Exception(f"File does not exist {manual_annotation_file_val}")
                     _manual_annotation = _manual_annotation_all[self.dataset_dict["TRAIN_INDICES"]]
                     _manual_annotation_val = _manual_annotation_all[self.dataset_dict["VAL_INDICES"]]
-                    print("Loaded manual annotation")
+                    print(f"Loaded manual annotation. Shape:{_manual_annotation_all}")
                     print(f"Number of samples with manual confidence {sum(_manual_annotation[:, 1] > 0)}")
                 else:
                     # TODO if we are using random prior with uniform distribution, do we need to keep
