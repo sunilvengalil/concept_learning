@@ -348,7 +348,8 @@ class TrainValDataIterator:
                                                split_location=split_location,
                                                split_names=split_names,
                                                dao=dao,
-                                               seed=seed)
+                                               seed=seed
+                                               )
             self.train_x = self.dataset_dict[TrainValDataIterator.TRAIN_X]
             self.train_y = self.dataset_dict[TrainValDataIterator.TRAIN_Y]
             self.val_x = self.dataset_dict[TrainValDataIterator.VALIDATION_X]
