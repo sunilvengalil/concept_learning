@@ -1,4 +1,4 @@
-\documentclass{bmvc2k}
+\documentclass{}
 
 \usepackage{subcaption}
 %\usepackage{subfigure}
@@ -6,7 +6,6 @@
 % \usepackage{graphicx}
 
 %% Enter your paper number here for the review copy
-\bmvcreviewcopy{1424}
 
 \title{Towards Learning a Vocabulary of Visual Concepts and Operators using Deep Neural Networks}
 
@@ -24,16 +23,16 @@
 }
 
 
-\runninghead{Student, Prof, Collaborator}{BMVC Author Guidelines}
+\runninghead{Student, Prof}{}
 
 % Any macro definitions you would like to include
 % These are not defined in the style file, because they don't begin
 % with \bmva, so they might conflict with the user's own macros.
 % The \bmvaOneDot macro adds a full stop unless there is one in the
 % text already.
-\def\eg{\emph{e.g}\bmvaOneDot}
-\def\Eg{\emph{E.g}\bmvaOneDot}
-\def\etal{\emph{et al}\bmvaOneDot}
+%\def\eg{\emph{e.g}\bmvaOneDot}
+%\def\Eg{\emph{E.g}\bmvaOneDot}
+%\def\etal{\emph{et al}\bmvaOneDot}
 
 %-------------------------------------------------------------------------
 % Document starts here
@@ -107,7 +106,7 @@ Saliency Map, introduced by Symonyan et.al. in 2014 \cite{simonyan2014deep} is a
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=0.9\linewidth]{images/cnn_arch_bmvc}
+\includegraphics[width=0.9\linewidth]{images/cnn_arch}
 \vspace{0.2in}
 
 \caption{Architecture of the propsed model. We add an additional loss component at layer 3 of decoder in Variational Autoencoder.}
