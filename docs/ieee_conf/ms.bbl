@@ -1,0 +1,59 @@
+\begin{thebibliography}{10}
+
+\bibitem{krizhevsky2012imagenet}
+A.~Krizhevsky, I.~Sutskever, and G.~E. Hinton, ``Imagenet classification with
+  deep convolutional neural networks,'' {\em Advances in neural information
+  processing systems}, vol.~25, pp.~1097--1105, 2012.
+
+\bibitem{ribeiro2016should}
+M.~T. Ribeiro, S.~Singh, and C.~Guestrin, ``" why should i trust you?"
+  explaining the predictions of any classifier,'' in {\em Proceedings of the
+  22nd ACM SIGKDD international conference on knowledge discovery and data
+  mining}, pp.~1135--1144, 2016.
+
+\bibitem{lundberg2017unified}
+S.~Lundberg and S.-I. Lee, ``A unified approach to interpreting model
+  predictions,'' {\em arXiv preprint arXiv:1705.07874}, 2017.
+
+\bibitem{zhou2016learning}
+B.~Zhou, A.~Khosla, A.~Lapedriza, A.~Oliva, and A.~Torralba, ``Learning deep
+  features for discriminative localization,'' in {\em Proceedings of the IEEE
+  conference on computer vision and pattern recognition}, pp.~2921--2929, 2016.
+
+\bibitem{kingma2013auto}
+D.~P. Kingma and M.~Welling, ``Auto-encoding variational bayes,'' {\em arXiv
+  preprint arXiv:1312.6114}, 2013.
+
+\bibitem{lake2015human}
+B.~M. Lake, R.~Salakhutdinov, and J.~B. Tenenbaum, ``Human-level concept
+  learning through probabilistic program induction,'' {\em Science}, vol.~350,
+  no.~6266, pp.~1332--1338, 2015.
+
+\bibitem{baehrens2010explain}
+D.~Baehrens, T.~Schroeter, S.~Harmeling, M.~Kawanabe, K.~Hansen, and K.-R.
+  M{\"u}ller, ``How to explain individual classification decisions,'' {\em The
+  Journal of Machine Learning Research}, vol.~11, pp.~1803--1831, 2010.
+
+\bibitem{rabold2019enriching}
+J.~Rabold, H.~Deininger, M.~Siebers, and U.~Schmid, ``Enriching visual with
+  verbal explanations for relational concepts--combining lime with aleph,'' in
+  {\em Joint European Conference on Machine Learning and Knowledge Discovery in
+  Databases}, pp.~180--192, Springer, 2019.
+
+\bibitem{bach2015pixel}
+S.~Bach, A.~Binder, G.~Montavon, F.~Klauschen, K.-R. M{\"u}ller, and W.~Samek,
+  ``On pixel-wise explanations for non-linear classifier decisions by
+  layer-wise relevance propagation,'' {\em PloS one}, vol.~10, no.~7,
+  p.~e0130140, 2015.
+
+\bibitem{samek2016evaluating}
+W.~Samek, A.~Binder, G.~Montavon, S.~Lapuschkin, and K.-R. M{\"u}ller,
+  ``Evaluating the visualization of what a deep neural network has learned,''
+  {\em IEEE transactions on neural networks and learning systems}, vol.~28,
+  no.~11, pp.~2660--2673, 2016.
+
+\bibitem{simonyan2014deep}
+K.~Simonyan, A.~Vedaldi, and A.~Zisserman, ``Deep inside convolutional
+  networks: Visualising image classification models and saliency maps,'' 2014.
+
+\end{thebibliography}
