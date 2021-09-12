@@ -24,9 +24,7 @@
 Paper ID 53
 
 \begin{abstract}
-    The successful application of deep neural networks for solving complex tasks like image classification, object detection and segmentation depends critically on the availability of large number of labelled training samples.
-To achieve good generalization for a reasonably complex model with about 60 million parameters, as in alexnet, one needs about one million labelled training samples.
-In almost all practical applications, like natural image classification and segmentation,  plenty of unlabelled samples are available but labelling these samples is a tedious manual task.
+    The successful application of deep neural networks for solving complex tasks like image classification, object detection and segmentation depends critically on the availability of large number of labelled training samples. To achieve good generalization for a reasonably complex model with about 60 million parameters, as in AlexNet, one needs about one million labelled training samples. In almost all practical applications, like natural image classification and segmentation,  plenty of unlabelled samples are available but labelling these samples is a tedious manual task.
 We introduce a novel mechanism to automatically label all the samples in an unlabelled dataset.
     Starting with completely unlabelled dataset, an iterative algorithm incrementally assigns labels along with a confidence to all training samples.
     During each iteration, 10-30 new representative samples are generated in a latent space learned using a variational autoencoder and labels for these samples are obtained from a human expert.
