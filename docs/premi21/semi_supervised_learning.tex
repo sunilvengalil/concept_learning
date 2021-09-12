@@ -1,31 +1,50 @@
+% This is samplepaper.tex, a sample chapter demonstrating the
+% LLNCS macro package for Springer Computer Science proceedings;
+% Version 2.20 of 2017/10/04
+%
 \documentclass[runningheads]{llncs}
 \usepackage{caption}
 \usepackage{subcaption}
 \captionsetup{compatibility=false}
 \usepackage{graphicx}
+% Used for displaying a sample figure. If possible, figure files should
+% be included in EPS format.
+%
+% If you use the hyperref package, please uncomment the following line
+% to display URLs in blue roman font according to Springer's eBook style:
+% \renewcommand\UrlFont{\color{blue}\rmfamily}
+
 \begin{document}
+%
 \title{Semi-supervised Learning using Variational Autoencoder - A Cluster based Approach}
-\titlerunning{Semi-suprevised Learning using VAE}
+%
+\titlerunning{Semi-supervised Learning using VAE}
 % If the paper title is too long for the running head, you can set
 % an abbreviated paper title here
 %
-%\author{Sunil Kumar Vengalil\inst{1}\orcidID{0000-1111-2222-3333} \and
-%Neelam Sinha\inst{1}\orcidID{1111-2222-3333-4444} }
-%%
-%\authorrunning{S. Vengalil et al.}
-%% First names are abbreviated in the running head.
-%% If there are more than two authors, 'et al.' is used.
-%%
-%\institute{International Institute of Information Technology, Bangalore, India\\
-%\url{https://www.iiitb.ac.in/} }
+\author{Sunil Kumar Vengalil\inst{1} \and
+Neelam Sinha\inst{1}
+}
+%
+\authorrunning{S. Vengalil et al.}
+% First names are abbreviated in the running head.
+% If there are more than two authors, 'et al.' is used.
+%
+\institute{International Institute of Information Technology, Bangalore, India
+\email{sunilkumar.vengalil@iiitb.ac.in}\\
+\email{neelam.sinha@iiitb.ac.in}\\
+\url{https://www.iiitb.ac.in}
+}
 %
 \maketitle              % typeset the header of the contribution
 %
 Paper ID 53
 
 \begin{abstract}
-    The successful application of deep neural networks for solving complex tasks like image classification, object detection and segmentation depends critically on the availability of large number of labelled training samples. To achieve good generalization for a reasonably complex model with about 60 million parameters, as in AlexNet, one needs about one million labelled training samples. In almost all practical applications, like natural image classification and segmentation,  plenty of unlabelled samples are available but labelling these samples is a tedious manual task.
-We introduce a novel mechanism to automatically label all the samples in an unlabelled dataset.
+    The successful application of deep neural networks for solving complex tasks like image classification, object detection and segmentation depends critically on the availability of large number of labelled training samples.
+    To achieve good generalization for a reasonably complex model with about 60 million parameters, as in AlexNet, one needs about one million labelled training samples.
+    In almost all practical applications, like natural image classification and segmentation, plenty of unlabelled samples are available but labelling these samples is a tedious manual task.
+    We introduce a novel mechanism to automatically label all the samples in an unlabelled dataset.
     Starting with completely unlabelled dataset, an iterative algorithm incrementally assigns labels along with a confidence to all training samples.
     During each iteration, 10-30 new representative samples are generated in a latent space learned using a variational autoencoder and labels for these samples are obtained from a human expert.
 The proposed  idea  is demonstrated on MNIST dataset without using the labels provided in the dataset.
@@ -108,9 +127,9 @@ The encoder consists of one down-sampling convolutional layer followed by two de
 The decoder is made up of two dense layers and one up-sampling de-convolution layer.
 An additional softmax classification layer was added to classify the latent vectors into one of the 10 class labels.
 
-\subsection{Semi-supervised loss function and training}\label{section_loss_function}
+\subsection{Semi-supervised Loss Function and Training}\label{section_loss_function}
 The variational autoencoder is initially trained until the reconstruction loss converges using the beta-VAE loss function \cite{beta_vae} given below.
-\vspace{-0.3in}
+% \vspace{-0.3in}
 \begin{equation} \label{vae_loss_eqn}
 L_{VAE} = -\sum_{i, j}(x_{ij}^n \ln \hat{x}_{ij}^n
 + (1 - x_{ij}^n) \ln(1 -  \hat{x}_{ij}^n ) )\\
@@ -157,7 +176,7 @@ We performed experiments with different choices for the distance metric (Euclide
     \label{exp_decay}
 \end{equation}
 
-\vspace{-0.2in}
+%\vspace{-0.2in}
 \begin{equation}
     w_n = p_ce^{-a d_n^2}
     \label{gaussian_decay}
@@ -317,7 +336,7 @@ After 5 iterations of semi-supervised training, we were able to get a classifica
 In this paper, we propose a novel deep learning based active learning framework for solving complex tasks like image classification using clusters formed in the low dimensional latent space learned by a variational autoencoder.
 Our approach is demonstrated by classifying MNIST images without using labels provided in the dataset.
 We performed multiple experiments with different choices for hyper parameters like clustering algorithm, distance metric and confidence function.
-Our experiments shows that GMM, when used as a clustering algorithm,  gives the best classification accuracy of 93.9\% on MNSIT test dataset after 5 iterations.
+Our experiments shows that GMM, when used as a clustering algorithm,  gives the best classification accuracy of 93.9\% on MNIST test dataset after 5 iterations.
 It is observed, using 2-d t-SNE visualization, that  semantically valid and separable clusters are formed as a result of semi-supervised learning.
 \clearpage
 %
@@ -327,12 +346,13 @@ It is observed, using 2-d t-SNE visualization, that  semantically valid and sepa
 % References will then be sorted and formatted in the correct style.
 %
 \bibliographystyle{splncs04}
+%\bibliography{semisupervised.bib}
 %
 \begin{thebibliography}{8}
     \bibitem{alexnet}
     Krizhevsky, Alex, Ilya Sutskever, and Geoffrey E. Hinton. Imagenet classification with deep convolutional neural networks. Advances in neural information processing systems 25 (2012): 1097-1105
     \bibitem{vggnet}
-    Simonyan, Karen, and Andrew Zisserman. Very deep convolutional networks for large-scale image recognition. arXiv preprint arXiv:1409.1556 (2014)
+    Simonyan, Karen, and Andrew Zisserman. Very deep convolutional networks for large-scale image recognition. arXiv preprint arXiv:1409.1556 (2014).
     \bibitem{resnet}
     He, Kaiming, et al. Deep residual learning for image recognition. Proceedings of the IEEE conference on computer vision and pattern recognition. 2016.
     \bibitem{deeplab}
