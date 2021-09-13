@@ -68,10 +68,10 @@ However, all these  models suffer from the following drawbacks:
 \begin{enumerate}
   \item Lack of explainability.
   \item Need for huge amount of labelled data for supervised tasks like classification, object detection and segmentation.
-  \item Need for large computing power to train complex models with millions of parameters.
+  \item Large computing resources are required to train complex models with millions of parameters.
 \end{enumerate}
 
-In this work, our key focus is on how to train a neural network faster, and with less number of annotated samples, by augmenting the training process with human feedback at regular intervals.
+In this work, our key focus is on how to train a neural network faster, and with less number of labelled samples, by augmenting the training process with human feedback at regular intervals.
 Instead of annotating all individual samples in the training set, we propose a novel mechanism where only a few representative samples (10-30) are annotated and the label of these samples are propagated to other training samples  which are closer to the labelled samples in the latent space.
 It is very common to use  generative models, like VAE \cite{vae} and GAN\cite{gan} in order to learn a low dimensional latent representation of data.
 It is reasonable to assume, as validated by our experimental results, that the samples which are closer in latent space have the same label.
@@ -81,7 +81,7 @@ Our work can also be looked at  as a novel  active learning framework using deep
 Active learning algorithms iteratively select (or generate) samples for labelling and these labelled samples are used to improve the model performance.
 The goal is to obtain sufficiently good performance of the trained model using as few labelled samples as possible.
 
-We perform various experiments with different clustering algorithms,  k-means and Gaussian mixture model (GMM), and also with different distance metrics (Mahalanobis and Euclidean distance) and provide a detailed comparison of results.
+Results of experiments with different clustering algorithms and  different distance metrics are reported in this study.
 
 The major contributions of this paper are
 \begin{enumerate}
@@ -91,9 +91,8 @@ The major contributions of this paper are
 \end{enumerate}
 
 \section{Related Work}
-We are not the first to propose active learning using deep generative modelling.
 Many of the existing work on active learning are based on either query-synthesizing or  pool-based methods.
-Where as in query synthesizing new informative samples are generated using generative models, pool-based methods \cite{wang_2016,beluch_2018} uses various sampling strategies to select a set of samples for labelling.
+Whereas in query synthesizing new informative samples are generated using generative models, pool-based methods \cite{wang_2016,beluch_2018} uses various sampling strategies to select a set of samples for labelling.
 Many query-synthesizing methods use adversarial networks \cite{mahapatra_2018,mayer_2020} to generate new samples for labelling.
 Our method is a hybrid of these two methods as we are generating new representative samples using clustering while at the same time selecting unlabelled samples from bad performing clusters.
 In their work, Samarth et al. \cite{vaal} uses VAE to learn a latent space along with an adversarial network to select samples for labelling from an unlabelled pool.
@@ -104,19 +103,19 @@ However, our work differs from \cite{kingma_2014} in respect that we introduce a
 Also instead of using a separate SVM classifier, we augment the VAE by adding an additional classification layer.
 
 Another major category of semi-supervised learning methods are based on geometric deep learning \cite{li_2018}\cite{mikhail_2006}\cite{ding_2018}.
-The basic idea behind many of these approaches is manifold regularization \cite{mikhail_2006} \cite{ding_2018}, which is based on the assumption that the support of marginal distribution lies along a low dimensional manifold embedded in the original high-dimensional space.
-Belkin et al. \cite{mikhail_2006} provides a theoretical background for manifold regularization by using properties of reproducing kernel Hilbert spaces(RKHBS).
-They propose a new class of algorithms, Laplacian Regularized Least square and Laplacian Support Vector machines, which are natural out-of-sample extensions of Regularized Least square and Transductive SVM \cite{joachims_1999}.
-Their work reports a comparative study of different algorithms like Transductive SVM\cite{joachims_1999}, Semi-supervised SVM\cite{bennett_1999}, Laplacian Regularized Least square and Laplacian Support Vector machines, on multiple datasets.
+The basic idea behind these approaches is manifold regularization \cite{mikhail_2006} \cite{ding_2018}, which is based on the assumption that the support of marginal distribution lies along a low dimensional manifold embedded in the original high-dimensional space.
+Belkin et al. \cite{mikhail_2006} provides a theoretical background for manifold regularization by using properties of reproducing kernel Hilbert spaces(RKHS).
+They propose a new class of algorithms, Laplacian Regularized Least Squares(LaRLS) and Laplacian Support Vector machines(LaSVM), which are natural out-of-sample extensions of Regularized Least Squares and Transductive SVM(TSVM) \cite{joachims_1999}.
+They report a comparison of different algorithms like TSVM, Semi-supervised SVM\cite{bennett_1999}, LaRLS and LaSVM.
 
 Our work is similar to these geometric deep learning techniques in the sense that we also learn a low dimensional representation of the data.
-However, our work differs from these classical approaches in two different ways: 1) We start with a completely unlabelled-dataset and 2) Our models learns incrementally in an online mode as the model sees more and more new data.
+However, our work differs from these classical approaches in two different ways: 1) We start with a completely unlabelled-dataset and 2) Our model learns incrementally in an online mode as the model sees more and more data.
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=1in]{images/vae_arch_v5}
+\includegraphics[width=2.4in]{images/var_arch_v5.jpg}
 \DeclareGraphicsExtensions.
-\caption{Proposed model architecture. The VAE is augmented with a softmax classification layer}
+\caption{Proposed architecture. The VAE is augmented with a classification layer}
 \label{vae_architecture}
 \end{figure}
 \section{Proposed Method}
@@ -126,14 +125,14 @@ The proposed approach is demonstrated on the MNIST dataset.
 The 50,000 training images are split into train (70\%) and validation (30\%) sets for hyper-parameter tuning.
 
 \subsection{Neural Network Architecture}
-Fig. \ref{vae_architecture} shows the architecture of the proposed model.
+Fig.\ref{vae_architecture} shows the architecture of the proposed model.
 The model follows the usual encoder-decoder architecture of VAE.
 The encoder consists of one down-sampling convolutional layer followed by two dense layers.
 The decoder is made up of two dense layers and one up-sampling de-convolution layer.
 An additional softmax classification layer was added to classify the latent vectors into one of the 10 class labels.
 
 \subsection{Semi-supervised Loss Function and Training}\label{section_loss_function}
-The VAE is initially trained until the reconstruction loss converges using the $\beta$-VAE loss function \cite{beta_vae} given below.
+The VAE is initially trained until the reconstruction loss converges using the $\beta$-VAE loss function\cite{beta_vae} given below.
 %\vspace{-0.3in}
 \begin{equation} \label{vae_loss_eqn}
 L_{VAE} = -\sum_{i, j}(x_{ij}^n \ln \hat{x}_{ij}^n
@@ -145,7 +144,7 @@ Binary cross entropy loss is used as reconstruction loss for MNIST images, since
 
 Once a reasonably good latent representation is learned using the loss function mentioned above, the latent vectors of the training samples are clustered into $k=10$ clusters.
 The cluster centers were decoded using the decoder  and the resulting images of cluster centers were manually given a label and a confidence.
-Fig. \ref{cluster_center_1} shows the reconstructed images of cluster centers after unsupervised training.
+Fig.\ref{cluster_center_1} shows the reconstructed images of cluster centers after unsupervised training.
 
 If the cluster center for a cluster does not correspond to any valid digit, all the samples in that cluster are again clustered into $k$ sub-clusters and  centers of the sub-clusters are labelled.
 The process can be continued to form clusters at multiple levels based on the available manual annotation budget.
@@ -153,7 +152,7 @@ The labels assigned to the cluster center is then propagated to all other sample
 \begin{enumerate}
     \item Each sample in the cluster is assigned with the  same label as the cluster center.
     \item Each sample is also given a confidence based on its distance from cluster center and  a manually assigned confidence in the range of [0,1]. The overall confidence of  training sample $x^n$ is computed as $w_n = p_cf(d_n)$
-where $d_n$ is the distance of the sample from its cluster center, $p_c$  is the confidence manually assigned to the cluster center and $f: d \mapsto [0,1]$ is a monotonically decreasing function that maps distance to a confidence value in unit interval [0,1].
+where $d_n$ is the distance of the sample from its cluster center, $p_c$  is the the cluster center confidence  and $f: d \mapsto [0,1]$ is a monotonically decreasing function that maps distance to a confidence value in unit interval [0,1].
 \end{enumerate}
 
 \begin{figure}[!t]
@@ -186,7 +185,7 @@ Experiments were performed with different choices for  clustering algorithm (k-m
     \label{gaussian_decay}
 \end{equation}
 where $a$ is a hyper parameter determining how fast the confidence decreases with the distance from cluster center.
-With GMM, product of posterior probability of the sample and cluster center confidence $p_c$ was used as the overall sample confidence.
+With GMM, the product of posterior probability of the sample and cluster center confidence $p_c$ was used as the overall sample confidence.
 Training is continued for more epochs using the modified loss function, given below, that incorporates the manual labels and confidence into account.
 \begin{equation} \label{semi_supervised_loss}
 L = L_{VAE}  - \gamma \sum_{k=0}^{K}w_{n}y_{nk}\ln(\hat{y}_{nk})
@@ -200,48 +199,47 @@ The new term added to the loss is the weighted multi-class cross entropy loss fo
 \begin{figure}[!t]
 \centering
   \centering
-  \includegraphics[width=.7\linewidth]{images/classification_accuracy_hyperparameter}
+  \includegraphics[width=.6\linewidth]{images/classification_accuracy_hyperparameter}
 \caption{Comparison of classification accuracy with different choices of hyper-parameters distance metric, confidence function and clustering algorithms}
 \label{classification_acc}
 \end{figure}
 
 In order to choose the optimum hyper-parameters like clustering algorithm, distance metric and confidence decay function, we ran experiments with different combinations of hyper parameters and the results are compared in Figures \ref{classification_acc}.
-It is important to note that, with k-means performance is better when Gaussian confidence mapping function is used as opposed to exponential function.
+When k-means is used, performance is better with Gaussian confidence mapping function compared to exponential function.
 This is expected as exponential function decreases at a faster rate near zero.
-Hence, the confidence for samples closer to the cluster center decreases at a faster rate as it moves away from cluster center.
-Whereas  with Gaussian confidence function, since the gradient of the curve is close to zero near cluster center, samples closer to the cluster center will have almost the same confidence as the cluster center confidence $p_c$.
+Hence, the confidence for samples closer to the cluster center decreases at a faster rate as it moves away from the cluster center.
+Whereas  with Gaussian function, since the gradient of the curve is close to zero near cluster center, samples closer to the cluster center will have almost the same confidence as the cluster center confidence $p_c$.
 
-With k-means clustering, using Mahalanobis distance instead of Euclidean distance gives a better classification accuracy during initial iterations.
-From the latent space distribution shown in Fig. \ref{tsne_semi_4_9} and Fig. \ref{tsne_semi}, it is evident that the clusters have different variance along different directions which is captured well in Mahalanobis distance.
+With k-means clustering, using Mahalanobis distance instead of Euclidean distance gives a better classification accuracy.
+Latent space distribution shown in Fig.\ref{tsne_semi_4_9} and Fig.\ref{tsne_semi}, shows that the clusters have different variance along different directions which is captured well in Mahalanobis distance.
 For the same reason, GMM performs better than k-means clustering.
 
-The reconstructed images of cluster centers shown in Fig. \ref{cluster_center} shows that as training progresses, the clusters formed in latent space correspond to different classes in MNIST dataset.
-In Fig. \ref{cluster_center_1} some of the cluster centers do not correspond to any valid digit, and some digits like 4  are missing.
+The reconstructed images of cluster centers shown in Fig.\ref{cluster_center} shows that as training progresses, the clusters formed in latent space correspond to different classes in MNIST dataset.
+In Fig.\ref{cluster_center_1} some of the cluster centers do not correspond to any valid digit, and some digits like 4  are missing.
 This is happening because the latent vectors for some classes, like  4 and 9 for example,  were very similar and got clustered into the same cluster.
 However, after a few iterations of semi-supervised training, the latent vectors for symbol 9 and 4 are getting clustered into different clusters.
-This is also evident from the t-SNE visualization of latent space shown in Fig. \ref{tsne_4_9}.
+This is also evident from the t-SNE visualization of latent space shown in Fig.\ref{tsne_4_9}.
 
-Fig. \ref{tsne} shows the 2-d t-SNE visualization of the latent vector distribution for the entire training set.
+Fig.\ref{tsne} shows the 2-d t-SNE visualization of the latent vector distribution for the entire training set.
 The distribution of samples from different classes becomes more separable with semi-supervised learning.
-
-\begin{figure}[!t]
-\centering
-  \centering
-  \includegraphics[width=.5\linewidth]{images/classification_acc_semi_supervised}
-\caption{Classification accuracy on MNIST test dataset with 5 iterations of semi-supervised training. Classification loss was added after 10 epochs}
-\label{classificaion_acc}
-\end{figure}
-
-Fig. \ref{classificaion_acc} shows the  classification accuracy on test dataset.
+Fig.\ref{classificaion_acc} shows the  classification accuracy on test dataset.
 Initial 10 epochs were trained in unsupervised mode and classification loss was added after that.
 After 5 iterations of semi-supervised training, the classification accuracy increased to 93.9\% on MNIST test dataset.
 
 \begin{figure}[!t]
 \centering
+  \centering
+  \includegraphics[width=.6\linewidth]{images/classification_acc_semi_supervised}
+\caption{Classification accuracy on MNIST test dataset with 5 iterations of semi-supervised training. Classification loss was added after 10 epochs}
+\label{classificaion_acc}
+\end{figure}
+
+\begin{figure}
+\centering
 \begin{subfigure}[t]{.4\textwidth}
   \centering
   \includegraphics[width=0.8\linewidth]{images/tsne_4_9_unsup.jpg}
-  \caption{With unsupervised training}
+  \caption{Unsupervised training}
   \label{tsne_un_4_9}
 \end{subfigure}\hfill
 \begin{subfigure}[t]{.4\textwidth}
@@ -254,29 +252,31 @@ After 5 iterations of semi-supervised training, the classification accuracy incr
 \label{tsne_4_9}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[!h]
 \centering
-\begin{subfigure}[t]{.45\textwidth}
+\begin{subfigure}[t]{.4\textwidth}
   \centering
   \includegraphics[width=.8\linewidth]{images/tsne_unsup.jpg}
-  \caption{With unsupervised training}
+  \caption{Unsupervised training}
   \label{tsne_un}
 \end{subfigure}\hfill
-\begin{subfigure}[t]{.45\textwidth}
+\begin{subfigure}[t]{.4\textwidth}
   \centering
   \includegraphics[width=.8\linewidth]{images/tsne_semi.jpg}
   \caption{Semi-supervised - 5 iterations }
   \label{tsne_semi}
 \end{subfigure}
-\caption{Latent space distribution (with t-SNE) for the entire training set. With supervised training, semantically valid and well separated clusters are formed}
+\caption{Latent space distribution for the entire training set. With semi-supervised training, semantically valid and well separated clusters are formed}
 \label{tsne}
 \end{figure}
 \section{Conclusion}
 In this paper, we propose a novel deep learning based active learning framework for solving complex tasks like image classification using clusters formed in the low dimensional latent space learned by a variational autoencoder.
 Our approach is demonstrated by classifying MNIST images without using labels provided in the dataset.
 We performed multiple experiments with different choices for hyper parameters like clustering algorithm, distance metric and confidence function.
-Our experiments shows that GMM, when used as a clustering algorithm,  gives the best classification accuracy of 93.9\% on MNIST test dataset after 5 iterations.
+Our experiments show that GMM, when used as a clustering algorithm,  gives the best classification accuracy of 93.9\% on the MNIST test dataset after 5 iterations.
 It is observed, using 2-d t-SNE visualization, that  semantically valid and separable clusters are formed as a result of semi-supervised learning.
+
+
 % \clearpage
 %
 % ---- Bibliography ----
