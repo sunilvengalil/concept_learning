@@ -105,7 +105,13 @@ class ExperimentConfig:
                  uncorrelated_features=False,
                  env=None,
                  translate_image=False,
-                 normalize_before_saving=False
+                 dao=None,
+                 concept_id=-1,
+                 concept_dict=None,
+                 normalize_before_saving=False,
+                 std_dev_concept_distribution=1,
+                 class_weight=1,
+                 training_phase=None
                  ):
         """
         :param manual_labels_config: str Specifies whether to use actual label vs cluster center label
@@ -117,7 +123,7 @@ class ExperimentConfig:
         # if ExperimentConfig._instance is not None:
         #     raise Exception("ExperimentConfig is singleton class. Use class method get_exp_config() instead")
         if root_path is not None :
-            #TODO validate if the folder can be created or not
+            # TODO validate if the folder can be created or not
             self.root_path = root_path
         elif env is not None:
             if env == "sunil_local":
@@ -127,13 +133,11 @@ class ExperimentConfig:
             else:
                 raise Exception(f"Parameter env should be set as sunil_local or colab. env is passed as {env} instead")
 
-        if len(num_units) < 1 or len(num_units) > 5 :
+        if len(num_units) < 1 :
             print(num_units)
-            raise ValueError("Length of num_units should be 2 or 3")
+            raise ValueError("Length of num_units should be greater than 1")
 
-        # num_units.append(z_dim * 2)
         self.learning_rate = learning_rate
-
         self.num_decoder_layer = len(num_units) + 1
         self.Z_DIM = z_dim
         self.num_units = num_units
@@ -147,14 +151,28 @@ class ExperimentConfig:
                                                                   dataset_name,
                                                                   self.BATCH_SIZE,
                                                                   z_dim)
-        self.DATASET_ROOT_PATH = os.path.join(self.root_path, "datasets/" + dataset_name)
+        _dataset_name = dataset_name
+        if _dataset_name =="mnist_concepts":
+            _dataset_name = "mnist"
+        self.DATASET_ROOT_PATH = os.path.join(self.root_path, "datasets/" + _dataset_name)
         self.name = name
         self.num_val_samples = num_val_samples
         self.num_cluster_config = num_cluster_config
         self.confidence_decay_factor = confidence_decay_factor
         self.manual_labels_config = manual_labels_config
         self.reconstruction_weight = reconstruction_weight
-        self.dao = get_dao(dataset_name, split_name, num_val_samples)
+        if dao is None:
+            # base_path = get_base_path()
+            #
+            self.dao = get_dao(dataset_name,
+                          split_name,
+                               num_val_samples,
+                               dataset_path=os.path.join(self.root_path, "datasets/"),
+                               concept_id = concept_id
+                          )
+        else:
+            self.dao = dao
+        self.num_val_samples = self.dao.num_validation_samples
         # self.num_train_samples = (self.dao.number_of_training_samples  // batch_size) * batch_size
         self.activation_hidden_layer = activation_hidden_layer
         self.activation_output_layer = activation_output_layer
@@ -180,6 +198,11 @@ class ExperimentConfig:
         self.uncorrelated_features = uncorrelated_features
         self.translate_image = translate_image
         self.normalize_before_saving = normalize_before_saving
+        self.concept_id = concept_id
+        self.concept_dict = concept_dict
+        self.std_dev_concept_distribution = std_dev_concept_distribution
+        self.class_weight = class_weight
+        self.training_phase = training_phase
 
     @property
     def num_train_samples(self):
@@ -233,7 +256,13 @@ class ExperimentConfig:
         config_json["NUM_DENSE_LAYER"] = self.num_dense_layers
         config_json["UNCORRELATED_FEATURES"] = self.uncorrelated_features
         config_json["TRANSLATE_IMAGE"] = self.translate_image
+        config_json["CONCEPT_ID"] = self.concept_id
+        config_json["CONCEPT_DICT"] = self.concept_dict
         config_json["NORMALIZE_BEFORE_SAVING"] = self.normalize_before_saving
+        config_json["STD_DEV_CONCEPT_DISTRIBUTION"] = self.std_dev_concept_distribution
+        config_json["CLASS_WEIGHT"] = self.class_weight
+        config_json["TRAINING_PHASE"] = self.training_phase
+
         return config_json
 
     def get_exp_name_with_parameters(self, run_id):
@@ -249,7 +278,11 @@ class ExperimentConfig:
 
         self.TRAINED_MODELS_PATH = os.path.join(self.BASE_PATH, "trained_models/")
 
-        self.DATASET_PATH = os.path.join(self.DATASET_ROOT_PATH, self.split_name + "/")
+        if self.dataset_name == "mnist_concepts":
+            dataset_temp = os.path.join(self.root_path, "datasets/" + self.dataset_name)
+            self.DATASET_PATH = os.path.join(dataset_temp, self.split_name + "/")
+        else:
+            self.DATASET_PATH = os.path.join(self.DATASET_ROOT_PATH, self.split_name + "/")
 
         self.PREDICTION_RESULTS_PATH = os.path.join(self.BASE_PATH, "prediction_results/")
         self.reconstructed_images_path = os.path.join(self.PREDICTION_RESULTS_PATH, "reconstructed_images/")
@@ -362,6 +395,11 @@ class ExperimentConfig:
         self.num_dense_layers = exp_config_dict["UNCORRELATED_FEATURES"]
         self.translate_image = exp_config["TRANSLATE_IMAGE"]
         self.normalize_before_saving = exp_config["NORMALIZE_BEFORE_SAVING"]
+        self.concept_id = exp_config["CONCEPT_ID"]
+        self.concept_dict = exp_config["CONCEPT_DICT"]
+        self.std_dev_concept_distribution = exp_config["STD_DEV_CONCEPT_DISTRIBUTION"]
+        self.class_weight = exp_config["CLASS_WEIGHT"]
+        self.training_phase = exp_config["TRAINING_PHASE"]
 
 if __name__ == "__main__":
     _root_path = "/Users/sunilv/concept_learning_exp"

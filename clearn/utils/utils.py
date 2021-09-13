@@ -18,15 +18,17 @@ import imageio
 from collections import defaultdict
 
 from clearn.config import ExperimentConfig
-# from clearn.utils.data_loader import load_test_raw_data
+from clearn.utils.data_loader import load_test_raw_data
 
 from sklearn.cluster import KMeans
 from yellowbrick.cluster import KElbowVisualizer
 from sklearn.preprocessing import MinMaxScaler
 
-
+DECONV_LAYER_PREFIX = "de_conv"
 SIGNIFICANT_THRESHOLD = 0.15
 
+def get_layer_num(deconv_layer_key):
+    return deconv_layer_key.split("_")[2]
 
 def is_convolutional_layer(layer_num, num_units, num_dense_layers):
     if layer_num >= len(num_units) - num_dense_layers :
@@ -169,6 +171,16 @@ def save_single_image(images, path, epoch, step, training_batch, eval_batch, eva
 def save_image(image, size, image_file_name):
     return imsave(inverse_transform(np.asarray(image)), size, image_file_name)
 
+# def save_image(image, size, image_file_name):
+#     scaler = MinMaxScaler(feature_range=(-0.99, 0.99))
+#     image_np = np.asarray(image)
+#     if len(image_np.shape) == 3:
+#         im = scaler.fit_transform(image_np.reshape(-1, image_np.shape[1]  * image_np.shape[2] )).reshape(image_np.shape)
+#     if len(image_np.shape) == 4:
+#         im = scaler.fit_transform(image_np.reshape(-1, image_np.shape[1]  * image_np.shape[2] * image_np.shape[3] )).reshape(image_np.shape)
+#     im1 = inverse_transform(im)
+#
+#     return imsave(im1, size, image_file_name)
 
 def save_images(images, size, image_path):
     return imsave(inverse_transform(images), size, image_path)

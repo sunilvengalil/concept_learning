@@ -5,7 +5,7 @@ import tensorflow as tf
 from clearn.utils.tensorflow_wrappers.layers import max_pool_2d, avgpool, flatten
 
 from clearn.utils.tensorflow_wrappers import conv2d, lrelu, linear, deconv2d, drop_out
-from clearn.utils.utils import is_convolutional_layer
+from clearn.utils.utils import is_convolutional_layer, DECONV_LAYER_PREFIX
 
 
 def cnn_n_layer(model, x, num_out_units, reuse=False):
@@ -152,7 +152,7 @@ def fully_deconv_n_layer(model, z, n_units,  out_channels, in_channels, reuse=Fa
                                                                         stride,
                                                                         stride,
                                                                         name=f"de_conv_{layer_num}"))
-            model.decoder_dict[f"de_conv_{layer_num}"] = de_convolved
+            model.decoder_dict[f"{DECONV_LAYER_PREFIX}_{layer_num}"] = de_convolved
             if model.exp_config.log_level == logging.DEBUG:
                 print(layer_num, model.decoder_dict[f"de_conv_{layer_num}"].shape)
             for layer_num in range(1, len(n_units)):

@@ -222,10 +222,45 @@ def initialize_model_train_and_get_features(experiment_name,
                                             total_confidence_of_wrong_annotation=0,
                                             uncorrelated_features=False,
                                             translate_image=False,
-                                            normalize_before_saving=False
+                                            concept_id = -1,
+                                            concept_dict=None,
+                                            normalize_before_saving=None
                                             ):
+    if concept_id == -1 and dataset_name == "mnist_concepts":
+        raise Exception("Parameter concept_id should be non-negative")
+
+    def get_base_path() -> str:
+        """
+        :rtype:
+        """
+
+        if len(num_units) >= 3:
+            units_ = str(num_units[-1])
+            for i in num_units[1:-1][::-1]:
+                units_ += "_" + str(i)
+        else:
+            if len(num_units) == 2:
+                units_ = "0"
+            else:
+                units_ = "0_0"
+        if num_cluster_config is None:
+            return os.path.join(os.path.join(root_path, experiment_name),
+                                f"Exp_{units_}_{num_units[0]}_{z_dim}_{run_id}/")
+        else:
+            return os.path.join(os.path.join(root_path, experiment_name),
+                                f"Exp_{units_}_{num_units[0]}_{z_dim}_{num_cluster_config}_{run_id}/")
+
     if dao is None:
-        dao = get_dao(dataset_name, split_name, num_val_samples)
+        base_path = get_base_path()
+
+        analysis_path = os.path.join(base_path, "analysis/")
+        print("root path",root_path)
+        dao = get_dao(dataset_name,
+                      split_name,
+                      num_val_samples,
+                      dataset_path=root_path+"/datasets/",
+                      concept_id = concept_id
+                      )
 
     if num_units is None:
         num_units = [64, 128, 32]
@@ -268,7 +303,10 @@ def initialize_model_train_and_get_features(experiment_name,
                                   strides=strides,
                                   uncorrelated_features=uncorrelated_features,
                                   translate_image = translate_image,
-                                  normalize_before_saving = normalize_before_saving
+                                  dao=dao,
+                                  concept_id=concept_id,
+                                  concept_dict=concept_dict,
+                                  normalize_before_saving=normalize_before_saving
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)
@@ -280,8 +318,7 @@ def initialize_model_train_and_get_features(experiment_name,
                                                          dao,
                                                          exp_config,
                                                          num_epochs_completed,
-                                                         split_name,
-                                                         translate_image
+                                                         split_name
                                                          )
 
     if test_data_iterator is None:
@@ -339,8 +376,7 @@ def get_train_val_iterator(create_split: bool,
                            dao: IDao,
                            exp_config: ExperimentConfig,
                            num_epochs_completed: int,
-                           split_name: str,
-                           translate_image=False):
+                           split_name: str):
     split_filename = exp_config.DATASET_PATH + split_name + ".json"
     manual_annotation_file_name = f"manual_annotation.csv"
 
@@ -351,20 +387,19 @@ def get_train_val_iterator(create_split: bool,
         num_concepts_per_row, num_concepts_per_col = get_num_concepts_per_image(exp_config, dao)
     else:
         num_concepts_per_row, num_concepts_per_col = 1, 1
-    if os.path.isfile(split_filename):
-        if manual_annotation_file is not None:
-            train_val_data_iterator = TrainValDataIterator.from_existing_split(dao=dao,
-                                                                               split_name=exp_config.split_name,
-                                                                               split_location=exp_config.DATASET_PATH,
-                                                                               batch_size=exp_config.BATCH_SIZE,
-                                                                               manual_labels_config=exp_config.manual_labels_config,
-                                                                               manual_annotation_file=manual_annotation_file,
-                                                                               budget=exp_config.budget,
-                                                                               num_concepts_per_image_row=num_concepts_per_row,
-                                                                               num_concepts_per_image_col=num_concepts_per_col,
-                                                                               translate_image=translate_image
-                                                                               )
-    elif create_split:
+    # if os.path.isfile(split_filename):
+    #     if manual_annotation_file is not None:
+    #         train_val_data_iterator = TrainValDataIterator.from_existing_split(dao=dao,
+    #                                                                            split_name=exp_config.split_name,
+    #                                                                            split_location=exp_config.DATASET_PATH,
+    #                                                                            batch_size=exp_config.BATCH_SIZE,
+    #                                                                            manual_labels_config=exp_config.manual_labels_config,
+    #                                                                            manual_annotation_file=manual_annotation_file,
+    #                                                                            budget=exp_config.budget,
+    #                                                                            num_concepts_per_image_row=num_concepts_per_row,
+    #                                                                            num_concepts_per_image_col=num_concepts_per_col
+    #                                                                            )
+    if True:
         train_val_data_iterator = TrainValDataIterator(dataset_path=exp_config.DATASET_ROOT_PATH,
                                                        dao=dao,
                                                        shuffle=True,
@@ -378,8 +413,7 @@ def get_train_val_iterator(create_split: bool,
                                                        seed=exp_config.seed,
                                                        budget=exp_config.budget,
                                                        num_concepts_per_image_row=num_concepts_per_row,
-                                                       num_concepts_per_image_col=num_concepts_per_col,
-                                                       translate_image=translate_image
+                                                       num_concepts_per_image_col=num_concepts_per_col
                                                        )
     else:
         raise Exception(f"File does not exists {split_filename}")

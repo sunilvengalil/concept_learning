@@ -34,8 +34,8 @@ class CiFar10Dao(IDao):
     def num_classes(self) -> int:
         return 10
 
-    def load_train(self, data_dir, shuffle):
-        tr_x, tr_y = self.load_train_val_1(data_dir)
+    def load_train(self, data_dir, shuffle, split_location=None):
+        tr_x, tr_y = self.load_train_images_and_label(data_dir)
 
         if shuffle:
             seed = 547
@@ -55,7 +55,7 @@ class CiFar10Dao(IDao):
             data_dict = pickle.load(fo, encoding='bytes')
         return data_dict
 
-    def load_train_val_1(self, data_dir):
+    def load_train_images_and_label(self, data_dir):
         ssl._create_default_https_context = ssl._create_unverified_context
         (tr_x, tr_y), (test_images, test_labels) = datasets.cifar10.load_data()
         tr_x_samples = tr_x[:self.number_of_training_samples, :, :, :]
