@@ -22,7 +22,7 @@
 % If the paper title is too long for the running head, you can set
 % an abbreviated paper title here
 %
-\author{Sunil Kumar Vengalil\inst{1} \and
+\author{Sunil Kumar Vengalil\inst{1}\orcidID{0000-0002-3808-4508} \and
 Neelam Sinha\inst{1}
 }
 %
@@ -38,7 +38,7 @@ Neelam Sinha\inst{1}
 %
 \maketitle              % typeset the header of the contribution
 %
-Paper ID 53
+% Paper ID 53
 
 \begin{abstract}
     The successful application of deep neural networks for solving complex tasks like image classification, object detection and segmentation depends critically on the availability of large number of labelled training samples.
@@ -72,10 +72,10 @@ However, all these  models suffer from the following drawbacks:
 \end{enumerate}
 
 In this work, our key focus is on how to train a neural network faster, and with less number of annotated samples, by augmenting the training process with human feedback at regular intervals.
-Instead of annotating all individual samples in the training set, we propose a novel mechanism where only a few representative samples (10-30) are annotated and the label of these samples are propagated to other training samples  which are closer to the labelled sample in the latent space.
-It is very common to use  generative models, like Variational Autoencoder (VAE) \cite{vae} and Generative Adversarial Networks \cite{gan} in order to learn a low dimensional latent representation of data.
+Instead of annotating all individual samples in the training set, we propose a novel mechanism where only a few representative samples (10-30) are annotated and the label of these samples are propagated to other training samples  which are closer to the labelled samples in the latent space.
+It is very common to use  generative models, like VAE \cite{vae} and GAN\cite{gan} in order to learn a low dimensional latent representation of data.
 It is reasonable to assume, as validated by our experimental results, that the samples which are closer in latent space have the same label.
-In this work, we augment a popular generative model, Variational Autoencoder,  by adding a classification loss so that the latent representations of samples from different classes becomes more separable.
+In this work, we augment a popular generative model, VAE,  by adding a classification loss so that the latent representations of samples from different classes becomes more separable.
 
 Our work can also be looked at  as a novel  active learning framework using deep neural networks.
 Active learning algorithms iteratively select (or generate) samples for labelling and these labelled samples are used to improve the model performance.
@@ -86,7 +86,7 @@ We perform various experiments with different clustering algorithms,  k-means an
 The major contributions of this paper are
 \begin{enumerate}
     \item We propose a novel active learning framework where a  deep learning model incrementally learns to perform a task like image classification, while at the same time learning a low dimensional representation for the input data.
-    \item Our approach starts with a completely unlabelled dataset and iteratively finds labels for the entire dataset by labelling only 10-30 representative samples during each iteration.
+    \item Our approach starts with an unlabelled dataset and iteratively finds labels for the entire dataset by labelling only 10-30 representative samples during each iteration.
     \item Our experiments show that the distribution of latent vectors becomes multi-modal, and the multiple modes become more separable with the addition of a classification loss to the $\beta$-VAE loss function \cite{beta_vae}.
 \end{enumerate}
 
@@ -95,60 +95,64 @@ We are not the first to propose active learning using deep generative modelling.
 Many of the existing work on active learning are based on either query-synthesizing or  pool-based methods.
 Where as in query synthesizing new informative samples are generated using generative models, pool-based methods \cite{wang_2016,beluch_2018} uses various sampling strategies to select a set of samples for labelling.
 Many query-synthesizing methods use adversarial networks \cite{mahapatra_2018,mayer_2020} to generate new samples for labelling.
-Our method is a combination of both query synthesizing and pool-based approach as we are generating new representative samples using clustering while at the same time selecting unlabelled samples from selected bad performing clusters.
-In their work, Samarth et al. \cite{vaal} uses Variational Autoencoder to learn a latent space along with an adversarial network to select samples for labelling from an unlabelled pool.
+Our method is a hybrid of these two methods as we are generating new representative samples using clustering while at the same time selecting unlabelled samples from bad performing clusters.
+In their work, Samarth et al. \cite{vaal} uses VAE to learn a latent space along with an adversarial network to select samples for labelling from an unlabelled pool.
 
-Our generative model is similar to the model described in \cite{kingma_2014}.
-In \cite{kingma_2014}, a low dimensional embedding of unlabelled data is learned using a deep generative model.
+Our model is similar to the model described in \cite{kingma_2014} in which a low dimensional embedding of unlabelled data is learned using a deep generative model.
 The parameters of the generative model are optimized using variational lower bound and then the latent vectors in lower dimension are classified using SVM.
 However, our work differs from \cite{kingma_2014} in respect that we introduce a novel mechanism for labelling by clustering the latent vectors.
-Also instead of using a separate SVM classifier, we augment the VAE by adding additional classification layer.
+Also instead of using a separate SVM classifier, we augment the VAE by adding an additional classification layer.
 
-\section{Proposed Method}
+Another major category of semi-supervised learning methods are based on geometric deep learning \cite{li_2018}\cite{mikhail_2006}\cite{ding_2018}.
+The basic idea behind many of these approaches is manifold regularization \cite{mikhail_2006} \cite{ding_2018}, which is based on the assumption that the support of marginal distribution lies along a low dimensional manifold embedded in the original high-dimensional space.
+Belkin et al. \cite{mikhail_2006} provides a theoretical background for manifold regularization by using properties of reproducing kernel Hilbert spaces(RKHBS).
+They propose a new class of algorithms, Laplacian Regularized Least square and Laplacian Support Vector machines, which are natural out-of-sample extensions of Regularized Least square and Transductive SVM \cite{joachims_1999}.
+Their work reports a comparative study of different algorithms like Transductive SVM\cite{joachims_1999}, Semi-supervised SVM\cite{bennett_1999}, Laplacian Regularized Least square and Laplacian Support Vector machines, on multiple datasets.
 
-\subsection{Dataset}
-We demonstrate the proposed approach by performing experiments on MNIST dataset.
-We split the 50,000 training samples in MNIST dataset into  train (70\%) and validate (30\%).
-Performance on the validation set is used for hyper parameter tuning.
-
-\subsection{Neural Network Architecture}
+Our work is similar to these geometric deep learning techniques in the sense that we also learn a low dimensional representation of the data.
+However, our work differs from these classical approaches in two different ways: 1) We start with a completely unlabelled-dataset and 2) Our models learns incrementally in an online mode as the model sees more and more new data.
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=3.2in]{vae_arch_v4}
+\includegraphics[width=1in]{images/vae_arch_v5}
 \DeclareGraphicsExtensions.
-\caption{Architecture of the proposed model. The VAE architecture, comprising of an encoder and decoder, is augmented with a softmax classification layer}
+\caption{Proposed model architecture. The VAE is augmented with a softmax classification layer}
 \label{vae_architecture}
 \end{figure}
+\section{Proposed Method}
 
-Figure \ref{vae_architecture} shows the architecture of the proposed model.
-The model follows the usual encoder-decoder architecture found in VAE.
+\subsection{Dataset}
+The proposed approach is demonstrated on the MNIST dataset.
+The 50,000 training images are split into train (70\%) and validation (30\%) sets for hyper-parameter tuning.
+
+\subsection{Neural Network Architecture}
+Fig. \ref{vae_architecture} shows the architecture of the proposed model.
+The model follows the usual encoder-decoder architecture of VAE.
 The encoder consists of one down-sampling convolutional layer followed by two dense layers.
 The decoder is made up of two dense layers and one up-sampling de-convolution layer.
 An additional softmax classification layer was added to classify the latent vectors into one of the 10 class labels.
 
 \subsection{Semi-supervised Loss Function and Training}\label{section_loss_function}
-The variational autoencoder is initially trained until the reconstruction loss converges using the beta-VAE loss function \cite{beta_vae} given below.
-% \vspace{-0.3in}
+The VAE is initially trained until the reconstruction loss converges using the $\beta$-VAE loss function \cite{beta_vae} given below.
+%\vspace{-0.3in}
 \begin{equation} \label{vae_loss_eqn}
 L_{VAE} = -\sum_{i, j}(x_{ij}^n \ln \hat{x}_{ij}^n
 + (1 - x_{ij}^n) \ln(1 -  \hat{x}_{ij}^n ) )\\
     +\beta KLD(p(z), N(0,I))
 \end{equation}
 where   $x_{ij}$ is the pixel value at position $(i, j)$ of the input image, $\hat{x}_{ij}$ is the pixel value of reconstructed image, $p(z)$ is the prior distribution of latent vectors, $N(0,I)$ is the standard multivariate normal distribution and KLD() denotes KL divergence.
-We use binary cross entropy as reconstruction loss for MNIST images, since the output activation function is sigmoid and MNIST images are treated as binary images in our experiments.
+Binary cross entropy loss is used as reconstruction loss for MNIST images, since the output activation function is sigmoid and MNIST images are treated as binary images in our experiments.
 
-Once a reasonably good latent representation is learned using the loss function mentioned above, the latent vectors of the training samples were clustered into $k=10$ clusters.
+Once a reasonably good latent representation is learned using the loss function mentioned above, the latent vectors of the training samples are clustered into $k=10$ clusters.
 The cluster centers were decoded using the decoder  and the resulting images of cluster centers were manually given a label and a confidence.
-Figure \ref{cluster_center_1} shows the reconstructed images of cluster centers after unsupervised training.
-
+Fig. \ref{cluster_center_1} shows the reconstructed images of cluster centers after unsupervised training.
 
 If the cluster center for a cluster does not correspond to any valid digit, all the samples in that cluster are again clustered into $k$ sub-clusters and  centers of the sub-clusters are labelled.
 The process can be continued to form clusters at multiple levels based on the available manual annotation budget.
-The labels assigned to the cluster center is then propagated to all other samples in the cluster using the following strategy
+The labels assigned to the cluster center is then propagated to all other samples in the cluster using the following strategy:
 \begin{enumerate}
     \item Each sample in the cluster is assigned with the  same label as the cluster center.
-    \item Each sample is also given a confidence based on its distance from cluster center and  a manually assigned confidence in the range of [0,1]. The overall confidence of  training sample $x^n$ is computed as $$w_n = p_cf(d_n)$$
+    \item Each sample is also given a confidence based on its distance from cluster center and  a manually assigned confidence in the range of [0,1]. The overall confidence of  training sample $x^n$ is computed as $w_n = p_cf(d_n)$
 where $d_n$ is the distance of the sample from its cluster center, $p_c$  is the confidence manually assigned to the cluster center and $f: d \mapsto [0,1]$ is a monotonically decreasing function that maps distance to a confidence value in unit interval [0,1].
 \end{enumerate}
 
@@ -170,32 +174,26 @@ where $d_n$ is the distance of the sample from its cluster center, $p_c$  is the
 \label{cluster_center}
 \end{figure}
 
-We performed experiments with different choices for the distance metric (Euclidean and Mahalanobis) and confidence decay function- exponential (Equation \ref{exp_decay}) vs Gaussian (Equation \ref{gaussian_decay}).
+Experiments were performed with different choices for  clustering algorithm (k-means and GMM), the distance metric (Euclidean and Mahalanobis) and confidence decay function- exponential (Equation \ref{exp_decay}) vs Gaussian (Equation \ref{gaussian_decay}).
 \begin{equation}
     w_n = p_ce^{-a d_n}
     \label{exp_decay}
 \end{equation}
 
-%\vspace{-0.2in}
+\vspace{-0.2in}
 \begin{equation}
     w_n = p_ce^{-a d_n^2}
     \label{gaussian_decay}
 \end{equation}
 where $a$ is a hyper parameter determining how fast the confidence decreases with the distance from cluster center.
-
-
+With GMM, product of posterior probability of the sample and cluster center confidence $p_c$ was used as the overall sample confidence.
 Training is continued for more epochs using the modified loss function, given below, that incorporates the manual labels and confidence into account.
 \begin{equation} \label{semi_supervised_loss}
 L = L_{VAE}  - \gamma \sum_{k=0}^{K}w_{n}y_{nk}\ln(\hat{y}_{nk})
 \end{equation}
 
 where $y_{nk}$ is the one-hot encoded label and $\hat{y}_{nk}$ is the predicted softmax probability.
-The new term that we added to the loss is the weighted multi-class cross entropy loss for classification task.
-
-
-We performed experiments using GMM and k-means clustering.
-With GMM, we directly used the product of posterior probability of the sample and cluster center confidence $p_c$ as the overall sample confidence.
-
+The new term added to the loss is the weighted multi-class cross entropy loss for classification task.
 
 \section{Results and Discussions}
 
@@ -213,21 +211,18 @@ This is expected as exponential function decreases at a faster rate near zero.
 Hence, the confidence for samples closer to the cluster center decreases at a faster rate as it moves away from cluster center.
 Whereas  with Gaussian confidence function, since the gradient of the curve is close to zero near cluster center, samples closer to the cluster center will have almost the same confidence as the cluster center confidence $p_c$.
 
-
 With k-means clustering, using Mahalanobis distance instead of Euclidean distance gives a better classification accuracy during initial iterations.
-From the latent space distribution shown in Figure \ref{tsne_semi_4_9} and Figure \ref{tsne_semi}, it is evident that the clusters have different variance along different directions which is captured well in Mahalanobis distance.
+From the latent space distribution shown in Fig. \ref{tsne_semi_4_9} and Fig. \ref{tsne_semi}, it is evident that the clusters have different variance along different directions which is captured well in Mahalanobis distance.
 For the same reason, GMM performs better than k-means clustering.
-Note that with GMM, posterior probability of samples is used as confidence.
-Hence, there is no need for confidence function to map distance to confidence.
 
-The reconstructed images of cluster centers shown in Figure \ref{cluster_center_1} and Figure \ref{cluster_center_5} shows that as training progresses, the clusters formed in latent space correspond to different classes in MNIST dataset.
-In Figure \ref{cluster_center_1} some of the cluster centers do not correspond to any valid digit, and some digits like 4  are missing.
+The reconstructed images of cluster centers shown in Fig. \ref{cluster_center} shows that as training progresses, the clusters formed in latent space correspond to different classes in MNIST dataset.
+In Fig. \ref{cluster_center_1} some of the cluster centers do not correspond to any valid digit, and some digits like 4  are missing.
 This is happening because the latent vectors for some classes, like  4 and 9 for example,  were very similar and got clustered into the same cluster.
 However, after a few iterations of semi-supervised training, the latent vectors for symbol 9 and 4 are getting clustered into different clusters.
-This is also evident from the t-SNE visualization of latent space shown in Figure \ref{tsne_un_4_9} and Figure \ref{tsne_semi_4_9}.
+This is also evident from the t-SNE visualization of latent space shown in Fig. \ref{tsne_4_9}.
 
-Figure \ref{tsne} shows the 2-d t-SNE visualization of the latent vector distribution for the entire training set with unsupervised and semi-supervised training.
-It is observed that the distribution of samples from different classes becomes more separable with semi-supervised learning.
+Fig. \ref{tsne} shows the 2-d t-SNE visualization of the latent vector distribution for the entire training set.
+The distribution of samples from different classes becomes more separable with semi-supervised learning.
 
 \begin{figure}[!t]
 \centering
@@ -237,40 +232,21 @@ It is observed that the distribution of samples from different classes becomes m
 \label{classificaion_acc}
 \end{figure}
 
-
-%\begin{figure}[!t]
-%\centering
-%\begin{minipage}{.5\textwidth}
-%  \centering
-%  \includegraphics[width=.9\linewidth]{classification_acc_unsupervised}
-%  \captionof{figure}{Classification accuracy during initial unsupervised training}
-%  \label{classification_acc_unsupervised}
-%\end{minipage}%
-%\begin{minipage}{.5\textwidth}
-%  \centering
-%  \includegraphics[width=.9\linewidth]{classification_acc_semi_supervised}
-%  \captionof{figure}{Classification accuracy with semi-supervised training. 5 iterations of semi-supervised training was run after epoch 10}
-%  \label{classification_acc_semi_supervised}
-%\end{minipage}
-%%    \label{classificaion_acc}
-%%    \caption{Classification accuracy}
-%\end{figure}
-
-Figure \ref{classificaion_acc} shows the  classification accuracy on test dataset.
+Fig. \ref{classificaion_acc} shows the  classification accuracy on test dataset.
 Initial 10 epochs were trained in unsupervised mode and classification loss was added after that.
-After 5 iterations of semi-supervised training, we were able to get a classification accuracy of 93.9\% on MNIST test dataset.
+After 5 iterations of semi-supervised training, the classification accuracy increased to 93.9\% on MNIST test dataset.
 
 \begin{figure}[!t]
 \centering
-\begin{subfigure}[t]{.45\textwidth}
+\begin{subfigure}[t]{.4\textwidth}
   \centering
-  \includegraphics[width=0.9\linewidth]{images/tsne_4_9_unsup.jpg}
+  \includegraphics[width=0.8\linewidth]{images/tsne_4_9_unsup.jpg}
   \caption{With unsupervised training}
   \label{tsne_un_4_9}
 \end{subfigure}\hfill
-\begin{subfigure}[t]{.45\textwidth}
+\begin{subfigure}[t]{.4\textwidth}
   \centering
-  \includegraphics[width=0.9\linewidth]{tsne_4_9_semi.jpg}
+  \includegraphics[width=0.8\linewidth]{images/tsne_4_9_semi.jpg}
   \caption{Semi-supervised - 5 iterations}
   \label{tsne_semi_4_9}
 \end{subfigure}
@@ -278,54 +254,17 @@ After 5 iterations of semi-supervised training, we were able to get a classifica
 \label{tsne_4_9}
 \end{figure}
 
-%\begin{figure}
-%\centering
-%\begin{minipage}{.5\textwidth}
-%  \centering
-%  \includegraphics[width=.9\linewidth]{tsne_4_9_unsup.jpg}
-%  \captionof{figure}{Distribution of latent vectors for samples from class 4 and 9 with unsupervised training.}
-%  \label{tsne_un_4_9}
-%\end{minipage}%
-%\begin{minipage}{.5\textwidth}
-%  \centering
-%  \includegraphics[width=.9\linewidth]{tsne_4_9_semi.jpg}
-%  \captionof{figure}{2-d t-SNE visualization of latent space for class 4 and 9 after semi-supervised training.}
-%  \label{tsne_semi_4_9}
-%\end{minipage}
-%%    \label{tsne}
-%%    \caption{2-d tsne visualization of learned latent space distribution}
-%\end{figure}
-
-
-%\begin{figure}
-%\centering
-%\begin{minipage}{.5\textwidth}
-%  \centering
-%  \includegraphics[width=.9\linewidth]{tsne_unsup.jpg}
-%  \captionof{figure}{Unsupervised}
-%  \label{tsne_un}
-%\end{minipage}%
-%\begin{minipage}{.5\textwidth}
-%  \centering
-%  \includegraphics[width=.9\linewidth]{tsne_semi.jpg}
-%  \captionof{figure}{Semi-supervised}
-%  \label{tsne_semi}
-%\end{minipage}
-%%    \label{tsne}
-%%    \caption{2-d tsne visualization of learned latent space distribution}
-%\end{figure}
-
 \begin{figure}
 \centering
 \begin{subfigure}[t]{.45\textwidth}
   \centering
-  \includegraphics[width=.8\linewidth]{tsne_unsup.jpg}
+  \includegraphics[width=.8\linewidth]{images/tsne_unsup.jpg}
   \caption{With unsupervised training}
   \label{tsne_un}
 \end{subfigure}\hfill
 \begin{subfigure}[t]{.45\textwidth}
   \centering
-  \includegraphics[width=.8\linewidth]{tsne_semi.jpg}
+  \includegraphics[width=.8\linewidth]{images/tsne_semi.jpg}
   \caption{Semi-supervised - 5 iterations }
   \label{tsne_semi}
 \end{subfigure}
@@ -338,7 +277,7 @@ Our approach is demonstrated by classifying MNIST images without using labels pr
 We performed multiple experiments with different choices for hyper parameters like clustering algorithm, distance metric and confidence function.
 Our experiments shows that GMM, when used as a clustering algorithm,  gives the best classification accuracy of 93.9\% on MNIST test dataset after 5 iterations.
 It is observed, using 2-d t-SNE visualization, that  semantically valid and separable clusters are formed as a result of semi-supervised learning.
-\clearpage
+% \clearpage
 %
 % ---- Bibliography ----
 %
@@ -366,11 +305,11 @@ It is observed, using 2-d t-SNE visualization, that  semantically valid and sepa
     \bibitem{beta_vae}
     Higgins, Irina, et al. beta-vae: Learning basic visual concepts with a constrained variational framework. (2016)
     \bibitem{kingma_2014}
-    Kingma, Diederik P., et al. Semi-supervised learning with deep generative models. arXiv preprint arXiv:1406.5298 (2014)
+    Kingma, Diederik P., et al. Semi-supervised learning with deep generative models. Advances in Neural Information Processing Systems 2014.
     \bibitem{vaal}
     Sinha, Samarth, Sayna Ebrahimi, and Trevor Darrell. Variational adversarial active learning. Proceedings of the IEEE/CVF International Conference on Computer Vision. 2019
     \bibitem{vae}
-    Kingma, Diederik P., and Max Welling. Auto-encoding variational bayes. arXiv preprint arXiv:1312.6114 (2013).
+    Kingma, Diederik P., and Max Welling. Auto-encoding variational bayes. 2nd International Conference on Learning Representations, {ICLR} 2014.
     \bibitem{gan}
     Goodfellow, Ian J., et al. Generative adversarial networks. arXiv preprint arXiv:1406.2661 (2014).
     \bibitem{mahapatra_2018}
@@ -381,5 +320,15 @@ It is observed, using 2-d t-SNE visualization, that  semantically valid and sepa
     Wang, Keze, et al. Cost-effective active learning for deep image classification. IEEE Transactions on Circuits and Systems for Video Technology 27.12 (2016): 2591-2600.
     \bibitem{beluch_2018}
     Beluch, William H., et al. The power of ensembles for active learning in image classification. Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2018.
+    \bibitem{mikhail_2006}
+    Belkin, Mikhail, Partha Niyogi, and Vikas Sindhwani. Manifold regularization: A geometric framework for learning from labeled and unlabeled examples. Journal of machine learning research 7.11 (2006).
+    \bibitem{ding_2018}
+    Ding, S., Xi, X., Liu, Z. et al. A Novel Manifold Regularized Online Semi-supervised Learning Model. Cogn Comput 10, 49–61 (2018).
+    \bibitem{li_2018}
+    Li, Qimai, Zhichao Han, and Xiao-Ming Wu. Deeper insights into graph convolutional networks for semi-supervised learning. Thirty-Second AAAI conference on artificial intelligence. 2018.
+    \bibitem{joachims_1999}
+    Joachims, Thorsten. Transductive inference for text classification using support vector machines. Icml. Vol. 99. 1999.
+    \bibitem{bennett_1999}
+    Bennett, Kristin, and Ayhan Demiriz. Semi-supervised support vector machines. Advances in Neural Information processing systems (1999): 368-374.
 \end{thebibliography}
 \end{document}
