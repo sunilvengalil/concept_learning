@@ -68,7 +68,7 @@ However, all these  models suffer from the following drawbacks:
 \begin{enumerate}
   \item Lack of explainability.
   \item Need for huge amount of labelled data for supervised tasks.
-  \item Large computing resources are required to train complex models with millions of parameters.
+  \item Need for large computing resources to train models with millions of parameters.
 \end{enumerate}
 
 In this work, our key focus is on how to train a neural network faster, and with less number of labelled samples, by augmenting the training process with human feedback at regular intervals.
@@ -86,7 +86,7 @@ The major contributions of this paper are
 \begin{enumerate}
     \item We propose a novel active learning framework where a  deep learning model incrementally learns to perform a task like image classification, while at the same time learning a low dimensional representation for the input data.
     \item Our approach starts with an unlabelled dataset and iteratively finds labels for the entire dataset by labelling only 10-30 representative samples during each iteration.
-    \item Our experiments show that the distribution of latent vectors becomes multi-modal, and the multiple modes become more separable with the addition of a classification loss to the $\beta$-VAE loss function \cite{beta_vae}.
+    \item Our results show that the distribution of latent vectors becomes multi-modal, and the multiple modes become more separable with the addition of a classification loss to the $\beta$-VAE loss function \cite{beta_vae}.
 \end{enumerate}
 
 \section{Related Work}
@@ -100,8 +100,8 @@ Our model is similar to the model described in \cite{kingma_2014} in which a low
 However, our work differs from \cite{kingma_2014} in respect that we introduce a novel mechanism for labelling by clustering the latent vectors.
 Also instead of using a separate SVM classifier, we augment the VAE by adding an additional classification layer.
 
-Another major category of semi-supervised learning methods are based on geometric deep learning \cite{li_2018}\cite{mikhail_2006}\cite{ding_2018}.
-The basic idea behind these approaches is manifold regularization \cite{mikhail_2006} \cite{ding_2018}, which is based on the assumption that the support of marginal distribution lies along a low dimensional manifold embedded in the original high-dimensional space.
+Another major category of semi-supervised learning methods are based on geometric deep learning \cite{mikhail_2006,ding_2018,li_2018}.
+The basic idea behind these approaches is manifold regularization \cite{mikhail_2006,ding_2018}, which is based on the assumption that the support of marginal distribution lies along a low dimensional manifold embedded in the original high-dimensional space.
 Belkin et al. \cite{mikhail_2006} provides a theoretical background for manifold regularization by using properties of reproducing kernel Hilbert spaces(RKHS).
 They propose a new class of algorithms, Laplacian Regularized Least Squares(LaRLS) and Laplacian Support Vector machines(LaSVM), which are natural out-of-sample extensions of Regularized Least Squares and Transductive SVM(TSVM) \cite{joachims_1999}.
 They report a comparison of different algorithms like TSVM, Semi-supervised SVM\cite{bennett_1999}, LaRLS and LaSVM.
@@ -123,7 +123,7 @@ The 50,000 training images are split into train (70\%) and validation (30\%) set
 
 \subsection{Neural Network Architecture}
 Fig.\ref{vae_architecture} shows the architecture of the proposed model.
-The model follows the usual encoder-decoder architecture of VAE.
+The model follows the encoder-decoder architecture of VAE.
 The encoder consists of one down-sampling convolutional layer followed by two dense layers.
 The decoder is made up of two dense layers and one up-sampling de-convolution layer.
 An additional softmax classification layer was added to classify the latent vectors into one of the 10 class labels.
@@ -219,9 +219,9 @@ This is also evident from the t-SNE visualization of latent space shown in Fig.\
 
 Fig.\ref{tsne} shows the 2-d t-SNE visualization of the latent vector distribution for the entire training set.
 The distribution of samples from different classes becomes more separable with semi-supervised learning.
-Fig.\ref{classificaion_acc} shows the  classification accuracy on test dataset.
+Fig.\ref{classificaion_acc} shows the  classification accuracy on the test dataset.
 Initial 10 epochs were trained in unsupervised mode and classification loss was added after that.
-After 5 iterations of semi-supervised training, the classification accuracy increased to 93.9\% on MNIST test dataset.
+After 5 iterations of semi-supervised training, the classification accuracy increased to 93.9\% on the MNIST test dataset.
 
 \begin{figure}[!t]
 \centering
@@ -267,7 +267,7 @@ After 5 iterations of semi-supervised training, the classification accuracy incr
 \label{tsne}
 \end{figure}
 \section{Conclusion}
-In this paper, we propose a novel deep learning based active learning framework for solving complex tasks like image classification using clusters formed in the low dimensional latent space learned by a variational autoencoder.
+In this paper, we propose a novel deep learning based active learning framework for solving tasks like image classification using clusters formed in the low dimensional latent space learned by a variational autoencoder.
 Our approach is demonstrated by classifying MNIST images without using labels provided in the dataset.
 We performed multiple experiments with different choices for hyper parameters like clustering algorithm, distance metric and confidence function.
 Our experiments show that GMM, when used as a clustering algorithm,  gives the best classification accuracy of 93.9\% on the MNIST test dataset after 5 iterations.
