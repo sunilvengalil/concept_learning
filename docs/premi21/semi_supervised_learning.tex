@@ -60,14 +60,14 @@ With GMM clustering, best classification accuracy of 93.9\% was obtained on MNIS
 %
 %
 \section{Introduction}
-Deep neural networks have been successfully applied  for performing machine learning tasks like classification \cite{alexnet,vggnet,resnet}, object detection \cite{faster_rcnn,yolo} and segmentation \cite{deeplab,unet} in images and videos.
+Deep neural networks have been successfully applied  for performing tasks like classification \cite{alexnet,vggnet,resnet}, object detection \cite{faster_rcnn,yolo} and segmentation \cite{deeplab,unet} in images and videos.
 Recently, multi-layer deep neural networks have been identified as  effective  choices for  generative models also, Variational Autoencoder (VAE) \cite{vae} and Generative Adversarial networks (GAN) \cite{gan} being the most common examples.
-One of the key tenets on which all these models work is  based upon the ability to learn a complex, parameterized unknown function using back propagation.
+One of the key tenets on which all these models work is  based upon the ability to learn a complex, parameterized function using back propagation.
 When trained with a huge amount of data for long enough durations and with appropriate regularization techniques, these networks are capable of learning functions that generalize well.
 However, all these  models suffer from the following drawbacks:
 \begin{enumerate}
   \item Lack of explainability.
-  \item Need for huge amount of labelled data for supervised tasks like classification, object detection and segmentation.
+  \item Need for huge amount of labelled data for supervised tasks.
   \item Large computing resources are required to train complex models with millions of parameters.
 \end{enumerate}
 
@@ -80,8 +80,7 @@ In this work, we augment a popular generative model, VAE,  by adding a classific
 Our work can also be looked at  as a novel  active learning framework using deep neural networks.
 Active learning algorithms iteratively select (or generate) samples for labelling and these labelled samples are used to improve the model performance.
 The goal is to obtain sufficiently good performance of the trained model using as few labelled samples as possible.
-
-Results of experiments with different clustering algorithms and  different distance metrics are reported in this study.
+We report results of experiments with different clustering algorithms and distance metrics.
 
 The major contributions of this paper are
 \begin{enumerate}
@@ -95,10 +94,9 @@ Many of the existing work on active learning are based on either query-synthesiz
 Whereas in query synthesizing new informative samples are generated using generative models, pool-based methods \cite{wang_2016,beluch_2018} uses various sampling strategies to select a set of samples for labelling.
 Many query-synthesizing methods use adversarial networks \cite{mahapatra_2018,mayer_2020} to generate new samples for labelling.
 Our method is a hybrid of these two methods as we are generating new representative samples using clustering while at the same time selecting unlabelled samples from bad performing clusters.
-In their work, Samarth et al. \cite{vaal} uses VAE to learn a latent space along with an adversarial network to select samples for labelling from an unlabelled pool.
+Samarth et al. \cite{vaal} uses VAE to learn a latent space along with an adversarial network to select samples for labelling from an unlabelled pool.
 
-Our model is similar to the model described in \cite{kingma_2014} in which a low dimensional embedding of unlabelled data is learned using a deep generative model.
-The parameters of the generative model are optimized using variational lower bound and then the latent vectors in lower dimension are classified using SVM.
+Our model is similar to the model described in \cite{kingma_2014} in which a low dimensional embedding of unlabelled data is learned using a generative model whose parameters are optimized using variational lower bound and the latent vectors are classified using SVM.
 However, our work differs from \cite{kingma_2014} in respect that we introduce a novel mechanism for labelling by clustering the latent vectors.
 Also instead of using a separate SVM classifier, we augment the VAE by adding an additional classification layer.
 
@@ -108,12 +106,11 @@ Belkin et al. \cite{mikhail_2006} provides a theoretical background for manifold
 They propose a new class of algorithms, Laplacian Regularized Least Squares(LaRLS) and Laplacian Support Vector machines(LaSVM), which are natural out-of-sample extensions of Regularized Least Squares and Transductive SVM(TSVM) \cite{joachims_1999}.
 They report a comparison of different algorithms like TSVM, Semi-supervised SVM\cite{bennett_1999}, LaRLS and LaSVM.
 
-Our work is similar to these geometric deep learning techniques in the sense that we also learn a low dimensional representation of the data.
-However, our work differs from these classical approaches in two different ways: 1) We start with a completely unlabelled-dataset and 2) Our model learns incrementally in an online mode as the model sees more and more data.
+Our work differs from these classical approaches in two different ways: 1) We start with a completely unlabelled-dataset and 2) Our model learns incrementally in an online mode as the model sees more unseen data.
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=2.4in]{images/var_arch_v5.jpg}
+\includegraphics[width=2.1in]{images/var_arch_v5.jpg}
 \DeclareGraphicsExtensions.
 \caption{Proposed architecture. The VAE is augmented with a classification layer}
 \label{vae_architecture}
@@ -143,7 +140,7 @@ where   $x_{ij}$ is the pixel value at position $(i, j)$ of the input image, $\h
 Binary cross entropy loss is used as reconstruction loss for MNIST images, since the output activation function is sigmoid and MNIST images are treated as binary images in our experiments.
 
 Once a reasonably good latent representation is learned using the loss function mentioned above, the latent vectors of the training samples are clustered into $k=10$ clusters.
-The cluster centers were decoded using the decoder  and the resulting images of cluster centers were manually given a label and a confidence.
+The cluster centers were decoded and the resulting images were manually given a label and a confidence.
 Fig.\ref{cluster_center_1} shows the reconstructed images of cluster centers after unsupervised training.
 
 If the cluster center for a cluster does not correspond to any valid digit, all the samples in that cluster are again clustered into $k$ sub-clusters and  centers of the sub-clusters are labelled.
@@ -155,7 +152,7 @@ The labels assigned to the cluster center is then propagated to all other sample
 where $d_n$ is the distance of the sample from its cluster center, $p_c$  is the the cluster center confidence  and $f: d \mapsto [0,1]$ is a monotonically decreasing function that maps distance to a confidence value in unit interval [0,1].
 \end{enumerate}
 
-\begin{figure}[!t]
+\begin{figure}
 \centering
 \begin{subfigure}[t]{.45\textwidth}
   \centering
@@ -196,7 +193,7 @@ The new term added to the loss is the weighted multi-class cross entropy loss fo
 
 \section{Results and Discussions}
 
-\begin{figure}[!t]
+\begin{figure}
 \centering
   \centering
   \includegraphics[width=.6\linewidth]{images/classification_accuracy_hyperparameter}
@@ -291,7 +288,7 @@ It is observed, using 2-d t-SNE visualization, that  semantically valid and sepa
     \bibitem{alexnet}
     Krizhevsky, Alex, Ilya Sutskever, and Geoffrey E. Hinton. Imagenet classification with deep convolutional neural networks. Advances in neural information processing systems 25 (2012): 1097-1105
     \bibitem{vggnet}
-    Simonyan, Karen, and Andrew Zisserman. Very deep convolutional networks for large-scale image recognition. arXiv preprint arXiv:1409.1556 (2014).
+    Simonyan, Karen, and Andrew Zisserman. Very deep convolutional networks for large-scale image recognition. 3rd International Conference on Learning Representations, {ICLR} 2015.
     \bibitem{resnet}
     He, Kaiming, et al. Deep residual learning for image recognition. Proceedings of the IEEE conference on computer vision and pattern recognition. 2016.
     \bibitem{deeplab}
@@ -301,7 +298,7 @@ It is observed, using 2-d t-SNE visualization, that  semantically valid and sepa
     \bibitem{yolo}
     Redmon, Joseph, et al. You only look once: Unified, real-time object detection. Proceedings of the IEEE conference on computer vision and pattern recognition. 2016.
     \bibitem{faster_rcnn}
-    Ren, Shaoqing, et al. Faster r-cnn: Towards real-time object detection with region proposal networks. arXiv preprint arXiv:1506.01497 (2015).
+    Ren, Shaoqing, et al. Faster r-cnn: Towards real-time object detection with region proposal networks. Advances in neural information processing systems 28 (2015): 91-99.
     \bibitem{beta_vae}
     Higgins, Irina, et al. beta-vae: Learning basic visual concepts with a constrained variational framework. (2016)
     \bibitem{kingma_2014}
@@ -311,7 +308,7 @@ It is observed, using 2-d t-SNE visualization, that  semantically valid and sepa
     \bibitem{vae}
     Kingma, Diederik P., and Max Welling. Auto-encoding variational bayes. 2nd International Conference on Learning Representations, {ICLR} 2014.
     \bibitem{gan}
-    Goodfellow, Ian J., et al. Generative adversarial networks. arXiv preprint arXiv:1406.2661 (2014).
+    Goodfellow, Ian, et al. Generative adversarial nets. Advances in neural information processing systems 27 (2014).
     \bibitem{mahapatra_2018}
     Mahapatra, Dwarikanath, et al. Efficient active learning for image classification and segmentation using a sample selection and conditional generative adversarial network. International Conference on Medical Image Computing and Computer-Assisted Intervention. Springer, Cham, 2018.
     \bibitem{mayer_2020}
