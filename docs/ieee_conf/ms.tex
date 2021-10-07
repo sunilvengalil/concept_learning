@@ -139,25 +139,25 @@ Standard deviation for all distributions were kept as 1 pixel in our experiments
 We introduce a loss, which we call “concept loss” per  decoder layer and per feature map in the selected hidden layers of the decoder of variational autoencoders (VAE).
 Sample visual concepts derived from the training images are used as ground truth for computing the loss for this layer.
 For our experiments, we used mean squared error between the feature map and concept ground truth as the loss component.
-In our case, the encoder and decoder had 5 hidden layers and the concept loss was applied at the third hidden layer as this is closer to the output layer.
+In our case, the encoder and decoder had 5 hidden layers and the concept loss was applied at the third hidden layer of the decoder as this is closer to the output layer.
 We leave the fourth layer of decoder to learn new derived images from the primitive visual concepts introduced at the third layer.
-Mean squared error between original training images and the predicted images is used as loss at the output layer as in usual VAE.
+Mean squared error between original training images and the predicted images is used as loss at the output layer as in traditional VAE.
 
 \subsection{Generating Training Samples}
 
-The below steps were followed  to generate additional random samples for each of the  visual concept in Figure \ref{visual_concept}
+The steps followed to generate additional random samples for each of the  visual concept  shown in Figure \ref{visual_concept} is given below.
 \begin{enumerate}
-\item Create multiple clusters with representative images for each class in the training dataset using below steps
+\item Create multiple clusters with representative images for each class in the training dataset using below steps:
  \begin{enumerate}
      \item Cluster the latent images, learned by VAE,  of all training images into 10 clusters.
       \item Decode the cluster cluster center images using the decoder of VAE. The decoded images are shown in Figure \ref{cluster_center_lv_class}. This forms a set of 10  representative images one for each digit in MNIST dataset.
   \end{enumerate}
 \item Choose a random image, either from the training set (with probability  $p$) or from the cluster center image (with probability $1-p$).
  The parameter $p$ can be adjusted to control the diversity of samples generated for each visual concept.
-A value of $p$ closer 1 will generate visual concepts from individual training samples most of the time and hence will create a dataset with large variance.
-On the other hand, a value close to zero will generate most of the concepts from cluster center images and hence will have less variance. In our experiments, we used $p=0.8$.
-\item Get the value of height, width and location of the segment by sampling from the respective distributions.
-\item Take a segment from the selected image of the digit with the height, width and location.
+A value of $p$ closer to 1 will generate visual concepts from individual training samples most of the time and hence will create a dataset with large variance.
+On the other hand, a value close to zero will generate most of the concepts from cluster center images and hence the generated concept images will have less variance. In our experiments, we used $p=0.8$.
+\item \label{sample_concept_loc} Get the value of height, width and location of the segment by sampling from the respective distributions.
+\item Take a segment from the selected image of the digit with the height, width and location obtained in step \ref{sample_concept_loc} above.
 \end{enumerate}
 
 Each generated sample is given a label based on the visual concept from which it was generated.
@@ -172,7 +172,7 @@ We trained the network for 50 epochs and performed the following clustering oper
     \item Cluster the latent vectors corresponding to all the training images with label 0-9 (i.e., the training samples for the original MNIST images) into 10 clusters.
     \item Cluster the latent vectors corresponding to all the training images with label 10-27 (i.e., the training samples for the generated visual concept) into 18 clusters.
     \item Cluster the layer 3 feature maps with concept loss added into 18 clusters.
-    \item Cluster the layer 3 feature maps without concept loss into18 clusters.
+    \item Cluster the layer 3 feature maps without concept loss into 18 clusters.
     \end{enumerate}
 
 Cluster centers of latent images were decoded using the decoder of the VAE.
