@@ -223,6 +223,7 @@ class SemiSupervisedClassifierMnist(VAE):
             # get batch data
             supervised_loss_concepts_batch = []
             supervised_loss_concepts_for_epoch = 0
+            batch = -1
             for batch in range(start_batch_id, self.num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
@@ -360,11 +361,15 @@ class SemiSupervisedClassifierMnist(VAE):
                         print(f"Epoch: {epoch}/{batch}, Loss:{loss} Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}")
 
                 else:
-                    print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} ")
+                    print(f"Epoch: {epoch}/{batch}, Loss:{loss} Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} ")
                 self.counter += 1
                 self.num_steps_completed = batch + 1
                 # self.writer.add_summary(summary_str, self.counter - 1)
+            if batch == -1 :
+                start_batch_id = 0
+                continue
             print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss},  Supervised loss concept {supervised_loss_concepts_for_epoch}")
+            print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss}")
             self.num_training_epochs_completed = epoch + 1
             print(f"Completed {epoch} epochs")
             if self.exp_config.run_evaluation_during_training:
@@ -383,6 +388,7 @@ class SemiSupervisedClassifierMnist(VAE):
                     for metric in self.metrics_to_compute:
                         print(f"{metric}: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
                         print(f"{metric}: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
+                        if self.test_data_iterator is not None:
                         print(f"{metric}: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
                     self.save_metrics()
                     evaluation_run_for_last_epoch = True
@@ -412,7 +418,8 @@ class SemiSupervisedClassifierMnist(VAE):
         for metric in self.metrics_to_compute:
             print(f"Accuracy: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
             print(f"Accuracy: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
-            print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
+            if self.test_data_iterator is not None:
+                print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
 
         self.save_metrics()
 
