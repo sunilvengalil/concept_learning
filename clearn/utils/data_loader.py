@@ -271,7 +271,7 @@ class TrainValDataIterator:
                     manual_annotation[i, num_labels] = 0  # set manual annotation confidence as 0
                     manual_annotation[i, num_labels + 1] = 3
         elif self.manual_labels_config == ExperimentConfig.USE_ACTUAL:
-            if actual_labels is not None and actual_labels.shape[0] == len(self.trai_xn):
+            if actual_labels is not None and actual_labels.shape[0] == len(self.train_x):
                 manual_annotation = np.zeros((len(self.train_x), num_labels + 1), dtype=np.float)
                 if self.budget < 1:
                     indices = np.random.choice(len(self.train_x), int(self.budget * len(self.train_x)), replace=False)

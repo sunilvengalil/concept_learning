@@ -8,6 +8,7 @@ import seaborn as sns
 import cv2
 import os
 
+from clearn import dao
 from clearn.config import ExperimentConfig
 from clearn.dao.dao_factory import get_dao
 from clearn.utils.dir_utils import get_eval_result_dir
