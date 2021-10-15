@@ -3,7 +3,7 @@ import numpy as np
 from clearn.models.generative_model import GenerativeModel
 
 
-def decode(model:GenerativeModel, z, batch_size):
+def decode(model: GenerativeModel, z, batch_size):
     """
     z =
     """
@@ -25,7 +25,7 @@ def decode(model:GenerativeModel, z, batch_size):
     return reconstructed_images
 
 
-def decode_l3(model:GenerativeModel, z: np.ndarray, batch_size:int):
+def decode_l3(model: GenerativeModel, z: np.ndarray, batch_size: int):
     """
     z =
     """
@@ -102,7 +102,7 @@ def encode(model, images, batch_size, z_dim):
         feature_dimension = [batch_size, model.dao.image_shape[0], model.dao.image_shape[1], model.dao.image_shape[2]]
         last_batch = np.zeros(feature_dimension)
         last_batch[0:left_out] = images[num_batches * batch_size:]
-        mu, sigma, z = model.encode(last_batch)
+        mu, sigma, z, _ = model.encode(last_batch)
         latent_vectors[num_batches * batch_size:] = z[0:left_out]
     return latent_vectors
 
@@ -141,7 +141,6 @@ def decode_and_get_features(model: GenerativeModel, z: np.ndarray, batch_size: i
                                                        )
             features_dict[feature_name][num_batches * batch_size:] = decoded_images_and_features[i + 1][0:left_out]
 
-
     return feature_names, reconstructed_images, features_dict
 
 
@@ -169,7 +168,6 @@ def encode_and_get_features(model: GenerativeModel,
                                                        )
             features_dict[feature_name][batch_num * batch_size: (batch_num + 1) * batch_size] = encoded_features[i]
 
-
     left_out = num_images % batch_size
     if left_out > 0:
         feature_dimension = [batch_size, model.dao.image_shape[0], model.dao.image_shape[1], model.dao.image_shape[2]]
@@ -188,7 +186,4 @@ def encode_and_get_features(model: GenerativeModel,
                                                        )
             features_dict[feature_name][num_batches * batch_size:] = encoded_features[i]
 
-
-
     return mus, sigmas, latent_vectors, features_dict
-

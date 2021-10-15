@@ -1,7 +1,5 @@
-import os
 from glob import glob
 
-import cv2
 import numpy as np
 from PIL import Image
 
@@ -58,24 +56,20 @@ class DriveDao(IDao):
         x = np.zeros(( 20, 512, 512, 3))
         image_num = 0
         for file in glob(x_path):
-            print(file)
             image = Image.open(file)
 #            gt_file = file.replace("image", "mask")
-#            print(gt_file)
 #            gt = Image.open(gt_file)
             image = np.asarray(image)
             # gt = np.asarray(gt)
 
-            print(image.shape)
-            # print(gt.shape)
             x[image_num] = image
-#            y[image_num ] = gt
+#           y[image_num ] = gt
             image_num += 1
-        print(x.shape)
         y = np.zeros(x.shape[0])
         return x, y
 
-    def load_train_images_and_label(self, data_dir,
+    def load_train_images_and_label(self,
+                                    data_dir,
                                     map_filename=None,
                                     training_phase=None):
         train_x_path = f"{data_dir}/train/image/*.jpg"

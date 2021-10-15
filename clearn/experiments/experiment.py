@@ -228,7 +228,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                             run_test=True,
                                             std_dev=1,
                                             class_weight=1,
-                                            save_per_class_metrics=False
+                                            save_per_class_metrics=-1,
+                                            concepts_deduped=False
                                             ):
     if concept_id == -1 and dataset_name == "mnist_concepts":
         raise Exception("Parameter concept_id should be non-negative")
@@ -312,7 +313,8 @@ def initialize_model_train_and_get_features(experiment_name,
                                   std_dev_concept_distribution=1,
                                   class_weight=class_weight,
                                   training_phase=training_phase,
-                                  save_per_class_metrics=save_per_class_metrics
+                                  save_per_class_metrics=save_per_class_metrics,
+                                  concepts_deduped=concepts_deduped
                                   )
     exp_config.check_and_create_directories(run_id, create=True)
     exp = Experiment(1, experiment_name, exp_config, run_id)

@@ -2,7 +2,7 @@ import logging
 from typing import Tuple
 
 import tensorflow as tf
-from clearn.utils.tensorflow_wrappers.layers import max_pool_2d, avgpool, flatten
+from clearn.utils.tensorflow_wrappers.layers import max_pool_2d, avgpool, flatten, batch_norm
 
 from clearn.utils.tensorflow_wrappers import conv2d, lrelu, linear, deconv2d, drop_out
 from clearn.utils.utils import is_convolutional_layer, DECONV_LAYER_PREFIX
@@ -11,13 +11,18 @@ from clearn.utils.utils import is_convolutional_layer, DECONV_LAYER_PREFIX
 def cnn_n_layer(model, x, num_out_units, reuse=False):
     # Encoder models the probability  P(z/X)
     n_units = model.exp_config.num_units
+    num_drop_outs = 2
     with tf.compat.v1.variable_scope("encoder", reuse=reuse):
         # Add convolutional layers
         num_convolutional_layers = len(n_units) - model.exp_config.num_dense_layers
         if model.exp_config.log_level == logging.DEBUG:
             print(x, x.shape)
         if num_convolutional_layers > 0:
-            model.cnn_out = fcnn_n_layer(model, x, n_units[0:num_convolutional_layers - 1], n_units[num_convolutional_layers - 1], reuse )
+            model.cnn_out = fcnn_n_layer(model,
+                                         x,
+                                         n_units[0:num_convolutional_layers - 1],
+                                         n_units[num_convolutional_layers - 1],
+                                         reuse )
         #
         if model.exp_config.num_dense_layers > 0:
             if model.exp_config.activation_hidden_layer == "RELU":
@@ -25,19 +30,23 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
                 model.reshaped_en = tf.reshape(model.cnn_out, [model.exp_config.BATCH_SIZE, -1])
                 model.dense_features_dict = dict()
                 layer_key = f"layer_{layer_num}"
-                model.dense_features_dict[layer_key] = lrelu(linear(model.reshaped_en,
-                                                                    n_units[layer_num],
-                                                                    scope=layer_key)
-                                                             )
+                relu_out = lrelu(linear(model.reshaped_en, n_units[layer_num], scope=layer_key))
+                model.dense_features_dict[layer_key] = batch_norm(relu_out)
                 if model.exp_config.log_level == logging.DEBUG:
                     print(layer_num, model.dense_features_dict[layer_key].shape)
+                drop_out_added = 0
                 for layer_num in range(layer_num + 1, len(n_units)):
                     layer_key = f"layer_{layer_num}"
                     previous_layer_key = f"layer_{layer_num-1}"
-                    model.dense_features_dict[layer_key] = lrelu(linear(model.dense_features_dict[previous_layer_key],
-                                                                        n_units[layer_num]
-                                                                        , scope=layer_key)
-                                                                 )
+                    relu_out = lrelu( linear(model.dense_features_dict[previous_layer_key],
+                                             n_units[layer_num],
+                                             scope=layer_key))
+                    if layer_num % 2 == 0:
+                        if drop_out_added < num_drop_outs:
+                            relu_out = drop_out(relu_out, 0.8)
+                            drop_out_added += 1
+                        relu_out = batch_norm(relu_out)
+                    model.dense_features_dict[layer_key] = relu_out
                     if model.exp_config.log_level == logging.DEBUG:
                         print(layer_num, model.dense_features_dict[layer_key].shape)
             else:
@@ -50,6 +59,7 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
             print(f"z {z.shape}")
         return z
 
+
 def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False):
     # Encoder models the probability  P(z/X)
     layer_num = 0
@@ -59,13 +69,9 @@ def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False):
         if len(n_units) > 0:
             x = add_zero_padding(x, model.padding_added_row[layer_num], model.padding_added_col[layer_num])
             if model.exp_config.activation_hidden_layer == "RELU":
-                model.encoder_dict[f"layer_{layer_num}"] = lrelu(conv2d(x,
-                                                                        n_units[layer_num],
-                                                                        3, 3,
-                                                                        strides[layer_num],
-                                                                        strides[layer_num],
-                                                                        name=f"layer_{layer_num}")
-                                                                 )
+                relu_out = lrelu(conv2d(x, n_units[layer_num], 3, 3, strides[layer_num], strides[layer_num],
+                                 name=f"layer_{layer_num}"))
+                model.encoder_dict[f"layer_{layer_num}"] = drop_out(relu_out, 0.8)
                 if model.exp_config.log_level == logging.DEBUG:
                     print(layer_num, model.encoder_dict[f"layer_{layer_num}"].shape)
                 for layer_num in range(1, len(n_units)):
@@ -73,23 +79,23 @@ def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False):
                                                                                     model.padding_added_row[layer_num],
                                                                                     model.padding_added_col[layer_num]
                                                                                     )
-                    model.encoder_dict[f"layer_{layer_num}"] = lrelu((conv2d(model.encoder_dict[f"layer_{layer_num - 1}"],
-                                                                               n_units[layer_num],
-                                                                               3, 3,
-                                                                               strides[layer_num],
-                                                                               strides[layer_num],
-                                                                               name=f"layer_{layer_num}")))
+                    relu_out = lrelu((conv2d(model.encoder_dict[f"layer_{layer_num - 1}"], n_units[layer_num], 3, 3,
+                                      strides[layer_num], strides[layer_num], name=f"layer_{layer_num}")))
+                    if layer_num % 2 == 0:
+                        relu_out = batch_norm(relu_out)
+                    model.encoder_dict[f"layer_{layer_num}"] = relu_out
                     if model.exp_config.log_level == logging.DEBUG:
                         print(layer_num, model.encoder_dict[f"layer_{layer_num}"].shape)
             else:
                 raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
 
             z = lrelu((conv2d(model.encoder_dict[f"layer_{len(n_units) - 1}"],
-                                        num_out_units,
-                                        3, 3,
-                                        strides[len(n_units)],
-                                        strides[len(n_units)],
-                                        name='out'))
+                              num_out_units,
+                              3,
+                              3,
+                              strides[len(n_units)],
+                              strides[len(n_units)],
+                              name='out'))
                       )
         else:
             z = lrelu((conv2d(x,
@@ -144,29 +150,28 @@ def fully_deconv_n_layer(model, z, n_units,  out_channels, in_channels, reuse=Fa
                                            )
 
             de_convolved = lrelu(deconv2d(model.reshaped_de,
-                                                                        [model.exp_config.BATCH_SIZE,
-                                                                         image_sizes[len(n_units)][0],
-                                                                         image_sizes[len(n_units)][0],
-                                                                         n_units[len(n_units) - 1]],
-                                                                        3, 3,
-                                                                        stride,
-                                                                        stride,
-                                                                        name=f"de_conv_{layer_num}"))
+                                          [model.exp_config.BATCH_SIZE,
+                                          image_sizes[len(n_units)][0],
+                                          image_sizes[len(n_units)][0],
+                                          n_units[len(n_units) - 1]],
+                                          3,
+                                          3,
+                                          stride,
+                                          stride,
+                                          name=f"de_conv_{layer_num}")
+                                 )
             model.decoder_dict[f"{DECONV_LAYER_PREFIX}_{layer_num}"] = de_convolved
             if model.exp_config.log_level == logging.DEBUG:
                 print(layer_num, model.decoder_dict[f"de_conv_{layer_num}"].shape)
             for layer_num in range(1, len(n_units)):
-                de_convolved = lrelu(deconv2d(model.decoder_dict[f"de_conv_{layer_num - 1}"],
-                                                                            [model.exp_config.BATCH_SIZE,
-                                                                            image_sizes[len(n_units) - layer_num][0],
-                                                                            image_sizes[len(n_units) - layer_num][0],
-                                                                            n_units[len(n_units) - layer_num - 1]],
-                                                                            3, 3,
-                                                                            strides[len(n_units) - layer_num],
-                                                                            strides[len(n_units) - layer_num],
-                                                                            name=f"de_conv_{layer_num}"
-                                                                            )
-                                                                   )
+                relu_out = lrelu(deconv2d(model.decoder_dict[f"de_conv_{layer_num - 1}"],
+                                   [model.exp_config.BATCH_SIZE, image_sizes[len(n_units) - layer_num][0],
+                                    image_sizes[len(n_units) - layer_num][0], n_units[len(n_units) - layer_num - 1]], 3,
+                                   3, strides[len(n_units) - layer_num], strides[len(n_units) - layer_num],
+                                   name=f"de_conv_{layer_num}"))
+                if layer_num == len(n_units) - 1:
+                    relu_out = drop_out(relu_out, 0.8)
+                de_convolved = relu_out
                 # padding_removed = remove_padding(de_convolved, model.padding_added_row[layer_num], model.padding_added_col[layer_num])
                 model.decoder_dict[f"de_conv_{layer_num}"] = de_convolved
                 if model.exp_config.log_level == logging.DEBUG:
@@ -199,6 +204,7 @@ def deconv_n_layer(model, z,  out_channels, reuse=False):
     num_de_convolutional_layers = len(n_units) - model.exp_config.num_dense_layers
     if model.exp_config.log_level == logging.DEBUG:
         print("z", z.shape)
+    num_drop_outs = 2
     with tf.compat.v1.variable_scope("decoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
             # Add dense layers
@@ -209,18 +215,23 @@ def deconv_n_layer(model, z,  out_channels, reuse=False):
                 num_features_index = len(n_units) - (layer_num + 1)
                 num_features = n_units[num_features_index]
 
-                model.decoder_dense_dict[layer_key] = lrelu( linear(z, num_features, scope= layer_key))
+                model.decoder_dense_dict[layer_key] = lrelu(linear(z, num_features, scope= layer_key))
                 if model.exp_config.log_level == logging.DEBUG:
                     print(layer_num, model.decoder_dense_dict[layer_key].shape)
+                drop_out_added = 0
                 for layer_num in range(1, model.exp_config.num_dense_layers):
                     layer_key = f"layer_{layer_num}"
                     previous_layer_key = f"layer_{layer_num-1}"
                     num_features_index = len(n_units) - (layer_num + 1)
                     num_features = n_units[num_features_index]
-                    model.decoder_dense_dict[layer_key] = lrelu(linear(model.decoder_dense_dict[previous_layer_key],
-                                                                       num_features,
-                                                                       scope=layer_key)
-                                                                )
+                    relu_out = lrelu(linear(model.decoder_dense_dict[previous_layer_key], num_features, scope=layer_key))
+                    if layer_num % 2 == 0:
+                        if drop_out_added < num_drop_outs:
+                            relu_out = drop_out(relu_out, 0.8)
+                            drop_out_added += 1
+                        relu_out = batch_norm(relu_out)
+                    model.decoder_dense_dict[layer_key] = relu_out
+
                     if model.exp_config.log_level == logging.DEBUG:
                         print(layer_num, model.decoder_dense_dict[layer_key].shape)
 
@@ -230,9 +241,9 @@ def deconv_n_layer(model, z,  out_channels, reuse=False):
                 if model.exp_config.log_level == logging.DEBUG:
                     print(num_features_index, num_features, image_size, num_units)
                 model.dense_out = lrelu(linear(model.decoder_dense_dict[layer_key],
-                                                                   num_units,
-                                                                   scope="desne_out")
-                                                            )
+                                               num_units,
+                                               scope="desne_out")
+                                        )
                 if model.exp_config.log_level == logging.DEBUG:
                     print(model.dense_out.shape)
         else:
@@ -351,19 +362,19 @@ def cnn_4_layer(model, x, num_out_units, reuse=False):
             conv1 = conv2d(x, n[0], 3, 3, 1, 1, name='en_conv1')
             conv1 = tf.compat.v1.layers.batch_normalization(conv1)
             conv1 = lrelu(conv1, 0.0)
-            model.conv1 = max_pool_2d(conv1,kernel_size=2, strides=2)
+            model.conv1 = max_pool_2d(conv1, kernel_size=2, strides=2)
             model.conv1 = drop_out(model.conv1, 0.3)
 
             conv2 = conv2d(model.conv1, n[1], 3, 3, 1, 1, name='en_conv2')
             conv2 = tf.compat.v1.layers.batch_normalization(conv2)
             conv2 = lrelu(conv2, 0.0)
-            model.conv2 = max_pool_2d(conv2,kernel_size=2, strides=2)
+            model.conv2 = max_pool_2d(conv2, kernel_size=2, strides=2)
             model.conv2 = drop_out(model.conv2, 0.3)
 
             conv3 = conv2d(model.conv2, n[2], 3, 3, 1, 1, name='en_conv3')
             conv3 = tf.compat.v1.layers.batch_normalization(conv3)
             conv3 = lrelu(conv3, 0.0)
-            model.conv3 = max_pool_2d(conv3,kernel_size=2, strides=2)
+            model.conv3 = max_pool_2d(conv3, kernel_size=2, strides=2)
 
             conv4 = conv2d(model.conv3, n[3], 3, 3, 1, 1, name='en_conv4')
             conv4 = tf.compat.v1.layers.batch_normalization(conv4)
@@ -447,16 +458,24 @@ def deconv_4_layer(model, z, reuse=False):
             model.deconv3 = lrelu(tf.compat.v1.layers.batch_normalization(deconv3))
             model.deconv3 = drop_out(deconv3, 0.3)
 
-
             if model.exp_config.activation_output_layer == "SIGMOID":
                 out = tf.nn.sigmoid(
-                    deconv2d(model.deconv3, output_shape, 3, 3, model.exp_config.strides[4], model.exp_config.strides[4], name='de_dc4'))
+                    deconv2d(model.deconv3,
+                             output_shape,
+                             3,
+                             3,
+                             model.exp_config.strides[4],
+                             model.exp_config.strides[4],
+                             name='de_dc4'))
             elif model.exp_config.activation_output_layer == "LINEAR":
                 out = lrelu(deconv2d(model.deconv3,
                                      output_shape,
-                                     3, 3, model.exp_config.strides[4], model.exp_config.strides[4], name='de_dc4'),
-                    0
-                    )
+                                     3,
+                                     3,
+                                     model.exp_config.strides[4], model.exp_config.strides[4],
+                                     name='de_dc4'),
+                            0
+                            )
 
         else:
             raise Exception(f"Activation {model.exp_config.activation} not supported")

@@ -13,7 +13,9 @@ def get_dao(dataset_name,
             dataset_path=None,
             concept_id=None,
             translate_image=False,
-            std_dev=1):
+            std_dev=1,
+            concepts_deduped=False
+            ):
     if dataset_name == "mnist":
         return MnistDao(split_name, num_validation_samples)
     elif dataset_name == "cifar_10":
@@ -25,7 +27,8 @@ def get_dao(dataset_name,
                                 dataset_path,
                                 concept_id,
                                 translate_image=translate_image,
-                                std_dev=std_dev
+                                std_dev=std_dev,
+                                concepts_deduped=concepts_deduped
                                 )
     elif dataset_name == "cat_vs_dog":
         return CatVsDogDao(dataset_name,

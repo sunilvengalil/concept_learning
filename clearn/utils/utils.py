@@ -168,19 +168,24 @@ def save_single_image(images, path, epoch, step, training_batch, eval_batch, eva
         imageio.imwrite(path + file, img_as_ubyte(image))
 
 
-def save_image(image, size, image_file_name):
-    return imsave(inverse_transform(np.asarray(image)), size, image_file_name)
+# def save_image(image, size, image_file_name):
+#     return imsave(inverse_transform(np.asarray(image)), size, image_file_name)
 
-def save_image(image, size, image_file_name):
-    scaler = MinMaxScaler(feature_range=(-0.99, 0.99))
+
+def save_image(image, size, image_file_name, normalize=False):
     image_np = np.asarray(image)
-    if len(image_np.shape) == 3:
-        im = scaler.fit_transform(image_np.reshape(-1, image_np.shape[1]  * image_np.shape[2] )).reshape(image_np.shape)
-    if len(image_np.shape) == 4:
-        im = scaler.fit_transform(image_np.reshape(-1, image_np.shape[1]  * image_np.shape[2] * image_np.shape[3] )).reshape(image_np.shape)
-    im1 = inverse_transform(im)
-
+    print(image_np.shape, size)
+    if normalize:
+        scaler = MinMaxScaler(feature_range=(-0.99, 0.99))
+        if len(image_np.shape) == 3:
+            image_np = scaler.fit_transform(image_np.reshape(-1,
+                                                             image_np.shape[1]  * image_np.shape[2] )).reshape(image_np.shape)
+        if len(image_np.shape) == 4:
+            image_np = scaler.fit_transform(image_np.reshape(-1,
+                                                             image_np.shape[1]  * image_np.shape[2] * image_np.shape[3] )).reshape(image_np.shape)
+    im1 = inverse_transform(image_np)
     return imsave(im1, size, image_file_name)
+
 
 def save_images(images, size, image_path):
     return imsave(inverse_transform(images), size, image_path)

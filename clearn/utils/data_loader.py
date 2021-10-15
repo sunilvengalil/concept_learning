@@ -70,6 +70,8 @@ class TrainValDataIterator:
     @classmethod
     def load_manual_annotation(cls, manual_annotation_file):
         df = pd.read_csv(manual_annotation_file)
+        if "apply_loss_at_layer" not in df.columns:
+            df["apply_loss_at_layer"] = -1
         return df[["manual_annotation", "manual_annotation_confidence", "apply_loss_at_layer"]].values
 
     def load_train_val_existing_split(self, split_name, split_location):
@@ -272,7 +274,7 @@ class TrainValDataIterator:
                     manual_annotation[i, num_labels + 1] = 3
         elif self.manual_labels_config == ExperimentConfig.USE_ACTUAL:
             if actual_labels is not None and actual_labels.shape[0] == len(self.train_x):
-                manual_annotation = np.zeros((len(self.train_x), num_labels + 1), dtype=np.float)
+                manual_annotation = np.zeros((len(self.train_x), num_labels + 2), dtype=np.float)
                 if self.budget < 1:
                     indices = np.random.choice(len(self.train_x), int(self.budget * len(self.train_x)), replace=False)
                     print(f"Using labels of {len(indices)} samples")

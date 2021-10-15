@@ -133,10 +133,8 @@ class IDao(ABC):
         return self.data_dict
 
     def create_data_dict(self, train_x, train_y, val_x, val_y):
-        print(type(val_y), val_y.dtype)
         _val_y = np.eye(self.num_classes)[val_y]
         _train_y = np.eye(self.num_classes)[train_y]
-        print("Maximum of training ", np.max(train_x))
 
         if np.max(train_x) == self.max_value:
             _train_x = train_x / self.max_value

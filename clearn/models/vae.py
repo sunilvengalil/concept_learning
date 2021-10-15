@@ -2,6 +2,7 @@
 from __future__ import division
 
 import json
+import math
 import traceback
 from typing import List, Tuple
 import os
@@ -122,11 +123,13 @@ class VAE(GenerativeModel):
         out = self._decoder(self.z, reuse=False)
 
         # loss
+        print("Activation output layer", self.exp_config.activation_output_layer)
         if self.exp_config.activation_output_layer == "SIGMOID":
             self.out = tf.clip_by_value(out, 1e-8, 1 - 1e-8)
 
             self.marginal_likelihood = tf.reduce_sum(self.inputs * tf.math.log(self.out) +
-                                                     self.exp_config.class_weight * (1 - self.inputs) * tf.math.log(1 - self.out),
+                                                     self.exp_config.class_weight * (1 - self.inputs) * tf.math.log(
+                1 - self.out),
                                                      [1, 2],
                                                      )
         else:
@@ -136,7 +139,9 @@ class VAE(GenerativeModel):
                                                          self.out,
                                                          reduction=tf.compat.v1.losses.Reduction.NONE
                                                          )
+            print("Mll", mll.shape)
             self.marginal_likelihood = -tf.compat.v1.reduce_mean(mll, axis=(1, 2, 3))
+            print("after reduction", self.marginal_likelihood.shape)
         self.neg_loglikelihood = -tf.reduce_mean(self.marginal_likelihood)
 
         kl = 0.5 * tf.reduce_sum(tf.square(self.mu) +
@@ -312,7 +317,6 @@ class VAE(GenerativeModel):
             if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                 data_iterator.reset_counter(dataset_type)
                 break
-            batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
 
             reconstructed_image, summary, mu_for_batch, sigma_for_batch, z_for_batch, nll, nll_batch = self.sess.run(
                 [self.out,
@@ -344,7 +348,8 @@ class VAE(GenerativeModel):
                     for rp in retention_policies:
                         rp.update_heap(cost=nll_batch,
                                        exp_config=self.exp_config,
-                                       data=[reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch, batch_images])
+                                       data=[reconstructed_image, np.argmax(batch_labels, axis=1), nll_batch,
+                                             batch_images])
                 except:
                     print(f"Shape of mse is {nll_batch.shape}")
                     traceback.print_exc()
@@ -361,29 +366,32 @@ class VAE(GenerativeModel):
                     mu = np.vstack([mu, mu_for_batch])
                     sigma = np.hstack([sigma, sigma_for_batch])
                     z = np.vstack([z, z_for_batch])
-
-        if "reconstruction_loss" in self.metrics_to_compute:
-            reconstruction_loss = np.mean(reconstruction_losses)
-            self.metrics[dataset_type]["reconstruction_loss"].append(
-                [self.num_training_epochs_completed, reconstruction_loss, np.std(reconstruction_losses)])
+        encoded_df = None
+        if reconstruction_losses is not None and reconstruction_losses.shape[0] > 0:
+            if "reconstruction_loss" in self.metrics_to_compute:
+                reconstruction_loss = np.mean(reconstruction_losses)
+                self.metrics[dataset_type]["reconstruction_loss"].append(
+                    [self.num_training_epochs_completed, reconstruction_loss, np.std(reconstruction_losses)])
+                encoded_df = pd.DataFrame(reconstruction_losses,
+                                          columns=["reconstruction_loss"])
 
         if save_images:
             self.save_sample_reconstructed_images(dataset_type, retention_policies)
 
         data_iterator.reset_counter(dataset_type)
 
-        encoded_df = pd.DataFrame(reconstruction_losses,
-                                  columns=["reconstruction_loss"])
-        if self.exp_config.return_latent_vector:
+        if self.exp_config.return_latent_vector and mu is not None and mu.shape[0] > 0:
             mean_col_names, sigma_col_names, z_col_names, l3_col_names = get_latent_vector_column(self.exp_config.Z_DIM)
-            encoded_df = pd.DataFrame(mu, columns=mean_col_names)
+            if encoded_df is None:
+                encoded_df = pd.DataFrame(mu, columns=mean_col_names)
+            else:
+                encoded_df[mean_col_names] = mu
             for i, sigma_col_name in enumerate(sigma_col_names):
                 encoded_df[sigma_col_name] = sigma[:, i]
 
             for i, z_col_name in enumerate(z_col_names):
                 encoded_df[z_col_name] = z[:, i]
-        print("Write predictions", self.exp_config.write_predictions)
-        if self.exp_config.write_predictions:
+        if self.exp_config.write_predictions and encoded_df is not None:
             output_csv_file = get_encoded_csv_file(self.exp_config,
                                                    self.num_training_epochs_completed,
                                                    dataset_type
@@ -399,11 +407,15 @@ class VAE(GenerativeModel):
                                                 self.num_steps_completed)
         if class_label is not None:
             reconstructed_dir = check_and_create_folder(reconstructed_dir + f"class_{class_label}/")
-        num_samples_per_image = 64
-        manifold_w = 4
-        manifold_h = num_samples_per_image // manifold_w
+
         for rp in retention_policies:
-            num_images = rp.N // num_samples_per_image
+            if rp.size() == 0:
+                continue
+            num_samples_per_image = min(64, rp.size())
+            manifold_w = 4
+            manifold_h = math.ceil(num_samples_per_image / manifold_w)
+
+            num_images = rp.size() // num_samples_per_image
             if dataset_type.upper() == rp.data_type.upper():
                 for image_no in range(num_images):
                     file_image = f"{dataset_type}_{rp.policy_type}_{image_no}.png"
@@ -415,27 +427,34 @@ class VAE(GenerativeModel):
                                                 self.dao.image_shape[1],
                                                 self.dao.image_shape[2]))
                     original_image = np.zeros((num_samples_per_image,
-                                                self.dao.image_shape[0],
-                                                self.dao.image_shape[1],
-                                                self.dao.image_shape[2]))
+                                               self.dao.image_shape[0],
+                                               self.dao.image_shape[1],
+                                               self.dao.image_shape[2]))
 
                     labels = np.zeros(num_samples_per_image)
                     losses = np.zeros(num_samples_per_image)
-                    for sample_num, e in enumerate(rp.data_queue[image_no * num_samples_per_image: (
-                                                                                                           image_no + 1) * num_samples_per_image]):
+                    for sample_num, e in enumerate(
+                            rp.data_queue[image_no * num_samples_per_image: (image_no + 1) * num_samples_per_image]):
                         samples_to_save[sample_num, :, :, :] = e[2][0]
                         labels[sample_num] = e[2][1]
                         losses[sample_num] = e[2][2]
                         original_image[sample_num, :, :, :] = e[2][3]
-                    save_image(samples_to_save, [manifold_h, manifold_w], reconstructed_dir + file_image)
+                    save_image(samples_to_save,
+                               [manifold_h, manifold_w],
+                               reconstructed_dir + file_image,
+                               normalize=False)
                     # print(f"Saving original image  to {reconstructed_dir + original_image_filename}")
-                    save_image(original_image, [manifold_h, manifold_w], reconstructed_dir + original_image_filename)
+                    save_image(original_image,
+                               [manifold_h, manifold_w],
+                               reconstructed_dir + original_image_filename)
 
                     with open(reconstructed_dir + file_label, "w") as fp:
-                        json.dump(labels.tolist(), fp)
+                        json.dump(labels.tolist(),
+                                  fp)
 
                     with open(reconstructed_dir + file_loss, "w") as fp:
-                        json.dump(losses.tolist(), fp)
+                        json.dump(losses.tolist(),
+                                  fp)
 
     @property
     def model_dir(self):
@@ -453,7 +472,7 @@ class VAE(GenerativeModel):
             num_deconv_layers = len(self.exp_config.num_units)
         else:
             num_deconv_layers = len(self.exp_config.num_units) - self.exp_config.num_dense_layers
-        param_names=[]
+        param_names = []
         for layer_num in range(num_deconv_layers):
             param_names.append(f"decoder/de_conv_{layer_num}/w:0")
             param_names.append(f"decoder/de_conv_{layer_num}/biases:0")
@@ -505,8 +524,8 @@ class VAE(GenerativeModel):
         features_list.extend(hidden_features)
 
         encoded_features = self.sess.run(features_list,
-                                                       feed_dict={self.inputs: images
-                                                                  })
+                                         feed_dict={self.inputs: images
+                                                    })
 
         return hidden_feature_names, encoded_features[0], encoded_features[1], encoded_features[2], encoded_features[3:]
 
@@ -518,7 +537,7 @@ class VAE(GenerativeModel):
             feature_list.append(value)
         return feature_names, feature_list
 
-    def decode_and_get_features(self, z: np.ndarray, layer_num=None, feature_num = None):
+    def decode_and_get_features(self, z: np.ndarray, layer_num=None, feature_num=None):
         features_list = [self.out]
         hidden_feature_names, hidden_features = self.get_decoder_features_list()
         features_list.extend(hidden_features)
@@ -527,30 +546,21 @@ class VAE(GenerativeModel):
                                                     }
                                          )
         if layer_num is not None:
-            for decoded_feature, f in zip( decoded_features[1:], hidden_feature_names):
+            for decoded_feature, f in zip(decoded_features[1:], hidden_feature_names):
                 if feature_num is not None:
                     if str(layer_num) in f:
                         if isinstance(feature_num, Tuple) or isinstance(feature_num, List):
-                            return [f], (decoded_features[0], decoded_feature[:, :, :, feature_num[0]:feature_num[1]] )
+                            return [f], (decoded_features[0], decoded_feature[:, :, :, feature_num[0]:feature_num[1]])
                         else:
                             return [f], (decoded_features[0], decoded_feature[:, :, :, feature_num])
                 else:
-                    return [f], (decoded_features[0], decoded_feature )
+                    return [f], (decoded_features[0], decoded_feature)
         else:
             return hidden_feature_names, decoded_features
 
     def decode(self, z):
         images = self.sess.run(self.out, feed_dict={self.z: z})
         return images
-
-    def decode_l3(self, z):
-        images = self.sess.run(self.out, feed_dict={self.dense2_en: z})
-        return images
-
-    def decode_layer1(self, z):
-        dense1_de = self.sess.run(self.dense1_de, feed_dict={self.z: z
-                                                             })
-        return dense1_de
 
     def load_from_checkpoint(self):
         # initialize all variables
