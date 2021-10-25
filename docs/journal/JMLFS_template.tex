@@ -40,6 +40,7 @@ Machine Learning\sep Artificial Intelligence\sep Computer Science
 \section{Introduction}
 One of the major pain points of deep learning models, when used in industry, is the lack of explainability, i.e., they are unable to provide the exact reason for prediction.
 One the one hand, researchers build complex ensemble and deep architectures in order to increase the classification accuracy, which results in increased accuracy but the more complex the model is, the more difficult to provide explanations for the predictions.
+This trade off between accuracy and explainability of Machine Learning and Deep Learning models is well known \cite{wu2021}.
 In many use cases, like medical, customer churn prediction etc, it is as equally important to get an explainable prediction as getting correct predictions.
 Sometimes one might even want to compromise with a less accurate model, if it can provide better explanations for the predictions.
 This behaviour of Machine Learning and Deep Learning models is in sharp contrast with how humans learn.
@@ -57,7 +58,7 @@ In other words, they use the same concept to make predictions for different inpu
 
 \end{enumerate}
 In this article, we examine how such behaviours can be incorporated into deep learning models.
-Explainability in DL models is something which has been actively researched and many approaches has been suggested in the literature in last decade\cite{}.
+Explainability in DL models is something which has been actively researched and many approaches has been suggested in the literature in last decade\cite{linardatos2021}.
 See section \ref{lit_survey_explainability} for an extensive literature survey of explainability on deep learning models.
 However, our approach is not just to inject explainability into a trained deep learning model.
 We rather, focus on how the underlying model can learn \textbf{generalized concepts}  which are used to make predictions.
@@ -1312,8 +1313,11 @@ Grant No. DE-FG03-94ER40837.
 %\newpage
 \bibliographystyle{unsrt}
 \begin{thebibliography}{99}
-
+\bibitem{doshi2017} Doshi-Velez, Finale, and Been Kim. "Towards a rigorous science of interpretable machine learning." arXiv preprint arXiv:1702.08608 (2017).
+\bibitem{linardatos2021} Linardatos, Pantelis, Vasilis Papastefanopoulos, and Sotiris Kotsiantis. "Explainable AI: A review of machine learning interpretability methods." Entropy 23.1 (2021): 18.
 \bibitem{lake2015} Lake, Brenden M., Ruslan Salakhutdinov, and Joshua B. Tenenbaum. "Human-level concept learning through probabilistic program induction." Science 350.6266 (2015): 1332-1338.
+\bibitem{nanayakkara2018}Nanayakkara, Shane, et al. "Characterising risk of in-hospital mortality following cardiac arrest using machine learning: A retrospective international registry study." PLoS medicine 15.11 (2018): e1002709.
+\bibitem{wu2021} Wu, Leihong, et al. "Trade-off Predictivity and Explainability for Machine-Learning Powered Predictive Toxicology: An in-Depth Investigation with Tox21 Data Sets." Chemical Research in Toxicology 34.2 (2021): 541-549.
 
 \bibitem{mr01} E. Ma and G. Rajasekaran, Phys. Rev. {\bf D64}, 113012 (2001).
 \bibitem{m04} E. Ma, Phys. Rev. {\bf D70}, 031901 (2004).
