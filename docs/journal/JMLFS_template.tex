@@ -15,7 +15,7 @@
 \def\zp{Z^\prime}
 
 \newcommand{\bi}{\bibitem}
-\newcommand{\nn}{\nonumber}
+\newcommand{\nn}{\nonumbsuer}
 \def\BibTeX{\rm B{\sc ib}\TeX}
 
 \begin{document}
@@ -28,7 +28,6 @@
 \address{$^3$International Institute of Information Technology Bangalore}
 
 \begin{abstract}
-The ML revolution is in full swing. In fact, the groundwork for it was prepared in the middle of the 20th century, yet, it is only with the ever continuing development of increasingly powerful computers, combined with computational algorithms refined over the past couple of decades, that the world has seen an explosion of applications of ML, in anything from health, to finance down to even autonomous cars!
 \end{abstract}
 
 \maketitle
@@ -44,11 +43,11 @@ However, one of the major pain points of deep learning models, when used in indu
 One the one hand, researchers build complex ensemble and deep architectures in order to increase the classification accuracy, which results in increased accuracy but the more complex the model is, the more difficult to provide explanations for the predictions.
 This trade off between accuracy and explainability of Machine Learning and Deep Learning models is well known \cite{wu2021}.
 In many use cases, like medical, customer churn prediction in Banking Finance and Insurance Sector(BFIS), fraud and spam detection etc, it is as equally important to get an explainable prediction as getting correct predictions.
-An explainable prediction can be easily converted to action item.
+An explainable prediction can be easily converted to an action item.
 Sometimes one might even want to compromise with a less accurate model, if it can provide better explanations for the predictions.
 This behaviour of Machine Learning and Deep Learning models is in sharp contrast with how humans learn.
 
-Learning in human posses the following special characteristics which the ML and DL models starve to achieve.
+Learning in human possess  the following special characteristics which the ML and DL models starve to achieve.
 \begin{enumerate}
 
 \item When humans learns something new, over a period of time they gradually  1)internalize the concepts 2) abstracts the concepts and 3) reuse the concepts in related tasks- all these accomplished usually from a very few samples \cite{lake2015}.
@@ -60,27 +59,22 @@ In other words, they use the same concept to make predictions for different inpu
 \item Humans can always provide an explanation for what they predict using the concepts they learned (Irrespective of the fact that the prediction might be wrong).
 
 \end{enumerate}
-In this article, we explore how such behaviours can be incorporated into deep learning models.
-Explainability in DL models is something which has been actively researched and many approaches has been suggested in the literature in last decade\cite{linardatos2021}.
-See section \ref{lit_survey_explainability} for an extensive literature survey of explainability on deep learning models.
-However, our objective in this article is not just to inject explainability into a trained deep learning model.
-We rather, focus on how the underlying model can learn \textbf{generalized concepts}  which are used to make predictions.
-There has been previous studies \cite{lake2015} on developing models that learn concepts and use the learned concepts in a human like manner using Bayesian Probabilistic Language \cite{tenenbaum2019}.
+In this article, we explore how such behaviours can be incorporated into deep learning models. Explainability in DL models is something which has been actively researched and many approaches have been suggested in the literature in the last decade\cite{linardatos2021}. See section \ref{lit_survey_explainability} for an extensive literature survey of explainability on deep learning models. However, our objective in this work is not just to inject explainability into a trained deep learning model. We rather focus on how the underlying model can learn \textbf{generalized concepts}  which are used to make predictions. There have been previous studies \cite{lake2015} on developing models that learn concepts and use the learned concepts in a human-like manner using Bayesian Probabilistic Language \cite{tenenbaum2019}.
 
-In this study, we report results of experiments performed on image datasets of varying complexity starting from MNIST, CIFAR-10, CIFAR-100 and Marmot ( a dataset to detect tabular regions in images of documents) \cite{fang2012} datasets.
-We propose an approach for learning tasks like classification and segmentation while the model also learns the concepts associated with the dataset/task.
+In this study, we report results of experiments performed on image datasets of varying complexity starting from MNIST, CIFAR-10, CIFAR-100 and Marmot ( a dataset to detect tabular regions in images of documents) \cite{fang2012} datasets. We propose an approach for learning tasks like classification and segmentation while the model also learns the concepts associated with the dataset/task.
 
 Our approach is to modify the training procedure of deep learning models so that the model not only learns to perform a specific task, say for example image classification, but also learns a set of \textbf{generic modularized concepts} and \textbf{composition rules or operators} with the following objectives:
 \begin{itemize}
-\item The models final prediction can be explained using the concepts and operators learned.
-\item A task like image classification or segmentation, which is solved using supervised methods today and hence necessitates huge number of (typically in millions for images) annotated data, can be solved in semi-supervised fashion requiring very less annotated samples.
-\item We anticipate to accelerate the training process as the concepts are learned prior to ( or while) learning the final classification task.
-\item The learned concepts can be re-used for other related tasks. This is in contrast with current transfer learning approaches where the model parameters that is being shared across tasks need not the modularized.
+\item The model's final prediction can be explained using the concepts and operators learned making the model more interpretable (i.e model can provide explanations/reasons for its prediction in a "human understandable" fashion).
+\item New concepts can be generated by applying operators on the learned concepts.
+\item A task like image classification or segmentation, which is solved using supervised methods today and hence necessitates huge number of (typically in millions for images) annotated data, can be solved in semi-supervised fashion requiring very less human annotation effort.
+\item We anticipate to accelerate the training process as the concepts are learned prior to ( or during) learning the final classification task.
+\item The learned concepts can be re-used for other related tasks. This is in contrast with current transfer learning approaches where the model parameters that are being shared across tasks need not be \textbf{modularized}.
 \end{itemize}
 
+
 The gist of our approach is  augmenting the training set with primitive concepts associated with data and introducing losses in hidden layers during training so that the predictions, and the hidden layer feature maps that lead to the final predictions, are more explainable and re-usable.
-Many existing algorithms \cite{ribeiro2016should} \cite{lundberg2017unified} \cite{zhou2016learning} for building explainability into deep learning models are applied after the model is fully trained.
-However, our approach differs significantly as we are modifying the loss function and training data for incorporating explainability.
+Many existing algorithms \cite{ribeiro2016should} \cite{lundberg2017unified} \cite{zhou2016learning} for building explainability into deep learning models are applied after the model is fully trained.  However, our approach differs significantly as we are modifying the loss function and training data for incorporating explainability.
 In addition to solving  the primary task of explainability, the approach also benefits from the fact that  the model can be trained with a smaller number of epochs.
 This is because all the hidden layers, where the losses are introduced,  start learning the features in parallel, whereas in existing architectures training losses are computed only at the output layer and it takes a larger number of epochs for the initial layers to learn useful features.
 Further, since the loss functions can be introduced at any layer directly, the approach will not suffer from vanishing gradient.
@@ -96,13 +90,12 @@ Finally we summarize our result and inferences in section \ref{conclusion}
 
 
 \section{Related Work}\label{related_work}
-
 \subsection{Explainability in Deep Learning Models}\label{lit_survey_explainability}
 
-An excellent review of existing Explainable AI techniques can be found in \cite{linardatos2021}
+An excellent review of existing Explainable AI techniques can be found in \cite{linardatos2021}.
 
 Adding explainability to deep neural networks has been one of the key focus areas of the deep learning research community in the last decade.
-There are many different taxonomies for Explainable AI(XAI) which is shown in figure \ref{f:explainability_taxonomies}
+There are many different taxonomies for Explainable AI(XAI) which is shown in figure \ref{f:explainability_taxonomies}.
 \begin{figure}
 \centering
 \includegraphics[height=2in]{images/explainability_taxonomies.png}
@@ -133,7 +126,7 @@ TODO add some example cases
 
 Another criteria for classifying XAI techniques is based on the data type used like text, images, structured data (a specific case of which is tabular data) graph etc.
 
-Yet another way of classifying explainability approach is based on whether the technique is applicable for individual instance or for the whole model.
+Yet another way of classifying explainability approaches is based on whether the technique is applicable for individual instances or for the whole model.
 TODO add some examples
 
 \subsection{Concept Learning}
