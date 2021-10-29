@@ -22,9 +22,10 @@
 
 \title{Learning Concepts using Deep Neural Networks}
 
-\author{Sunil Kumar Vengalil,\auno{1} and Neelam Sinha\auno{2}}
+\author{Sunil Kumar Vengalil,\auno{1} Neelam Sinha\auno{2}  and G Srinivasaraghavan,\auno{3}}
 \address{$^1$International Institute of Information Technology Bangalore}
 \address{$^2$International Institute of Information Technology Bangalore}
+\address{$^3$International Institute of Information Technology Bangalore}
 
 \begin{abstract}
 The ML revolution is in full swing. In fact, the groundwork for it was prepared in the middle of the 20th century, yet, it is only with the ever continuing development of increasingly powerful computers, combined with computational algorithms refined over the past couple of decades, that the world has seen an explosion of applications of ML, in anything from health, to finance down to even autonomous cars!
@@ -38,7 +39,8 @@ Machine Learning\sep Artificial Intelligence\sep Computer Science
 \end{keyword}
 
 \section{Introduction}
-One of the major pain points of deep learning models, when used in industry, is the lack of explainability, i.e., they are unable to provide the exact reason for prediction.
+With the advent of Deep learning in the past decade,  Machine Learning and Deep Learning models have changed their role from a "merely research idea" to an essential component in almost all domains ranging from Banking Finance and Insurance Sector(BFIS), retail, manufacturing to medical\cite{jordan2015} and healthcare.
+However, one of the major pain points of deep learning models, when used in industry, is the lack of explainability, i.e., they are unable to provide the exact reason for prediction.
 One the one hand, researchers build complex ensemble and deep architectures in order to increase the classification accuracy, which results in increased accuracy but the more complex the model is, the more difficult to provide explanations for the predictions.
 This trade off between accuracy and explainability of Machine Learning and Deep Learning models is well known \cite{wu2021}.
 In many use cases, like medical, customer churn prediction in Banking Finance and Insurance Sector(BFIS), fraud and spam detection etc, it is as equally important to get an explainable prediction as getting correct predictions.
@@ -96,8 +98,19 @@ Finally we summarize our result and inferences in section \ref{conclusion}
 \section{Related Work}\label{related_work}
 
 \subsection{Explainability in Deep Learning Models}\label{lit_survey_explainability}
+
+An excellent review of existing Explainable AI techniques can be found in \cite{linardatos2021}
+
 Adding explainability to deep neural networks has been one of the key focus areas of the deep learning research community in the last decade.
-Explainability techniques can widely be classified as model-agnostic (which can be applied to any model) or model-dependent where the approach depends on the specific prediction algorithms used by the model.
+There are many different taxonomies for Explainable AI(XAI) which is shown in figure \ref{f:explainability_taxonomies}
+\begin{figure}
+\centering
+\includegraphics[height=2in]{images/explainability_taxonomies.png}
+\caption{Taxonomies of Explainable AI techniques. Image taken from \cite{linardatos2021}}
+\label{f:explainability_taxonomies}
+\end{figure}
+
+One such classification is based on model-agnostic (which can be applied to any model) versus model-dependent where the approach depends on the specific prediction algorithms used by the model.
 The early works on this includes the use of explanation vectors introduced by David Baehrens et.al. in their paper \cite{baehrens2010explain}.
 Local Interpretable Model-Agnostic Explanations (LIME) \cite{ribeiro2016should} is one of the most widely used tools to explain the predictions of any machine learning model.
 LIME works by approximating the model behaviour locally by a simple interpretable surrogate model like linear model or decision tree. The approximation is restricted to a small local change in the input. As this technique looks only at the input and output of the model, this technique can be applied to any machine learning models.
@@ -113,6 +126,15 @@ Their method, known as SHapley Additive ExPlanations (SHAP) considers all  the i
 Another class of widely used algorithms for  Convolutional Neural Networks  targets at finding and highlighting the  regions in the input image that is responsible for the prediction.
 These techniques, originally introduced in paper \cite{zhou2016learning}, generate a heatmap called Class Activation Map that will highlight the most sensitive regions in the input image.
 Saliency Map, introduced by Symonyan et.al. in 2014 \cite{simonyan2014deep} is another variant of class activation map computed by optimizing the input image using the gradient of output prediction with respect to the input image.
+
+
+Another criteria for classifying XAI techniques is based on the data type used like text, images, structured data (a specific case of which is tabular data) graph etc.
+TODO add some example cases
+
+Another criteria for classifying XAI techniques is based on the data type used like text, images, structured data (a specific case of which is tabular data) graph etc.
+
+Yet another way of classifying explainability approach is based on whether the technique is applicable for individual instance or for the whole model.
+TODO add some examples
 
 \subsection{Concept Learning}
 \subsection{Semi-supervised Learning}
@@ -191,6 +213,10 @@ Grant No. DE-FG03-94ER40837.
 %\newpage
 \bibliographystyle{unsrt}
 \begin{thebibliography}{99}
+
+\bibitem{jordan2015}
+Jordan, Michael I., and Tom M. Mitchell. "Machine learning: Trends, perspectives, and prospects." Science 349.6245 (2015): 255-260.
+
 % Explainability
 \bibitem{ribeiro2016should} Ribeiro, Marco Tulio, Sameer Singh, and Carlos Guestrin. "" Why should i trust you?" Explaining the predictions of any classifier." Proceedings of the 22nd ACM SIGKDD international conference on knowledge discovery and data mining. 2016.
 \bibitem{lundberg2017unified} Lundberg, Scott M., and Su-In Lee. "A unified approach to interpreting model predictions." Proceedings of the 31st international conference on neural information processing systems. 2017.
@@ -203,6 +229,7 @@ Grant No. DE-FG03-94ER40837.
 \bibitem{doshi2017} Doshi-Velez, Finale, and Been Kim. "Towards a rigorous science of interpretable machine learning." arXiv preprint arXiv:1702.08608 (2017).
 \bibitem{linardatos2021} Linardatos, Pantelis, Vasilis Papastefanopoulos, and Sotiris Kotsiantis. "Explainable AI: A review of machine learning interpretability methods." Entropy 23.1 (2021): 18.
 \bibitem{wu2021} Wu, Leihong, et al. "Trade-off Predictivity and Explainability for Machine-Learning Powered Predictive Toxicology: An in-Depth Investigation with Tox21 Data Sets." Chemical Research in Toxicology 34.2 (2021): 541-549.
+
 % Datasets
 \bibitem{fang2012}Fang, Jing, et al. "Dataset, ground-truth and performance metrics for table detection evaluation." 2012 10th IAPR International Workshop on Document Analysis Systems. IEEE, 2012.
 
