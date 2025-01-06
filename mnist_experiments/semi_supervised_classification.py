@@ -28,4 +28,4 @@ if __name__ == '__main__':
                                             num_dense_layers=1,
                                             translate_image=True
                                             )
-    tf.reset_default_graph()
+    tf.compat.v1.reset_default_graph()

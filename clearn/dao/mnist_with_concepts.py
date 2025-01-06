@@ -232,7 +232,7 @@ class MnistConceptsDao(IDao):
                                  28 * 28)
         x = data.reshape((10000, 28, 28, 1))
         data = self.extract_data(data_dir + '/t10k-labels-idx1-ubyte.gz', self.number_of_training_samples, 8, 1)
-        y = np.asarray(data.reshape(10000)).astype(np.int)
+        y = np.asarray(data.reshape(10000)).astype(int)
         return x, y
 
     def load_train(self, data_dir, shuffle, split_location=None):
@@ -253,7 +253,7 @@ class MnistConceptsDao(IDao):
         with gzip.open(filename) as bytestream:
             bytestream.read(head_size)
             buf = bytestream.read(data_size * num_data)
-            _data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
+            _data = np.frombuffer(buf, dtype=np.uint8).astype(float)
         return _data
 
     def load_orig_train_images_and_labels(self, data_dir):
@@ -264,7 +264,7 @@ class MnistConceptsDao(IDao):
                                  28 * 28)
         orig_train_images = data.reshape((60000, 28, 28, 1))
         data = self.extract_data(data_dir + '/train-labels-idx1-ubyte.gz', self.number_of_training_samples, 8, 1)
-        orig_train_labels = np.asarray(data.reshape(60000)).astype(np.int)
+        orig_train_labels = np.asarray(data.reshape(60000)).astype(int)
         return orig_train_images, orig_train_labels
 
     def load_train_images_and_label(self, data_dir, map_filename=None):
@@ -303,7 +303,7 @@ class MnistConceptsDao(IDao):
         print(self.num_concepts_label_generated)
         # Change 8 to 12 below . 10 + 2 (4 and 9 has bimodal distribution)
         concepts = np.zeros((num_images_per_concept * self.num_concepts, 28, 28, 1))
-        labels = np.zeros((num_images_per_concept * self.num_concepts), np.int8)
+        labels = np.zeros((num_images_per_concept * self.num_concepts), int8)
         num_concepts_generated = 0
         for digit, list_of_concept_dict in concepts_dict.items():
             concepts_for_digit, labels_for_concepts_for_digit = self.generate_concepts_for_digit(digit,
@@ -323,7 +323,7 @@ class MnistConceptsDao(IDao):
 
     def generate_concepts_for_digit(self, digit, list_of_concept_dict, num_images_per_concept, label_key_to_label_map):
         concepts_for_digit = np.zeros((num_images_per_concept * len(list_of_concept_dict), 28, 28, 1))
-        labels = np.zeros(num_images_per_concept * len(list_of_concept_dict), np.int8)
+        labels = np.zeros(num_images_per_concept * len(list_of_concept_dict), int8)
         num_samples_generated = 0
         for image_concept_dict in list_of_concept_dict:
             concept_image = ImageConcept.fromdict(image_concept_dict)

@@ -182,7 +182,7 @@ class IDao(ABC):
                                 self.image_shape[1],
                                 self.image_shape[2]))
         data = train[['label']].values
-        train_y = np.asarray(data.reshape(data.shape[0])).astype(np.int)
+        train_y = np.asarray(data.reshape(data.shape[0])).astype(int)
 
         val = dataset_dict["validation"]
         val_x = val[x_columns].values
@@ -193,7 +193,7 @@ class IDao(ABC):
                               )
 
         val_y = val[['label']].values
-        val_y = np.asarray(val_y.reshape(val_y.shape[0])).astype(np.int)
+        val_y = np.asarray(val_y.reshape(val_y.shape[0])).astype(int)
 
         if len(split_names) != 2:
             raise Exception("Split not implemented for for than two splits")
@@ -222,7 +222,7 @@ class IDao(ABC):
                               self.image_shape[1],
                               self.image_shape[2]))
             data = data_df[['label']].values
-            y = np.asarray(data.reshape(data.shape[0])).astype(np.int)
+            y = np.asarray(data.reshape(data.shape[0])).astype(int)
             y_one_hot = np.eye(self.num_classes)[y]
 
             # TODO separate normalizing and loading logic

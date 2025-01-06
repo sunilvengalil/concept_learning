@@ -203,4 +203,4 @@ class DummyDataset(Dataset):
 
     def __getitem__(self, item):
         class_id = item % self.n_classes
-        return np.array([item] + [class_id]*self.n_features, dtype=np.float), float(class_id)
+        return np.array([item] + [class_id]*self.n_features, dtype=float), float(class_id)

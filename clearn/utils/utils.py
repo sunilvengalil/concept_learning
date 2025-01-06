@@ -188,9 +188,9 @@ def save_images(images, size, image_path):
 
 def imread(path, grayscale=False):
     if (grayscale):
-        return scipy.misc.imread(path, flatten = True).astype(np.float)
+        return scipy.misc.imread(path, flatten = True).astype(float)
     else:
-        return scipy.misc.imread(path).astype(np.float)
+        return scipy.misc.imread(path).astype(float)
 
 
 def merge_images(images):

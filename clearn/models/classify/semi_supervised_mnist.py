@@ -22,7 +22,7 @@ from scipy.special import softmax
 from sklearn.metrics import accuracy_score
 
 import tensorflow as tf
-import tensorflow_probability as tfp
+# import tensorflow_probability as tfp
 from tensorflow.compat.v1 import placeholder
 from clearn.utils.tensorflow_wrappers import linear, conv2d
 
@@ -350,20 +350,20 @@ class SemiSupervisedClassifierMnist(VAE):
                     return_list = self.sess.run(tensor_list, feed_dict=feed_dict)
 
                 # Log training progress for the batch
-                if self.exp_config.fully_convolutional:
-                    if self.exp_config.uncorrelated_features:
-                        print(
-                            f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}  ccrrelation loss:{correlation_loss}")
-                    else:
-                        print(f"Epoch: {epoch}/{batch}, Loss:{loss} Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}")
-                else:
-                    print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} ")
+                # if self.exp_config.fully_convolutional:
+                #     if self.exp_config.uncorrelated_features:
+                #         print(
+                #             f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}  ccrrelation loss:{correlation_loss}")
+                #     else:
+                #         print(f"Epoch: {epoch}/{batch}, Loss:{loss} Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}")
+                # else:
+                #     print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} ")
 
                 self.counter += 1
                 self.num_steps_completed = batch + 1
                 # self.writer.add_summary(summary_str, self.counter - 1)
 
-            print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss}")
+            # print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss}")
             if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
                 for layer_num in self.exp_config.concept_dict.keys():
                     if layer_num == len(self.exp_config.num_units) + 1:

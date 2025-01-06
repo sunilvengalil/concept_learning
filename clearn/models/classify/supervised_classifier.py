@@ -14,7 +14,7 @@ class SupervisedClassifierModel(ClassifierModel):
 
     def __init__(self,
                  exp_config: ExperimentConfig,
-                 sess: tf.Session,
+                 sess: tf.compat.v1.Session,
                  epoch: int,
                  dao: IDao,
                  num_units_in_layer=None,

@@ -44,7 +44,7 @@ class FashionMnistDao(IDao):
         x = data[x_columns].values.reshape((self.number_of_testing_samples, 28, 28, 1))
 
         #data = self.extract_data(data_dir + '/t10k-labels-idx1-ubyte.gz', self.number_of_training_samples, 8, 1)
-        #y = np.asarray(data.reshape(self.number_of_testing_samples)).astype(np.int)
+        #y = np.asarray(data.reshape(self.number_of_testing_samples)).astype(int)
         y = data["label"].values
 
         return x, y
@@ -65,7 +65,7 @@ class FashionMnistDao(IDao):
         with gzip.open(filename) as bytestream:
             bytestream.read(head_size)
             buf = bytestream.read(data_size * num_data)
-            _data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
+            _data = np.frombuffer(buf, dtype=np.uint8).astype(float)
         return _data
 
     def load_train_images_and_label(self, data_dir, map_filename=None, training_phase=None):
@@ -82,6 +82,6 @@ class FashionMnistDao(IDao):
 
 
         #data = self.extract_data(data_dir + '/train-labels-idx1-ubyte.gz', self.number_of_training_samples, 8, 1)
-        #y = np.asarray(data.reshape(self.number_of_training_samples)).astype(np.int)
+        #y = np.asarray(data.reshape(self.number_of_training_samples)).astype(int)
         y = data["label"].values
         return x, y

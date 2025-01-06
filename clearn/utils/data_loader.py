@@ -120,24 +120,24 @@ class TrainValDataIterator:
                                 self.dao.image_shape[1],
                                 self.dao.image_shape[2]))
         data = train[['label']].values
-        train_y = np.asarray(data.reshape(data.shape[0])).astype(np.int32)
+        train_y = np.asarray(data.reshape(data.shape[0])).astype(int)
 
         val = dataset_dict["validation"]
         val_x = val[x_columns].values
         val_x = val_x.reshape(train_x.shape)
 
         val_y = val[['label']].values
-        val_y = np.asarray(val_y.reshape(val_y.shape[0])).astype(np.int32)
+        val_y = np.asarray(val_y.reshape(val_y.shape[0])).astype(int)
 
         if len(split_names) != 2:
             raise Exception("Split not implemented for for than two splits")
 
         # TODO change this to numpy - remove the for loop performance improvement
-        _val_y = np.zeros((len(val_y), self.dao.num_classes), dtype=np.float)
+        _val_y = np.zeros((len(val_y), self.dao.num_classes), dtype=float)
         for i, label in enumerate(val_y):
             _val_y[i, val_y[i]] = 1.0
 
-        _train_y = np.zeros((len(train_y), self.dao.num_classes), dtype=np.float)
+        _train_y = np.zeros((len(train_y), self.dao.num_classes), dtype=float)
         for i, label in enumerate(train_y):
             _train_y[i, train_y[i]] = 1.0
 
@@ -256,7 +256,7 @@ class TrainValDataIterator:
         if self.manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
             manual_annotation = np.zeros((len(_manual_annotation),
                                           TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col,
-                                          num_labels + 1), dtype=np.float)
+                                          num_labels + 1), dtype=float)
             if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
                 for i in range(len(_manual_annotation)):
                     for j in range(
@@ -274,7 +274,7 @@ class TrainValDataIterator:
             if actual_labels is not None and actual_labels.shape[0] == len(self.train_x):
                 manual_annotation = np.zeros((len(self.train_x),
                                               TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col,
-                                              num_labels + 1), dtype=np.float)
+                                              num_labels + 1), dtype=float)
                 manual_annotation[:, :, 0:num_labels] = actual_labels
                 manual_annotation[:, :, num_labels] = 1  # set manual annotation confidence as 1
             else:
@@ -283,7 +283,7 @@ class TrainValDataIterator:
 
     def get_manual_annotation(self, manual_annotation_file, _manual_annotation, num_labels, actual_labels):
         if self.manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
-            manual_annotation = np.zeros((len(_manual_annotation), num_labels + 2), dtype=np.float)
+            manual_annotation = np.zeros((len(_manual_annotation), num_labels + 2), dtype=float)
             if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
                 for i, label in enumerate(_manual_annotation):
                     manual_annotation[i, int(_manual_annotation[i, 0])] = 1.0
@@ -295,7 +295,7 @@ class TrainValDataIterator:
                     manual_annotation[i, num_labels] = 0  # set manual annotation confidence as 0
         elif self.manual_labels_config == ExperimentConfig.USE_ACTUAL:
             if actual_labels is not None and actual_labels.shape[0] == len(self.trai_xn):
-                manual_annotation = np.zeros((len(self.train_x), num_labels + 1), dtype=np.float)
+                manual_annotation = np.zeros((len(self.train_x), num_labels + 1), dtype=float)
                 if self.budget < 1:
                     indices = np.random.choice(len(self.train_x), int(self.budget * len(self.train_x)), replace=False)
                     print(f"Using labels of {len(indices)} samples")
@@ -570,7 +570,7 @@ def load_test_raw_data(data_dir):
         with gzip.open(filename) as bytestream:
             bytestream.read(head_size)
             buf = bytestream.read(data_size * num_data)
-            _data = np.frombuffer(buf, dtype=np.uint8).astype(np.float)
+            _data = np.frombuffer(buf, dtype=np.uint8).astype(float)
         return _data
 
     data = extract_data(data_dir + '/t10k-images-idx3-ubyte.gz', 10000, 16, 28 * 28)
@@ -636,7 +636,7 @@ class DataIterator:
             self.y = self.dataset_dict[DataIterator.Y_ONE_HOT]
             self.unique_labels = np.unique(self.dataset_dict[DataIterator.Y_RAW])
 
-        self.manual_annotation = np.zeros((len(self.x), dao.num_classes + 2), dtype=np.float16)
+        self.manual_annotation = np.zeros((len(self.x), dao.num_classes + 2), dtype=float)
         self.manual_annotation[:, 0:dao.num_classes] = self.y
         self.manual_annotation[:, dao.num_classes] = 1  # set manual annotation confidence as 1
         self.manual_annotation[:, dao.num_classes + 1] = -1
@@ -644,7 +644,7 @@ class DataIterator:
         self.manual_annotation_concepts = np.zeros((len(self.x),
                                                     DataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col,
                                                     dao.num_classes + 1),
-                                                   dtype=np.float)
+                                                   dtype=float)
         self.idx = 0
 
     def has_next(self, dataset_type):

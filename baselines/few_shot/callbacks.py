@@ -507,7 +507,7 @@ class LearningRateScheduler(Callback):
     def on_epoch_begin(self, epoch, logs=None):
         lrs = [self.schedule(epoch, param_group['lr']) for param_group in self.optimiser.param_groups]
 
-        if not all(isinstance(lr, (float, np.float32, np.float64)) for lr in lrs):
+        if not all(isinstance(lr, (float, float32, float64)) for lr in lrs):
             raise ValueError('The output of the "schedule" function '
                              'should be float.')
         self.set_lr(epoch, lrs)

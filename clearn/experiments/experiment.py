@@ -20,6 +20,7 @@ from clearn.utils.data_loader import TrainValDataIterator, DataIterator
 from clearn.config import ExperimentConfig
 from clearn.utils.utils import show_all_variables, get_padding_info
 
+ROOT_PATH = "/Users/sunil/projects/concept_learning_exp"
 MODEL_TYPE_VAE_UNSUPERVISED = "VAE"
 MODEL_TYPE_VAE_SEMI_SUPERVISED_MNIST = "VAE_SEMI_SUPERVISED_MNIST"
 MODEL_TYPE_SUPERVISED_CLASSIFIER = "CLASSIFIER_SUPERVISED"
@@ -193,7 +194,7 @@ def initialize_model_train_and_get_features(experiment_name,
                                             split_name="Split_1",
                                             train_val_data_iterator=None,
                                             num_val_samples=128,
-                                            root_path="/Users/sunilv/concept_learning_exp",
+                                            root_path=ROOT_PATH,
                                             learning_rate=0.001,
                                             run_evaluation_during_training=True,
                                             eval_interval_in_epochs=1,

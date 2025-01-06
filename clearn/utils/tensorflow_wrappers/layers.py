@@ -36,7 +36,7 @@ def conv_cond_concat(x, y):
 def conv2d(input_, output_dim, k_h=5, k_w=5, d_h=2, d_w=2, stddev=0.02, name="conv2d"):
     with tf.compat.v1.variable_scope(name):
         w = tf.compat.v1.get_variable('w', [k_h, k_w, input_.get_shape()[-1], output_dim],
-                                      initializer=tf.glorot_uniform_initializer())
+                                      initializer=tf.compat.v1.glorot_uniform_initializer())
         conv = tf.nn.conv2d(input_, w, strides=[1, d_h, d_w, 1], padding='SAME')
         biases = tf.compat.v1.get_variable('biases', [output_dim], initializer=tf.constant_initializer(0.0))
         conv = tf.reshape(tf.nn.bias_add(conv, biases), conv.get_shape())
@@ -51,7 +51,7 @@ def deconv2d(input_, output_shape, k_h=5, k_w=5, d_h=2, d_w=2, name="deconv2d", 
     with tf.compat.v1.variable_scope(name):
         # filter : [height, width, output_channels, in_channels]
         w = tf.compat.v1.get_variable('w', [k_h, k_w, output_shape[-1], input_.get_shape()[-1]],
-                            initializer=tf.glorot_uniform_initializer())
+                            initializer=tf.compat.v1.glorot_uniform_initializer())
         try:
             deconv = tf.nn.conv2d_transpose(input_, w, output_shape=output_shape, strides=[1, d_h, d_w, 1])
         # Support for versions of TensorFlow before 0.7.0
@@ -83,7 +83,7 @@ def linear(input_, output_size, scope=None, stddev=0.02, bias_start=0.0, with_w=
 
     with tf.compat.v1.variable_scope(scope or "Linear"):
         matrix = tf.compat.v1.get_variable("Matrix", [shape[1], output_size], tf.float32,
-                 tf.glorot_uniform_initializer())
+                 tf.compat.v1.glorot_uniform_initializer())
         bias = tf.compat.v1.get_variable("bias", [output_size],
                                initializer=tf.constant_initializer(bias_start))
         if with_w:

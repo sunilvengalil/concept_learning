@@ -66,7 +66,7 @@ class CiFar10Dao(IDao):
         print(data.shape)
         x = data.reshape(
             (data.shape[0], self.image_shape[0], self.image_shape[1], self.image_shape[2]))
-        y = np.asarray(label).astype(np.int)
+        y = np.asarray(label).astype(int)
         print(y.shape)
         return x, y
 
