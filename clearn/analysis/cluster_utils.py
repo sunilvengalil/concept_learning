@@ -59,8 +59,8 @@ def plot_features(exp_config, features, digits, dimensions_to_be_plotted, new_fi
     """
 
     # Load Model
-    tf.reset_default_graph()
-    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
+    tf.compat.v1.reset_default_graph()
+    with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as sess:
         model = ClassifierModel(exp_config,
                                 sess,
                                 epoch=1,
@@ -87,7 +87,7 @@ def plot_features(exp_config, features, digits, dimensions_to_be_plotted, new_fi
             # plt.axes([0.65, 0.65, 0.2, 0.2], facecolor='y')
         reconstructed_image_for_means = decode(model, means.reshape([len(digits), 10]), exp_config.BATCH_SIZE)
         # plt.imshow(np.squeeze(reconstructed_image),cmap="gray")
-    tf.reset_default_graph()
+    tf.compat.v1.reset_default_graph()
     return reconstructed_image_for_means
 
 
@@ -146,7 +146,7 @@ def cluster_next_level_gmm(exp_config: ExperimentConfig,
     level2_manual_annotations = dict()
     if cluster_type in cluster_group_dict.keys():
         df[cluster_column_name_2] = -1
-        tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
         for cluster in cluster_group_dict[cluster_type]:
             print(cluster.id, cluster.manual_annotation.label)
             if cluster_type != "unknown_cluster"  and cluster.manual_annotation.label not in classes:
@@ -155,7 +155,7 @@ def cluster_next_level_gmm(exp_config: ExperimentConfig,
             _df = df.iloc[_indices]
 
             _latent_vectors = _df[z_col_names].values
-            tf.reset_default_graph()
+            tf.compat.v1.reset_default_graph()
             _decoded_images, _cluster_centers, _cluster_labels, posterior_proba_level_2 = cluster_and_decode_latent_vectors_gmm(
                 model_type,
                 num_clusters,
@@ -259,7 +259,7 @@ def decode_latent_vectors(model_type: str,
                           cluster_centers: np.ndarray,
                           exp_config: ExperimentConfig,
                           dao: IDao):
-    with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
+    with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as sess:
         model = get_model(dao, exp_config, model_type, num_epochs=0, sess=sess)
         z = np.zeros([cluster_centers.shape[0], exp_config.Z_DIM])
         for i in range(cluster_centers.shape[0]):
