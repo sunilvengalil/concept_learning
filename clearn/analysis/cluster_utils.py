@@ -246,7 +246,7 @@ def plot_distance_distribution(df: DataFrame,
     for cluster_num in clusters:
         _df = get_samples_for_cluster(df, cluster_num, cluster_column_name)
         col_name = f"distance_{cluster_num}"
-        v, b = np.histogram(_df[col_name].values, bins=20, normed=False)
+        v, b = np.histogram(_df[col_name].values, bins=20, density=False)
         v = v / np.sum(v)
         plt.plot(b[:-1], v, label=legend_string.format(cluster_num, manual_labels[cluster_num]))
         plt.xlabel("Distance from cluster center")
