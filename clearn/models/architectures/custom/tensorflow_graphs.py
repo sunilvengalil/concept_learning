@@ -204,6 +204,7 @@ def deconv_n_layer(model, z,  out_channels, reuse=False):
     with tf.compat.v1.variable_scope("decoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
             # Add dense layers
+            model.dense_out = z
             if model.exp_config.num_dense_layers > 0:
                 model.decoder_dense_dict = dict()
                 layer_num = 0
