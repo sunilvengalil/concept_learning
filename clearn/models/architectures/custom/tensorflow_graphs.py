@@ -204,7 +204,7 @@ def deconv_n_layer(model, z,  out_channels, reuse=False):
     with tf.compat.v1.variable_scope("decoder", reuse=reuse):
         if model.exp_config.activation_hidden_layer == "RELU":
             # Add dense layers
-            model.dense_out = z
+            dense_layer_out = z
             if model.exp_config.num_dense_layers > 0:
                 model.decoder_dense_dict = dict()
                 layer_num = 0
@@ -228,19 +228,20 @@ def deconv_n_layer(model, z,  out_channels, reuse=False):
                         print(layer_num, model.decoder_dense_dict[layer_key].shape)
 
                 num_features = n_units[num_features_index]
-                image_size = model.image_sizes[num_features_index]
-                num_units = image_size[0] * image_size[1] * image_size[2]
-                if model.exp_config.log_level == logging.DEBUG:
-                    print(num_features_index, num_features, image_size, num_units)
-                model.dense_out = lrelu(linear(model.decoder_dense_dict[layer_key],
-                                                                   num_units,
-                                                                   scope="desne_out")
-                                                            )
-                if model.exp_config.log_level == logging.DEBUG:
-                    print(model.dense_out.shape)
+                dense_layer_out = model.decoder_dense_dict[layer_key]
         else:
             raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
 
+        image_size = model.image_sizes[num_features_index]
+        num_units = image_size[0] * image_size[1] * image_size[2]
+        if model.exp_config.log_level == logging.DEBUG:
+            print(num_features_index, num_features, image_size, num_units)
+        model.dense_out = lrelu(linear(dense_layer_out,
+                                       num_units,
+                                       scope="desne_out")
+                                )
+        if model.exp_config.log_level == logging.DEBUG:
+            print(model.dense_out.shape)
         # Add deconvolution layers
         # layer_key = f"layer_{len(n_units)}"
         if num_de_convolutional_layers > 0:
