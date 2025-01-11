@@ -97,7 +97,7 @@ class VAE(GenerativeModel):
         return out
 
     def inference(self):
-        z = self.mu + self.sigma * tf.random_normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
+        z = self.mu + self.sigma * tf.compat.v1.random_normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
         self.images = self._decoder(z, reuse=True)
 
     def _build_model(self):
@@ -153,9 +153,9 @@ class VAE(GenerativeModel):
 
         """ Training """
         # optimizers
-        t_vars = tf.trainable_variables()
-        with tf.control_dependencies(tf.get_collection(tf.GraphKeys.UPDATE_OPS)):
-            self.optim = tf.train.AdamOptimizer(self.exp_config.learning_rate, beta1=self.exp_config.beta1_adam) \
+        t_vars = tf.compat.v1.trainable_variables()
+        with tf.control_dependencies(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
+            self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate, beta1=self.exp_config.beta1_adam) \
                 .minimize(self.loss, var_list=t_vars)
 
         """" Testing """
@@ -169,10 +169,10 @@ class VAE(GenerativeModel):
         tf.summary.scalar("Total Loss", self.loss)
 
         # final summary operations
-        self.merged_summary_op = tf.summary.merge_all()
+        self.merged_summary_op = tf.compat.v1.summary.merge_all()
 
     def get_trainable_vars(self):
-        return tf.trainable_variables()
+        return tf.compat.v1.trainable_variables()
 
     def train(self, train_val_data_iterator):
         start_batch_id = self.start_batch_id
@@ -557,7 +557,7 @@ class VAE(GenerativeModel):
 
     def load_from_checkpoint(self):
         # initialize all variables
-        tf.global_variables_initializer().run()
+        tf.compat.v1.global_variables_initializer().run()
 
         # graph inputs for visualize training results
         self.sample_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)

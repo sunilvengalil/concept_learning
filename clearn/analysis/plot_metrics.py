@@ -408,7 +408,7 @@ def plot_epoch_vs_accuracy(root_path: str,
     plt.title(f"Number of units {num_units}")
     plt.grid(axis="x")
     if plot_filename is not None:
-        plt.savefig(os.path.join(exp_config.ANALYSIS_PATH + "/"+ plot_filename), bbox="tight")
+        plt.savefig(os.path.join(exp_config.ANALYSIS_PATH + "/"+ plot_filename), bbox_inches="tight")
     return metric_values
 
 
@@ -520,7 +520,7 @@ def plot_hidden_units_accuracy_layerwise(root_path: str,
         if fname is not None:
             fname = exp_config.ANALYSIS_PATH + fname
             print(f"Saving plot in file {fname}")
-            plt.savefig(fname, bbox="tight")
+            plt.savefig(fname, bbox_inches="tight")
 
     plt.legend(loc=legend_lc, shadow=True, fontsize='x-large')
     plt.grid()
@@ -581,8 +581,8 @@ def display_reconstructed_images(exp_config: ExperimentConfig,
                     print(f"Saving file at")
                     print(fqfn)
                     plt.margins(0, 0)
-                    plt.savefig(fqfn + ".pdf", bbox="tight")
-                    plt.savefig(fqfn + "jpg", bbox="tight")
+                    plt.savefig(fqfn + ".pdf", bbox_inches="tight")
+                    plt.savefig(fqfn + "jpg", bbox_inches="tight")
 
 
 def display_reconstructed_images_loss_wise(exp_config: ExperimentConfig,
@@ -632,6 +632,6 @@ def display_reconstructed_images_loss_wise(exp_config: ExperimentConfig,
                     print(f"Saving file at")
                     print(fqfn)
                     plt.margins(0, 0)
-                    plt.savefig(fqfn + ".pdf", bbox="tight")
-                    plt.savefig(fqfn + "jpg", bbox="tight")
+                    plt.savefig(fqfn + ".pdf", bbox_inches="tight")
+                    plt.savefig(fqfn + "jpg", bbox_inches="tight")
 

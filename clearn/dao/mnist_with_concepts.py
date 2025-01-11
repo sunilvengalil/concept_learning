@@ -54,7 +54,7 @@ def display_images(decoded_images,
     if image_filename is not None and len(image_filename) > 0:
         print(f"Saving the image to {image_filename}")
         plt.savefig(image_filename,
-                    bbox="tight",
+                    bbox_inches="tight",
                     pad_inches=0
                     )
     plt.show()
