@@ -19,10 +19,10 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
         if num_convolutional_layers > 0:
             model.cnn_out = fcnn_n_layer(model, x, n_units[0:num_convolutional_layers - 1], n_units[num_convolutional_layers - 1], reuse )
         #
+        model.reshaped_en = tf.reshape(model.cnn_out, [model.exp_config.BATCH_SIZE, -1])
         if model.exp_config.num_dense_layers > 0:
             if model.exp_config.activation_hidden_layer == "RELU":
                 layer_num = num_convolutional_layers
-                model.reshaped_en = tf.reshape(model.cnn_out, [model.exp_config.BATCH_SIZE, -1])
                 model.dense_features_dict = dict()
                 layer_key = f"layer_{layer_num}"
                 model.dense_features_dict[layer_key] = lrelu(linear(model.reshaped_en,
@@ -42,10 +42,12 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
                         print(layer_num, model.dense_features_dict[layer_key].shape)
             else:
                 raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
-
-        z = linear(model.dense_features_dict[layer_key],
-                   num_out_units,
-                   scope="encoder_out")
+        if model.exp_config.num_dense_layers > 0:
+            z = linear(model.dense_features_dict[layer_key],
+                       num_out_units,
+                       scope="encoder_out")
+        else:
+            z = linear(model.reshaped_en, num_out_units, scope="encoder_out")
         if model.exp_config.log_level == logging.DEBUG:
             print(f"z {z.shape}")
         return z

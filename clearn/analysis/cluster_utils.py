@@ -100,6 +100,7 @@ def cluster_next_level(exp_config: ExperimentConfig,
                        epochs_completed,
                        dao: IDao,
                        cluster_group_dict: Dict[str, ClusterGroup],
+                       num_clusters: int = 10,
                        processed_clusters=[],
                        cluster_type="unknown_cluster"
                        ):
@@ -115,7 +116,7 @@ def cluster_next_level(exp_config: ExperimentConfig,
             tf.reset_default_graph()
             _decoded_images, _cluster_centers, _cluster_labels = cluster_and_decode_latent_vectors(
                 model_type,
-                10,
+                num_clusters,
                 _latent_vectors,
                 exp_config,
                 dao
