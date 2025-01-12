@@ -213,9 +213,10 @@ def deconv_n_layer(model, z,  out_channels, reuse=False):
                 num_features_index = len(n_units) - (layer_num + 1)
                 num_features = n_units[num_features_index]
 
-                model.decoder_dense_dict[layer_key] = lrelu( linear(z, num_features, scope= layer_key))
+                model.decoder_dense_dict[layer_key] = lrelu( linear(z, num_features, scope= layer_key) )
                 if model.exp_config.log_level == logging.DEBUG:
                     print(layer_num, model.decoder_dense_dict[layer_key].shape)
+                layer_num = layer_num + 1
                 for layer_num in range(1, model.exp_config.num_dense_layers):
                     layer_key = f"layer_{layer_num}"
                     previous_layer_key = f"layer_{layer_num-1}"
@@ -228,7 +229,6 @@ def deconv_n_layer(model, z,  out_channels, reuse=False):
                     if model.exp_config.log_level == logging.DEBUG:
                         print(layer_num, model.decoder_dense_dict[layer_key].shape)
 
-                num_features = n_units[num_features_index]
                 dense_layer_out = model.decoder_dense_dict[layer_key]
         else:
             raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
