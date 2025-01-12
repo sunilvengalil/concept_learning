@@ -235,7 +235,7 @@ def deconv_n_layer(model, z,  out_channels, reuse=False):
         print("Layer number", layer_num)
         num_features_index = len(n_units) - (layer_num + 1)
         num_features = n_units[num_features_index]
-        image_size = model.image_sizes[num_features_index]
+        image_size = model.image_sizes[num_features_index + 1 ]
         num_units = image_size[0] * image_size[1] * image_size[2]
         if model.exp_config.log_level == logging.DEBUG:
             print(num_features_index, num_features, image_size, num_units)
