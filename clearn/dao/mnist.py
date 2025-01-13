@@ -68,11 +68,16 @@ class MnistDao(IDao):
                                  self.number_of_training_samples,
                                  16,
                                  28 * 28)
-        print(data.shape)
+        print("Mnist x shape after loading", data.shape)
 
-        x = data.reshape((49872, 28, 28, 1))
+        x = data.reshape((-1, 28, 28, 1))
+        print("Mnist x shape after reshaping", x.shape)
 
         data = self.extract_data(data_dir + '/train-labels-idx1-ubyte.gz', self.number_of_training_samples, 8, 1)
+        print("Mnist y shape after loading", data.shape)
 
-        y = np.asarray(data.reshape(49872)).astype(int)
+        y = np.asarray(data.reshape(-1)).astype(int)
+        print("Mnist y shape after reshaping", y.shape)
+
         return x, y
+
