@@ -499,7 +499,6 @@ class SemiSupervisedClassifierMnist(VAE):
             if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                 data_iterator.reset_counter(dataset_type)
                 break
-            batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
             if self.exp_config.fully_convolutional:
                 concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.dao.num_classes],
                                             (self.exp_config.BATCH_SIZE,

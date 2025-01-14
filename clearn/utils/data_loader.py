@@ -344,6 +344,7 @@ class TrainValDataIterator:
                 percentage_to_be_sampled = None
 
             self.dataset_dict = load_train_val(dataset_path,
+                                               batch_size =self.batch_size,
                                                shuffle=shuffle,
                                                stratified=stratified,
                                                percentage_to_be_sampled=percentage_to_be_sampled,
@@ -582,6 +583,7 @@ def load_test_raw_data(data_dir):
 
 def load_train_val(data_dir,
                    dao: IDao,
+                   batch_size=64,
                    shuffle=False,
                    stratified=None,
                    percentage_to_be_sampled=0.7,
@@ -596,6 +598,7 @@ def load_train_val(data_dir,
                               percentage_to_be_sampled,
                               split_location,
                               split_names,
+                              batch_size=batch_size,
                               seed=seed,
                               num_val_samples=num_val_samples,
                               training_phase=training_phase
