@@ -363,6 +363,7 @@ class TrainValDataIterator:
             self.manual_labels_config = manual_labels_config
             self.concepts_gt = None
             _manual_annotation = None
+            print("Loaded training and val data: Shape train x train y val x val y", self.train_x.shape, self.train_y.shape, self.val_x.shape, self.val_y.shape)
             if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
                 if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
                     _manual_annotation_all = TrainValDataIterator.load_manual_annotation(manual_annotation_file)
@@ -371,8 +372,11 @@ class TrainValDataIterator:
                     # manual_annotation_file_val = manual_annotation_file.rsplit("/", 1)[0] + "/" + fname.rsplit(".", 1)[0] +"_val" + ".csv"
                     # if os.path.isfile(manual_annotation_file_val):
                     #     raise Exception(f"File does not exist {manual_annotation_file_val}")
+                    print("Loaded manual annotation file shape" , _manual_annotation_all.shape)
+                    print("Train and val indices", self.dataset_dict["TRAIN_INDICES"].shape, self.dataset_dict["VAL_INDICES"].shape)
                     _manual_annotation = _manual_annotation_all[self.dataset_dict["TRAIN_INDICES"]]
                     _manual_annotation_val = _manual_annotation_all[self.dataset_dict["VAL_INDICES"]]
+                    print("Manual annotation for train and val" , _manual_annotation.shape, _manual_annotation_val.shape)
                     print("Loaded manual annotation")
                     print(f"Number of samples with manual confidence {sum(_manual_annotation[:, 1] > 0)}")
                 else:
