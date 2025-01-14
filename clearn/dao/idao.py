@@ -72,7 +72,7 @@ class IDao(ABC):
         x, y = self.load_train_images_and_label(data_dir,  split_location + MAP_FILE_NAME, training_phase=training_phase)
         num_samples = x.shape[0]
         print("Load train val x shape y shape num_samples", x.shape, y.shape, num_samples)
-        if num_val_samples % batch_size != 0:
+        if num_samples % batch_size != 0:
             num_samples = (num_samples // batch_size) * batch_size
             x = x[:num_samples]
             y = y[:num_samples]
