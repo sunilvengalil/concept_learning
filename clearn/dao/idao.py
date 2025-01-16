@@ -101,10 +101,7 @@ class IDao(ABC):
             val_y = splitted[3]
             train_indices = splitted[4]
             val_indices = splitted[5]
-            split_name = self.get_split_name(split_location)
             dataset_dict = {}
-
-            num_splits = len(split_names)
             dataset_dict["split_names"] = split_names
 
             # for split_num, split in enumerate(split_names):
@@ -123,8 +120,9 @@ class IDao(ABC):
             # print("Writing json to ", json_)
         else:
             raise Exception("Split not implemented for more than two splits")
-
+        print("Train_x shape, val_x shape", train_x.shape, val_x.shape)
         data_dict = self.create_data_dict(train_x, train_y, val_x, val_y)
+        print("dataset_dictx, datset_dicty", dataset_dict[self.TRAIN_X].shape, data_dict[self.TRAIN_Y].shape)
 
         # print(f"saving to data dir {data_dir} images.csv")
         # frame = pd.DataFrame(train_x.reshape((train_x.shape[0], 784)))
@@ -134,6 +132,7 @@ class IDao(ABC):
 
         data_dict["TRAIN_INDICES"] = train_indices
         data_dict["VAL_INDICES"] = val_indices
+        print("train indices shape val indices", train_indices.shape, val_indices.shape)
         self.num_validation_samples = data_dict["VAL_INDICES"].shape[0]
         self.data_dict = data_dict
 
