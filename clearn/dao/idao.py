@@ -101,8 +101,6 @@ class IDao(ABC):
             val_y = splitted[3]
             train_indices = splitted[4]
             val_indices = splitted[5]
-            dataset_dict = {}
-            dataset_dict["split_names"] = split_names
 
             # for split_num, split in enumerate(split_names):
             #     print(split, splitted[split_num].shape)
@@ -122,7 +120,7 @@ class IDao(ABC):
             raise Exception("Split not implemented for more than two splits")
         print("Train_x shape, val_x shape", train_x.shape, val_x.shape)
         data_dict = self.create_data_dict(train_x, train_y, val_x, val_y)
-        print("dataset_dictx, datset_dicty", dataset_dict[self.TRAIN_X].shape, data_dict[self.TRAIN_Y].shape)
+        print("data dict x, data dict y", data_dict[self.TRAIN_X].shape, data_dict[self.TRAIN_Y].shape)
 
         # print(f"saving to data dir {data_dir} images.csv")
         # frame = pd.DataFrame(train_x.reshape((train_x.shape[0], 784)))
