@@ -297,7 +297,7 @@ class TrainValDataIterator:
         else :
             print("Labels shape and manual annotation shape", actual_labels.shape, _manual_annotation.shape[0])
             if actual_labels is not None and actual_labels.shape[0] == _manual_annotation.shape[0]:
-                manual_annotation = np.zeros((len(_manual_annotation.shape[0]), num_labels + 1), dtype=float)
+                manual_annotation = np.zeros((_manual_annotation.shape[0], num_labels + 1), dtype=float)
                 if budget < 1:
                     indices = np.random.choice(len(self._manual_annotation.shape[0]), int(self.budget * len(self._manual_annotation.shape[0])), replace=False)
                     print(f"Using labels of {len(indices)} samples")
