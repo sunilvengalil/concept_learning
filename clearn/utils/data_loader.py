@@ -295,10 +295,11 @@ class TrainValDataIterator:
                     manual_annotation[i, _manual_annotation[i]] = 1.0
                     manual_annotation[i, num_labels] = 0  # set manual annotation confidence as 0
         else :
-            if actual_labels is not None and actual_labels.shape[0] == len(self.trai_xn):
-                manual_annotation = np.zeros((len(self.train_x), num_labels + 1), dtype=float)
+            print("Labels shape and manual annotation shape", actual_labels.shape, _manual_annotation.shape[0])
+            if actual_labels is not None and actual_labels.shape[0] == _manual_annotation.shape[0]:
+                manual_annotation = np.zeros((len(_manual_annotation.shape[0]), num_labels + 1), dtype=float)
                 if budget < 1:
-                    indices = np.random.choice(len(self.train_x), int(self.budget * len(self.train_x)), replace=False)
+                    indices = np.random.choice(len(self._manual_annotation.shape[0]), int(self.budget * len(self._manual_annotation.shape[0])), replace=False)
                     print(f"Using labels of {len(indices)} samples")
                     manual_annotation[indices, 0:num_labels] = actual_labels[indices]
                     manual_annotation[indices, num_labels] = 1  # set manual annotation confidence as 1
@@ -377,9 +378,9 @@ class TrainValDataIterator:
                     #print("Train and val indices", self.dataset_dict["TRAIN_INDICES"].shape, self.dataset_dict["VAL_INDICES"].shape)
                     # _manual_annotation = _manual_annotation_train[self.dataset_dict["TRAIN_INDICES"]]
                     _manual_annotation_val = _manual_annotation_train[self.dataset_dict["VAL_INDICES"]] # TODO this is incorrect now needs to be fixed
-                    print("Manual annotation " , _manual_annotation.shape)
+                    # print("Manual annotation " , _manual_annotation.shape)
                     print("Loaded manual annotation")
-                    print(f"Number of samples with manual confidence {sum(_manual_annotation[:, 1] > 0)}")
+                    print(f"Number of samples with manual confidence {sum(_manual_annotation_train[:, 1] > 0)}")
                 else:
                     # TODO if we are using random prior with uniform distribution, do we need to keep
                     # manual confidence as 0.5 or 0
@@ -389,7 +390,7 @@ class TrainValDataIterator:
                     Create a numpy array of dimension (num_training_samples, num_unique_labels) and  set the one-hot encoded label with uniform probability distribution for each label.
                     In case of MNIST each row will be set as one of the symbol {0,1,2,3,4,5,6,7,8,9} with a probability of 0.1
                     """
-                    _manual_annotation = np.random.choice(self.unique_labels,
+                    _manual_annotation_train = np.random.choice(self.unique_labels,
                                                           len(self.train_x))
                     _manual_annotation_val = np.random.choice(self.unique_labels,
                                                               len(self.val_x))
@@ -422,7 +423,7 @@ class TrainValDataIterator:
             self.val_manual_annotation = self.get_manual_annotation(manual_annotation_file,
                                                                 _manual_annotation_val,
                                                                 dao.num_classes,
-                                                                self.val_y, se_actual=True, budget=1)
+                                                                self.val_y, use_actual=True, budget=1)
 
 
             self.manual_annotation_concepts = self.get_manual_annotation_concepts(manual_annotation_file_concepts,
