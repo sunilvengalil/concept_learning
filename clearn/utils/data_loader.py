@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import json
 import imageio
+from copy import deepcopy
 from sklearn.model_selection import train_test_split
 
 from clearn.config import ExperimentConfig
@@ -281,8 +282,8 @@ class TrainValDataIterator:
                 raise Exception("Grount truth not set")
         return manual_annotation
 
-    def get_manual_annotation(self, manual_annotation_file, _manual_annotation, num_labels, actual_labels):
-        if self.manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
+    def get_manual_annotation(self, manual_annotation_file, _manual_annotation, num_labels, actual_labels, use_actual, budget):
+        if use_actual is False:
             manual_annotation = np.zeros((len(_manual_annotation), num_labels + 2), dtype=float)
             if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
                 for i, label in enumerate(_manual_annotation):
@@ -293,10 +294,10 @@ class TrainValDataIterator:
                 for i, label in enumerate(_manual_annotation):
                     manual_annotation[i, _manual_annotation[i]] = 1.0
                     manual_annotation[i, num_labels] = 0  # set manual annotation confidence as 0
-        elif self.manual_labels_config == ExperimentConfig.USE_ACTUAL:
+        else :
             if actual_labels is not None and actual_labels.shape[0] == len(self.trai_xn):
                 manual_annotation = np.zeros((len(self.train_x), num_labels + 1), dtype=float)
-                if self.budget < 1:
+                if budget < 1:
                     indices = np.random.choice(len(self.train_x), int(self.budget * len(self.train_x)), replace=False)
                     print(f"Using labels of {len(indices)} samples")
                     manual_annotation[indices, 0:num_labels] = actual_labels[indices]
@@ -366,17 +367,17 @@ class TrainValDataIterator:
             print("Loaded training and val data: Shape train x train y val x val y", self.train_x.shape, self.train_y.shape, self.val_x.shape, self.val_y.shape)
             if manual_labels_config == ExperimentConfig.USE_CLUSTER_CENTER:
                 if manual_annotation_file is not None and os.path.isfile(manual_annotation_file):
-                    _manual_annotation_all = TrainValDataIterator.load_manual_annotation(manual_annotation_file)
+                    _manual_annotation_train = TrainValDataIterator.load_manual_annotation(manual_annotation_file)
                     # fname = manual_annotation_file.rsplit("/", 1)[1]
                     # print(fname)
                     # manual_annotation_file_val = manual_annotation_file.rsplit("/", 1)[0] + "/" + fname.rsplit(".", 1)[0] +"_val" + ".csv"
                     # if os.path.isfile(manual_annotation_file_val):
                     #     raise Exception(f"File does not exist {manual_annotation_file_val}")
-                    print("Loaded manual annotation file shape" , _manual_annotation_all.shape)
-                    print("Train and val indices", self.dataset_dict["TRAIN_INDICES"].shape, self.dataset_dict["VAL_INDICES"].shape)
-                    _manual_annotation = _manual_annotation_all[self.dataset_dict["TRAIN_INDICES"]]
-                    _manual_annotation_val = _manual_annotation_all[self.dataset_dict["VAL_INDICES"]]
-                    print("Manual annotation for train and val" , _manual_annotation.shape, _manual_annotation_val.shape)
+                    print("Loaded manual annotation file shape" , _manual_annotation_train.shape)
+                    #print("Train and val indices", self.dataset_dict["TRAIN_INDICES"].shape, self.dataset_dict["VAL_INDICES"].shape)
+                    # _manual_annotation = _manual_annotation_train[self.dataset_dict["TRAIN_INDICES"]]
+                    _manual_annotation_val = _manual_annotation_train[self.dataset_dict["VAL_INDICES"]] # TODO this is incorrect now needs to be fixed
+                    print("Manual annotation " , _manual_annotation.shape)
                     print("Loaded manual annotation")
                     print(f"Number of samples with manual confidence {sum(_manual_annotation[:, 1] > 0)}")
                 else:
@@ -413,14 +414,15 @@ class TrainValDataIterator:
                                                                                           TrainValDataIterator.num_concepts_per_image_row * TrainValDataIterator.num_concepts_per_image_col)
                                                                    )
 
+            use_actual = self.manual_labels_config == ExperimentConfig.USE_ACTUAL
             self.manual_annotation = self.get_manual_annotation(manual_annotation_file,
-                                                                _manual_annotation,
+                                                                _manual_annotation_train,
                                                                 dao.num_classes,
-                                                                self.train_y)
+                                                                self.train_y, use_actual=use_actual, budget=self.budget)
             self.val_manual_annotation = self.get_manual_annotation(manual_annotation_file,
                                                                 _manual_annotation_val,
                                                                 dao.num_classes,
-                                                                self.val_y)
+                                                                self.val_y, se_actual=True, budget=1)
 
 
             self.manual_annotation_concepts = self.get_manual_annotation_concepts(manual_annotation_file_concepts,
