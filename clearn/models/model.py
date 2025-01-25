@@ -48,7 +48,7 @@ class Model(ABC):
                 start_epoch = int(checkpoint_counter / num_batches_train)
                 start_batch_id = checkpoint_counter - start_epoch * num_batches_train
                 counter = checkpoint_counter
-                print(f"Number of training batches:{num_batches_train}, Start epoch {self.dao.number_of_training_samples}, Start batch id: {self.exp_config.BATCH_SIZE}")
+                print(f"Number of training batches:{num_batches_train}, Number of training samples {self.dao.number_of_training_samples}, Batch size: {self.exp_config.BATCH_SIZE}")
                 print(f" [*] Load SUCCESS Total batches completed:{counter}, Num epochs completed:{start_epoch}, Number of batches completed in last epoch:{start_batch_id} ")
             else:
                 start_epoch = 0
