@@ -48,7 +48,8 @@ class Model(ABC):
                 start_epoch = int(checkpoint_counter / num_batches_train)
                 start_batch_id = checkpoint_counter - start_epoch * num_batches_train
                 counter = checkpoint_counter
-                print(" [*] Load SUCCESS")
+                print(f"Number of training batches:{num_batches_train}, Start epoch {self.dao.number_of_training_samples}, Start batch id: {self.exp_config.BATCH_SIZE}")
+                print(f" [*] Load SUCCESS Total batches completed:{counter}, Num epochs completed:{start_epoch}, Number of batches completed in last epoch:{start_batch_id} ")
             else:
                 start_epoch = 0
                 start_batch_id = 0
@@ -82,7 +83,7 @@ class Model(ABC):
             print("ckpt_name", ckpt_name)
             self.saver.restore(self.sess, os.path.join(checkpoint_dir, ckpt_name))
             counter = int(next(re.finditer("(\d+)(?!.*\d)", ckpt_name)).group(0))
-            print(" [*] Success to read {}".format(ckpt_name))
+            print(f" [*] Success to read {ckpt_name}")
             return True, counter
         else:
             print(" [*] Failed to find a checkpoint")

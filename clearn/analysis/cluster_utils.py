@@ -68,10 +68,10 @@ def plot_features(exp_config, features, digits, dimensions_to_be_plotted, new_fi
                                 )
         print(model.get_trainable_vars())
         num_steps_completed = model.counter
-        print("Number of steps completed={}".format(num_steps_completed))
+        print("Number of steps completed={num_steps_completed}")
         num_batches = exp_config.num_train_samples / exp_config.BATCH_SIZE
         epochs_completed = num_steps_completed // num_batches
-        print("Number of epochs completed {}".format(epochs_completed))
+        print(f"Number of epochs completed {epochs_completed}")
         means = np.asarray([np.mean(features[digit], axis=0) for digit in digits])
         if new_fig:
             plt.figure(figsize=(15, 10))
@@ -508,30 +508,23 @@ def get_cluster_groups(manual_labels,
             "cluster_data_frame": _df,
             "whole_data_frame": df
         }
+        manual_annotation = ManualAnnotation(cluster_center_label,
+                                             manual_confidence[cluster_num])
+        cluster = Cluster(cluster_id=cluster_num,
+                          name=name,
+                          cluster_details=cluster_details,
+                          level=level,
+                          manual_annotation=manual_annotation)
+
         if isinstance(cluster_center_label, tuple) or isinstance(cluster_center_label, list):
             # impure cluster
             # create an impure clusterGroup
-            manual_annotation = ManualAnnotation(cluster_center_label,
-                                                 manual_confidence[cluster_num])
-            cluster = Cluster(cluster_id=cluster_num,
-                              name=name,
-                              cluster_details=cluster_details,
-                              level=level,
-                              manual_annotation=manual_annotation)
             if "impure_cluster" in cluster_groups_dict.keys():
                 cluster_groups_dict["impure_cluster"].add_cluster(cluster)
             else:
                 cluster_groups_dict["impure_cluster"] = ClusterGroup("impure_cluster", [cluster])
         elif cluster_center_label == -1:
             # unknown cluster
-            manual_annotation = ManualAnnotation(cluster_center_label, manual_confidence[cluster_num])
-
-            cluster = Cluster(cluster_id=cluster_num,
-                              name=name,
-                              cluster_details=cluster_details,
-                              level=level,
-                              manual_annotation=manual_annotation
-                              )
             if "unknown_cluster" in cluster_groups_dict.keys():
                 cluster_groups_dict["unknown_cluster"].add_cluster(cluster)
             else:
@@ -539,12 +532,6 @@ def get_cluster_groups(manual_labels,
             # unknown cluster
         else:
             # good/average/low confidence
-            manual_annotation = ManualAnnotation(cluster_center_label, manual_confidence[cluster_num])
-            cluster = Cluster(cluster_id=cluster_num,
-                              name=name,
-                              cluster_details=cluster_details,
-                              level=level,
-                              manual_annotation=manual_annotation)
             cluster_group_label = manual_annotation.get_label()
             if cluster_group_label in cluster_groups_dict.keys():
                 cluster_groups_dict[cluster_group_label].add_cluster(cluster)
@@ -564,18 +551,18 @@ def distance(row, inv_cov, cluster_center,z_col_names):
 
 def compute_distance(df, num_clusters, cluster_labels, z_col_names, cluster_centers):
     for i in range(num_clusters):
-        df["distance_{}".format(i)] = 100000
+        df[f"distance_{i}"] = 100000
     for cluster_num in range(num_clusters):
         indices = np.where( np.asarray(cluster_labels) == cluster_num)[0]
         lv = df[z_col_names].values[indices, :]
         print(lv.shape)
         cov = np.cov(lv.T)
         inv_cov = sp.linalg.inv(cov)
-        df["distance_{}".format(cluster_num)].iloc[indices] = df.iloc[indices].apply(lambda x:distance(x,
-                                                                                                       inv_cov,
-                                                                                                       cluster_centers[cluster_num],
-                                                                                                       z_col_names),
-                                                                                     axis=1)
+        df[f"distance_{cluster_num}"].iloc[indices] = df.iloc[indices].apply(lambda x:distance(x,
+                                                                                               inv_cov,
+                                                                                               cluster_centers[cluster_num],
+                                                                                               z_col_names),
+                                                                             axis=1)
 
 
 def compute_distance_level_2(df, num_level_2_clusters, cluster_labels, z_col_names, cluster, cluster_column_name_2):
