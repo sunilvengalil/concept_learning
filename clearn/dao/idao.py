@@ -20,6 +20,9 @@ class IDao(ABC):
     Y_ONE_HOT = "test_y_one_hot"
     X = "test_x"
 
+    def __init__(self):
+        self.data_dict = None
+
     @property
     @abstractmethod
     def number_of_training_samples(self) -> int:

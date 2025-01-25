@@ -11,6 +11,7 @@ class MnistDao(IDao):
         self.dataset_name = "mnist"
         self.split_name = split_name
         self.num_validation_samples = num_validation_samples
+        super().__init__()
 
     @property
     def number_of_training_samples(self):
