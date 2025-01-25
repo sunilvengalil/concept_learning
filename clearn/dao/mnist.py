@@ -14,6 +14,8 @@ class MnistDao(IDao):
 
     @property
     def number_of_training_samples(self):
+        if self.data_dict is not None and self.TRAIN_X in self.data_dict.keys() and self.data_dict[self.TRAIN_X] is not None and len(self.data_dict[self.TRAIN_X]) > 0:
+            return len(self.data_dict[self.TRAIN_X])
         return 50000 - self.num_validation_samples
 
     @property
