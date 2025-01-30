@@ -162,14 +162,11 @@ class ExperimentConfig:
         self.manual_labels_config = manual_labels_config
         self.reconstruction_weight = reconstruction_weight
         if dao is None:
-            # base_path = get_base_path()
-            #
             self.dao = get_dao(dataset_name,
-                          split_name,
+                               split_name,
                                num_val_samples,
                                dataset_path=os.path.join(self.root_path, "datasets/"),
-                               concept_id = concept_id
-                          )
+                               concept_id=concept_id)
         else:
             self.dao = dao
         self.num_val_samples = self.dao.num_validation_samples

@@ -6,8 +6,8 @@ from clearn.dao.dao_factory import get_dao
 from clearn.experiments.experiment import MODEL_TYPE_VAE_SEMI_SUPERVISED_CIFAR10, load_trained_model, \
     load_model_and_test
 
-root_path = "/Users/sunilv/concept_learning_exp"
-experiment_name = "Experiment_5"
+root_path = "/Users/sunil/concept_learning_exp"
+experiment_name = "premi"
 
 
 """
