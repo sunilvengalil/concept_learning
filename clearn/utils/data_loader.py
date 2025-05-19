@@ -99,6 +99,11 @@ class TrainValDataIterator:
     @classmethod
     def load_manual_annotation(cls, manual_annotation_file):
         df = pd.read_csv(manual_annotation_file)
+        count_nan = df["manual_annotation"].isna().sum()
+        if(count_nan > 0):
+            print("Number of rows with manual_annotation as Nan", count_nan)
+            df.fillna({"manual_annotation":-1}, inplace=True)
+            df.fillna({"manual_annotation_confidence": 0}, inplace=True)
         return df[["manual_annotation", "manual_annotation_confidence"]].values
 
     def load_train_val_existing_split(self, split_name, split_location):
