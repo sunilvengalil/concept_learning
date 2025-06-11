@@ -515,6 +515,12 @@ class VAE(GenerativeModel):
     def get_decoder_features_list(self):
         feature_list = []
         feature_names = []
+
+        if self.exp_config.num_dense_layers > 0:
+            for key, value in self.decoder_dense_dict.items():
+                feature_names.append(key)
+                feature_list.append(value)
+
         for key, value in self.decoder_dict.items():
             feature_names.append(key)
             feature_list.append(value)
@@ -528,6 +534,10 @@ class VAE(GenerativeModel):
                                          feed_dict={self.z: z
                                                     }
                                          )
+        if self.exp_config.num_dense_layers > 0:
+            if layer_num > self.exp_config.num_dense_layers:
+                layer_num -= self.exp_config.num_dense_layers
+
         if layer_num is not None:
             for decoded_feature, f in zip( decoded_features[1:], hidden_feature_names):
                 if feature_num is not None:
