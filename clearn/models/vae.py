@@ -543,9 +543,9 @@ class VAE(GenerativeModel):
                 if feature_num is not None:
                     if str(layer_num) in f:
                         if isinstance(feature_num, Tuple) or isinstance(feature_num, List):
-                            return [f], (decoded_features[0], decoded_feature[:, :, :, feature_num[0]:feature_num[1]] )
+                            return [f], (decoded_features[0], decoded_feature[..., feature_num[0]:feature_num[1]] )
                         else:
-                            return [f], (decoded_features[0], decoded_feature[:, :, :, feature_num])
+                            return [f], (decoded_features[0], decoded_feature[..., feature_num])
                 else:
                     return [f], (decoded_features[0], decoded_feature )
         else:
