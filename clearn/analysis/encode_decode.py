@@ -3,7 +3,7 @@ import numpy as np
 from clearn.models.generative_model import GenerativeModel
 
 
-def decode(model:GenerativeModel, z, batch_size):
+def decode(model:GenerativeModel, z, batch_size, hidden_layer:int = -1):
     """
     z =
     """
@@ -107,7 +107,7 @@ def encode(model, images, batch_size, z_dim):
     return latent_vectors
 
 
-def decode_and_get_features(model: GenerativeModel, z: np.ndarray, batch_size: int):
+def decode_and_get_features(model: GenerativeModel, z: np.ndarray, batch_size: int, layer_num = None, feature_num = None):
     feature_dimension = [len(z), model.dao.image_shape[0], model.dao.image_shape[1], model.dao.image_shape[2]]
     reconstructed_images = np.zeros(feature_dimension)
     num_latent_vectors = z.shape[0]
@@ -115,7 +115,7 @@ def decode_and_get_features(model: GenerativeModel, z: np.ndarray, batch_size: i
 
     features_dict = dict()
     for batch_num in range(num_batches):
-        feature_names, decoded_images_and_features = model.decode_and_get_features(z[batch_num * batch_size: (batch_num + 1) * batch_size])
+        feature_names, decoded_images_and_features = model.decode_and_get_features(z[batch_num * batch_size: (batch_num + 1) * batch_size], layer_num, feature_num)
         reconstructed_images[batch_num * batch_size: (batch_num + 1) * batch_size] = decoded_images_and_features[0]
         for i, feature_name in enumerate(feature_names):
             if feature_name not in features_dict:
@@ -131,7 +131,7 @@ def decode_and_get_features(model: GenerativeModel, z: np.ndarray, batch_size: i
     if left_out > 0:
         last_batch = np.zeros([batch_size, z.shape[1]])
         last_batch[0:left_out, :] = z[num_batches * batch_size:]
-        feature_names, decoded_images_and_features = model.decode_and_get_features(last_batch)
+        feature_names, decoded_images_and_features = model.decode_and_get_features(last_batch, layer_num, feature_num)
         reconstructed_images[num_batches * batch_size:] = decoded_images_and_features[0][0:left_out]
         for i, feature_name in enumerate(feature_names):
             if feature_name not in features_dict:
