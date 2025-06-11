@@ -535,7 +535,7 @@ class VAE(GenerativeModel):
                                                     }
                                          )
         if self.exp_config.num_dense_layers > 0:
-            if layer_num > self.exp_config.num_dense_layers:
+            if layer_num >= self.exp_config.num_dense_layers:
                 layer_num -= self.exp_config.num_dense_layers
 
         if layer_num is not None:
