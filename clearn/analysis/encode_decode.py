@@ -120,11 +120,9 @@ def decode_and_get_features(model: GenerativeModel, z: np.ndarray, batch_size: i
         for i, feature_name in enumerate(feature_names):
             if feature_name not in features_dict:
                 print(decoded_images_and_features[i + 1].shape)
-                features_dict[feature_name] = np.zeros([len(z),
-                                                       decoded_images_and_features[i + 1].shape[1],
-                                                       decoded_images_and_features[i + 1].shape[2],
-                                                       decoded_images_and_features[i + 1].shape[3]]
-                                                       )
+                feature_dim = list(decoded_images_and_features[i+1].shape)
+                feature_dim[0]  = len(z)
+                features_dict[feature_name] = np.zeros(feature_dim)
             features_dict[feature_name][batch_num * batch_size: (batch_num + 1) * batch_size] = decoded_images_and_features[i + 1]
 
     left_out = num_latent_vectors % batch_size
@@ -135,11 +133,9 @@ def decode_and_get_features(model: GenerativeModel, z: np.ndarray, batch_size: i
         reconstructed_images[num_batches * batch_size:] = decoded_images_and_features[0][0:left_out]
         for i, feature_name in enumerate(feature_names):
             if feature_name not in features_dict:
-                features_dict[feature_name] = np.zeros([len(z),
-                                                       decoded_images_and_features[i + 1].shape[1],
-                                                       decoded_images_and_features[i + 1].shape[2],
-                                                       decoded_images_and_features[i + 1].shape[3]]
-                                                       )
+                feature_dim = list(decoded_images_and_features[i+1].shape)
+                feature_dim[0]  = len(z)
+                features_dict[feature_name] = np.zeros(feature_dim)
             features_dict[feature_name][num_batches * batch_size:] = decoded_images_and_features[i + 1][0:left_out]
 
 
