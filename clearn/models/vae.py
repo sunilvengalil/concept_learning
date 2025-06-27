@@ -534,13 +534,14 @@ class VAE(GenerativeModel):
                                          feed_dict={self.z: z
                                                     }
                                          )
-        is_conv = False
-        if self.exp_config.num_dense_layers > 0:
-            if layer_num >= self.exp_config.num_dense_layers:
-                layer_num -= self.exp_config.num_dense_layers
-                is_conv = True
 
         if layer_num is not None:
+            is_conv = False
+            if self.exp_config.num_dense_layers > 0:
+                if layer_num >= self.exp_config.num_dense_layers:
+                    layer_num -= self.exp_config.num_dense_layers
+                    is_conv = True
+
             for decoded_feature, f in zip( decoded_features[1:], hidden_feature_names):
                 if feature_num is not None:
                     if (not is_conv  and str(layer_num) in f ) or (is_conv and  f"de_conv_{layer_num}" in f):
