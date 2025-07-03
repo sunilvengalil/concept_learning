@@ -22,7 +22,7 @@ from sklearn.metrics import accuracy_score
 
 import tensorflow as tf
 from tensorflow.compat.v1 import placeholder
-from clearn.utils.tensorflow_wrappers import linear
+from clearn.utils.tensorflow_wrappers import linear, conv2d
 
 
 class SemiSupervisedSegmenterMnist(VAE):
@@ -130,42 +130,162 @@ class SemiSupervisedSegmenterMnist(VAE):
         return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
 
     def compute_and_optimize_loss(self):
-        self.y_pred = linear(self.z, self.num_concepts)
-        # self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
-        #                                                                  logits=self.y_pred,
-        #                                                                  weights=self.is_manual_annotated
-        #                                                                  )
+        # concepts_stride = 1
+        # z_reshaped = tf.reshape(self.z, [self.exp_config.BATCH_SIZE,
+        #                                  self.image_sizes[len(self.exp_config.num_units)][0],
+        #                                  self.image_sizes[len(self.exp_config.num_units)][0],
+        #                                  1
+        #                                  ]
+        #                         )
+        # self.concepts_pred = conv2d(z_reshaped,
+        #                             self.exp_config.dao.num_classes,
+        #                             k_h=2,
+        #                             k_w=2,
+        #                             d_h=concepts_stride,
+        #                             d_w=concepts_stride,
+        #                             stddev=0.02,
+        #                             name="predict_concepts")
+        #
+        # self.supervised_loss_concepts = 0
+        # self.supervised_loss_concepts_per_layer = dict()
+        # if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+        #     for layer_num in list(self.exp_config.concept_dict.keys()):
+        #         if layer_num >= len(self.exp_config.num_units) + 1:
+        #             continue
+        #         if self.dao.training_phase == "CONCEPTS" and layer_num > len(self.exp_config.num_units) - 1:
+        #             continue
+        #         decoder_feature = f"de_conv_{layer_num}"
+        #         print("layer_num", layer_num, decoder_feature)
+        #         f = self.decoder_dict[decoder_feature]
+        #         print(f.shape)
+        #         self.supervised_loss_concepts_per_layer[layer_num] = dict()
+        #         self.mse_for_all_images = dict()
+        #         self.mse_for_all_images_masked = dict()
+        #
+        #         #f = tf.reshape(f, [-1, int(f.shape[1]) * int(f.shape[2]), int(f.shape[3])])
+        #         print(f.shape)
+        #         num_concepts = len(self.exp_config.concept_dict[layer_num]["unique_concepts"])
+        #         self.supervised_loss_concepts_per_layer[layer_num] = dict()
+        #
+        #         for concept_no in self.unique_concepts[layer_num]:
+        #             # print("feature shape", f.shape)
+        #             # print(f"Computing loss for {layer_num} concept {concept_no}")
+        #
+        #             input_resized = tf.image.resize(self.inputs, [f.shape[1], f.shape[2]],preserve_aspect_ratio=True)
+        #
+        #
+        #            # print("input shape ", input_resized.shape)
+        #
+        #             mse = tf.compat.v1.losses.mean_squared_error(f[:, :, :, concept_no:concept_no + 1],
+        #                                                          input_resized,
+        #                                                          reduction=tf.compat.v1.losses.Reduction.NONE
+        #                                                          )
+        #             self.mse_for_all_images[concept_no] = tf.compat.v1.reduce_mean(mse, axis=(1, 2, 3))
+        #             self.mse_for_all_images_masked[concept_no] = tf.math.multiply(self.mse_for_all_images, self.mask_for_concept_no[layer_num][concept_no])
+        #             self.supervised_loss_concepts_per_layer[layer_num][concept_no] = tf.compat.v1.reduce_mean(self.mse_for_all_images_masked)
+        #
+        #             self.supervised_loss_concepts += self.supervised_loss_concepts_per_layer[layer_num][concept_no]
+        #
+        #             # Make response for other images zero
+        #             # mse_other_images = tf.compat.v1.losses.mean_squared_error(f[:, :, :, concept_no:concept_no + 1],
+        #             #                                                           tf.zeros_like(f[:, :, :, concept_no:concept_no + 1]),
+        #             #                                                           reduction=tf.compat.v1.losses.Reduction.NONE)
+        #             # print("Shape mse_other_images", mse_other_images.shape)
+        #             # inverted_mask = tf.math.subtract(tf.ones_like(self.mask_for_concept_no[layer_num][concept_no]),
+        #             #                             self.mask_for_concept_no[layer_num][concept_no])
+        #             # mse_for_other_images_masked= tf.math.multiply(tf.compat.v1.reduce_mean(mse_other_images,axis=(1, 2, 3)),
+        #             #                                               inverted_mask)
+        #             # supervised_loss_concepts_per_layer_other = tf.math.divide_no_nan(tf.compat.v1.reduce_sum(mse_for_other_images_masked),
+        #             #                                                                                         tf.compat.v1.reduce_sum(inverted_mask))
+        #             # self.supervised_loss_concepts += supervised_loss_concepts_per_layer_other
+        #             # Make sure all other feature maps are zero for this activation
+        #             # mse_other_layers = tf.compat.v1.losses.mean_squared_error(f[:, :, :, 0:concept_no],
+        #             #                                                           tf.zeros_like(f[:, :, :, 0:concept_no]),
+        #             #                                                           reduction=tf.compat.v1.losses.Reduction.NONE
+        #             #                                                           )
+        #             #
+        #             # self.mse_for_all_images[concept_no] = tf.compat.v1.reduce_mean(mse_other_layers, axis=(1, 2, 3))
 
-        # self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
-        #             self.exp_config.beta * self.KL_divergence + \
-        #             self.exp_config.supervise_weight * self.supervised_loss
+        self.y_pred = linear(self.z, self.dao.num_classes)
+        self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
+                                                                         logits=self.y_pred,
+                                                                         weights=self.is_manual_annotated
+                                                                         )
 
-        self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
-                    self.exp_config.beta * self.KL_divergence
 
-        # self.loss = -evidence_lower_bound + self.exp_config.supervise_weight * self.supervised_loss
+        if self.exp_config.fully_convolutional:
+            self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
+                        self.exp_config.beta * self.KL_divergence + \
+                        self.exp_config.supervise_weight * self.supervised_loss
+
+                       # + self.exp_config.supervise_weight_concepts * self.supervised_loss_concepts
+
+        # if self.exp_config.uncorrelated_features:
+        # last_feature = list(self.decoder_dict.keys())[-1]
+        #     f = self.decoder_dict[last_feature]
+        #     identity = tf.eye(num_rows=int(f.shape[3]),num_columns=int(f.shape[3]), batch_shape=[int(f.shape[0])], dtype=tf.float32)
+        #     f = tf.reshape(f, [-1, int(f.shape[1]) * int(f.shape[2]), int(f.shape[3]) ])
+        #     corr = tfp.stats.correlation(f, sample_axis=1)
+        #
+        #     self.corr_loss = tf.norm(corr - identity)
+        #     self.loss = self.loss + self.corr_loss
+
 
         """ Training """
         # optimizers
         t_vars = tf.compat.v1.trainable_variables()
-        print(t_vars)
         with tf.control_dependencies(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
             self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate,
                                                           beta1=self.exp_config.beta1_adam) \
                 .minimize(self.loss, var_list=t_vars)
 
-        """" Testing """
-        # for test
-        # self.fake_images = self._decoder(self.standard_normal, reuse=True)
-
         """ Summary """
         tf.compat.v1.summary.scalar("Negative Log Likelihood", self.neg_loglikelihood)
         tf.compat.v1.summary.scalar("K L Divergence", self.KL_divergence)
-        #tf.compat.v1.summary.scalar("Supervised Loss", self.supervised_loss)
+        tf.compat.v1.summary.scalar("Supervised Loss", self.supervised_loss)
 
         tf.compat.v1.summary.scalar("Total Loss", self.loss)
         # final summary operations
         self.merged_summary_op = tf.compat.v1.summary.merge_all()
+
+
+    # def compute_and_optimize_loss(self):
+    #     self.y_pred = linear(self.z, self.num_concepts)
+    #     # self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
+    #     #                                                                  logits=self.y_pred,
+    #     #                                                                  weights=self.is_manual_annotated
+    #     #                                                                  )
+    #
+    #     # self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
+    #     #             self.exp_config.beta * self.KL_divergence + \
+    #     #             self.exp_config.supervise_weight * self.supervised_loss
+    #
+    #     self.loss = self.exp_config.reconstruction_weight * self.neg_loglikelihood + \
+    #                 self.exp_config.beta * self.KL_divergence
+    #
+    #     # self.loss = -evidence_lower_bound + self.exp_config.supervise_weight * self.supervised_loss
+    #
+    #     """ Training """
+    #     # optimizers
+    #     t_vars = tf.compat.v1.trainable_variables()
+    #     print(t_vars)
+    #     with tf.control_dependencies(tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.UPDATE_OPS)):
+    #         self.optim = tf.compat.v1.train.AdamOptimizer(self.exp_config.learning_rate,
+    #                                                       beta1=self.exp_config.beta1_adam) \
+    #             .minimize(self.loss, var_list=t_vars)
+    #
+    #     """" Testing """
+    #     # for test
+    #     # self.fake_images = self._decoder(self.standard_normal, reuse=True)
+    #
+    #     """ Summary """
+    #     tf.compat.v1.summary.scalar("Negative Log Likelihood", self.neg_loglikelihood)
+    #     tf.compat.v1.summary.scalar("K L Divergence", self.KL_divergence)
+    #     #tf.compat.v1.summary.scalar("Supervised Loss", self.supervised_loss)
+    #
+    #     tf.compat.v1.summary.scalar("Total Loss", self.loss)
+    #     # final summary operations
+    #     self.merged_summary_op = tf.compat.v1.summary.merge_all()
 
     # def train(self, train_val_data_iterator):
     #     start_batch_id = self.start_batch_id
@@ -306,12 +426,12 @@ class SemiSupervisedSegmenterMnist(VAE):
 
         for epoch in range(start_epoch, self.epoch):
             evaluation_run_for_last_epoch = False
-            supervised_loss_concepts_epoch = dict()
-            if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
-                for layer_num in self.exp_config.concept_dict.keys():
-                    if layer_num == len(self.exp_config.num_units) + 1:
-                        continue
-                    supervised_loss_concepts_epoch[layer_num] = []
+            # supervised_loss_concepts_epoch = dict()
+            # if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+            #     for layer_num in self.exp_config.concept_dict.keys():
+            #         if layer_num == len(self.exp_config.num_units) + 1:
+            #             continue
+            #         supervised_loss_concepts_epoch[layer_num] = []
             for batch in range(start_batch_id, self.num_batches_train):
                 batch_images, batch_labels, manual_labels, manual_labels_concepts = train_val_data_iterator.get_next_batch("train")
                 if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
@@ -336,93 +456,94 @@ class SemiSupervisedSegmenterMnist(VAE):
                              self.is_manual_annotated: manual_labels[:, self.dao.num_classes]
                              }
                 # Latent representation is 2-D
-                concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.dao.num_classes],
-                                            (self.exp_config.BATCH_SIZE,
-                                            self.num_concpets_per_row,
-                                            self.num_concpets_per_col,
-                                            self.exp_config.dao.num_classes)
-                                            )
+                # concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.dao.num_classes],
+                #                             (self.exp_config.BATCH_SIZE,
+                #                             self.num_concpets_per_row,
+                #                             self.num_concpets_per_col,
+                #                             self.exp_config.dao.num_classes)
+                #                             )
                 # is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts],
                 #                                   (self.exp_config.BATCH_SIZE,
                 #                                     self.num_concpets_per_row,
                 #                                     self.num_concpets_per_col)
                 #                                   )
 
-                is_concepts_annotated = np.zeros(
-                              (self.exp_config.BATCH_SIZE,
-                                self.num_concpets_per_row,
-                                self.num_concpets_per_col)
-                              )
-                tensor_list.append(self.supervised_loss_concepts)
-
-                if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
-                    # Fully convolutional with concept loss: Populate feed_dict with one hot encoded concept labels
-                    for layer_num in self.exp_config.concept_dict.keys():
-                        if layer_num >= len(self.exp_config.num_units) + 1:
-                            # skip decoder output layer
-                            continue
-                        if self.exp_config.training_phase == "CONCEPTS" and layer_num > len(
-                                self.exp_config.num_units) - 1:
-                            continue
-
-                        for concept_no in self.unique_concepts[layer_num]:
-                            masks = np.zeros(self.exp_config.BATCH_SIZE)
-                            if concept_no != -1:
-                                masks[(manual_labels[:, self.dao.num_classes + 1] == layer_num) * (
-                                        labels_categorical == concept_no)] = 1
-                            feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
-
-                if self.exp_config.uncorrelated_features:
-                    # Fully convolutional, uncorrelated features
-                    tensor_list.append(self.corr_loss)
-                    return_list = self.sess.run(tensor_list,
-                                                feed_dict=feed_dict)
-                    loss = return_list[2]
-                    nll_loss = return_list[3]
-                    kl_loss = return_list[4]
-                    supervised_loss = return_list[5]
-                    supervised_loss_concepts = return_list[6]
-                    correlation_loss = return_list[7]
-                else:
+                # is_concepts_annotated = np.zeros(
+                #               (self.exp_config.BATCH_SIZE,
+                #                 self.num_concpets_per_row,
+                #                 self.num_concpets_per_col)
+                #               )
+#                tensor_list.append(self.supervised_loss_concepts)
+#
+#                 if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+#                     # Fully convolutional with concept loss: Populate feed_dict with one hot encoded concept labels
+#                     for layer_num in self.exp_config.concept_dict.keys():
+#                         if layer_num >= len(self.exp_config.num_units) + 1:
+#                             # skip decoder output layer
+#                             continue
+#                         if self.exp_config.training_phase == "CONCEPTS" and layer_num > len(
+#                                 self.exp_config.num_units) - 1:
+#                             continue
+#
+#                         for concept_no in self.unique_concepts[layer_num]:
+#                             masks = np.zeros(self.exp_config.BATCH_SIZE)
+#                             if concept_no != -1:
+#                                 masks[(manual_labels[:, self.dao.num_classes + 1] == layer_num) * (
+#                                         labels_categorical == concept_no)] = 1
+#                             feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
+#
+#                 if self.exp_config.uncorrelated_features:
+#                     # Fully convolutional, uncorrelated features
+#                     tensor_list.append(self.corr_loss)
+#                     return_list = self.sess.run(tensor_list,
+#                                                 feed_dict=feed_dict)
+#                     loss = return_list[2]
+#                     nll_loss = return_list[3]
+#                     kl_loss = return_list[4]
+#                     supervised_loss = return_list[5]
+#                     supervised_loss_concepts = return_list[6]
+#                     correlation_loss = return_list[7]
+#                 else:
+                if True:
                     # Fully convolutional, correlated features
                     return_list = self.sess.run(tensor_list, feed_dict=feed_dict)
                     loss = return_list[2]
                     nll_loss = return_list[3]
-                    kl_loss = return_list[4]
-                    supervised_loss = return_list[5]
+                    kl_loss = return_list[5]
+                    supervised_loss = return_list[6]
 
-                    supervised_loss_concepts = dict()
-                    supervised_loss_concepts_total = dict()
-                    if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
-                        for i, layer_num in enumerate(self.exp_config.concept_dict.keys()):
-                            if layer_num >= len(self.exp_config.num_units) + 1:
-                                continue
-                            if self.dao.training_phase == "CONCEPTS" and layer_num > len(
-                                    self.exp_config.num_units) - 1:
-                                continue
-                            supervised_loss_concepts[layer_num] = return_list[6 + i]
-                            supervised_loss_concepts_total[layer_num] = 0
-                            for k, v in supervised_loss_concepts[layer_num].items():
-                                supervised_loss_concepts_total[layer_num] += v
+
+                    # if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+                    #     for i, layer_num in enumerate(self.exp_config.concept_dict.keys()):
+                    #         if layer_num >= len(self.exp_config.num_units) + 1:
+                    #             continue
+                    #         if self.dao.training_phase == "CONCEPTS" and layer_num > len(
+                    #                 self.exp_config.num_units) - 1:
+                    #             continue
+                    #         supervised_loss_concepts[layer_num] = return_list[6 + i]
+                    #         supervised_loss_concepts_total[layer_num] = 0
+                    #         for k, v in supervised_loss_concepts[layer_num].items():
+                    #             supervised_loss_concepts_total[layer_num] += v
 
 
                 #Log training progress for the batch
-                if self.exp_config.uncorrelated_features:
-                    print(
-                        f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}  ccrrelation loss:{correlation_loss}")
-                else:
-                    print(f"Epoch: {epoch}/{batch}, Loss:{loss} Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}")
+                # if self.exp_config.uncorrelated_features:
+                #     print(
+                #         f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}  ccrrelation loss:{correlation_loss}")
+                # else:
+                if True:
+                    print(f"Epoch: {epoch}/{batch}, Loss:{loss} Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss}")
 
                 self.counter += 1
                 self.num_steps_completed = batch + 1
                 # self.writer.add_summary(summary_str, self.counter - 1)
 
             # print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss}")
-            if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
-                for layer_num in self.exp_config.concept_dict.keys():
-                    if layer_num == len(self.exp_config.num_units) + 1:
-                        continue
-                    print(f"Supervised loss concept Layer {layer_num} {sum(supervised_loss_concepts_epoch[layer_num])}")
+            # if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+            #     for layer_num in self.exp_config.concept_dict.keys():
+            #         if layer_num == len(self.exp_config.num_units) + 1:
+            #             continue
+            #         print(f"Supervised loss concept Layer {layer_num} {sum(supervised_loss_concepts_epoch[layer_num])}")
 
             self.num_training_epochs_completed = epoch + 1
             print(f"Completed {epoch} epochs")
