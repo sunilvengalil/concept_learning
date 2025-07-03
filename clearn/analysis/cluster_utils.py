@@ -294,7 +294,7 @@ def cluster_and_decode_latent_vectors_gmm(model_type: str,
         reshaped = latent_vectors
     cluster_labels = gm.fit_predict(reshaped)
     if len(latent_vectors.shape) == 3:
-        cluster_centers = np.reshape(gm.means_,[num_clusters, latent_vectors.shape[1], latent_vectors[2]])
+        cluster_centers = np.reshape(gm.means_,[num_clusters, latent_vectors.shape[1], latent_vectors.shape[2]])
     else:
         cluster_centers = gm.means_
     decoded_images = decode_latent_vectors(model_type, cluster_centers, exp_config, dao)
