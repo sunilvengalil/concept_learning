@@ -123,7 +123,7 @@ def remove_padding(x, row_padding, col_padding):
     return x
 
 
-def fully_deconv_n_layer(model, z, n_units,  out_channels, in_channels, reuse=False):
+def fully_deconv_n_layer(model, z, n_units,  out_channels, in_channels, reuse=False, reshape_input = True):
     h, w = model.dao.image_shape[0], model.dao.image_shape[1]
     strides = model.exp_config.strides
     image_sizes = model.image_sizes
@@ -137,13 +137,16 @@ def fully_deconv_n_layer(model, z, n_units,  out_channels, in_channels, reuse=Fa
                 stride = strides[len(n_units)]
             else:
                 stride = 1
-            model.reshaped_de = tf.reshape(z,
-                                           [model.exp_config.BATCH_SIZE,
-                                            image_sizes[len(n_units)][0],
-                                            image_sizes[len(n_units)][1],
-                                            in_channels
-                                            ]
-                                           )
+            if reshape_input:
+                model.reshaped_de = tf.reshape(z,
+                                               [model.exp_config.BATCH_SIZE,
+                                                image_sizes[len(n_units)][0],
+                                                image_sizes[len(n_units)][1],
+                                                in_channels
+                                                ]
+                                               )
+            else:
+                model.reshaped_de = z
 
             de_convolved = lrelu(deconv2d(model.reshaped_de,
                                                                         [model.exp_config.BATCH_SIZE,

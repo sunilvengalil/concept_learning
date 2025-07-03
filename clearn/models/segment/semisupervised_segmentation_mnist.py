@@ -26,6 +26,7 @@ from sklearn.metrics import accuracy_score
 import tensorflow as tf
 from tensorflow.compat.v1 import placeholder
 from clearn.utils.tensorflow_wrappers import linear
+from mnist_experiments.premi import exp_config
 
 
 class SemiSupervisedSegmenterMnist(VAE):
@@ -79,7 +80,7 @@ class SemiSupervisedSegmenterMnist(VAE):
         return mu, stddev
 
     def _decoder(self, z, reuse=False):
-        return fully_deconv_n_layer(self, z, reuse)
+        return fully_deconv_n_layer(self, z, exp_config.num_units, exp_config.dao.image_shape[2], 1, reuse, False, reshape_input=False)
 
     def get_decoder_weights_bias(self):
         name_w_1 = "decoder/de_fc1/Matrix:0"
