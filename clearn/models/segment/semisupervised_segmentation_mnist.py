@@ -170,63 +170,266 @@ class SemiSupervisedSegmenterMnist(VAE):
         # final summary operations
         self.merged_summary_op = tf.compat.v1.summary.merge_all()
 
+    # def train(self, train_val_data_iterator):
+    #     start_batch_id = self.start_batch_id
+    #     start_epoch = self.start_epoch
+    #     self.num_batches_train = train_val_data_iterator.get_num_samples("train") // self.exp_config.BATCH_SIZE
+    #
+    #     for epoch in range(start_epoch, self.epoch):
+    #         # get batch data
+    #         for batch in range(start_batch_id, self.num_batches_train):
+    #             # first 10 elements of manual_labels is actual one hot encoded labels
+    #             # and next value is confidence
+    #             batch_images, _, manual_labels,_ = train_val_data_iterator.get_next_batch("train")
+    #             if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
+    #                 break
+    #             batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
+    #
+    #             # # update aut encoder and classifier parameters
+    #             # _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss = self.sess.run([self.optim,
+    #             #                                                                                      self.merged_summary_op,
+    #             #                                                                                      self.loss,
+    #             #                                                                                      self.neg_loglikelihood,
+    #             #                                                                                      self.marginal_likelihood,
+    #             #                                                                                      self.KL_divergence,
+    #             #                                                                                      self.supervised_loss],
+    #             #                                                                                     feed_dict={
+    #             #                                                                                         self.inputs: batch_images,
+    #             #                                                                                         self.labels: manual_labels[
+    #             #                                                                                                      :,
+    #             #                                                                                                      :self.dao.num_classes],
+    #             #                                                                                         self.is_manual_annotated: manual_labels[
+    #             #                                                                                                                   :,
+    #             #                                                                                                                   self.dao.num_classes],
+    #             #                                                                                         self.standard_normal: batch_z}
+    #             #                                                                                     )
+    #             _, summary_str, loss, nll_loss, nll_batch, kl_loss = self.sess.run([self.optim,
+    #                                                                                 self.merged_summary_op,
+    #                                                                                 self.loss,
+    #                                                                                 self.neg_loglikelihood,
+    #                                                                                 self.marginal_likelihood,
+    #                                                                                 self.KL_divergence
+    #                                                                                 ],
+    #                                                                                feed_dict={self.inputs: batch_images,
+    #                                                                                           self.labels: manual_labels[:, :self.dao.num_classes],
+    #                                                                                           self.is_manual_annotated: manual_labels[:, self.dao.num_classes],
+    #                                                                                           self.standard_normal: batch_z
+    #                                                                                           }
+    #                                                                                )
+    #             # print(f"Epoch: {epoch}/{batch}, Nll_loss shape: {nll_loss.shape}, Nll_batch: {nll_batch.shape}")
+    #             # print(f"Epoch: {epoch}/{batch},  Loss: {loss}  Nll_loss : {nll_loss} KLD:{kl_loss} ")
+    #
+    #             self.counter += 1
+    #             self.num_steps_completed = batch + 1
+    #             # self.writer.add_summary(summary_str, self.counter - 1)
+    #         print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss}")
+    #         self.num_training_epochs_completed = epoch + 1
+    #         print(f"Completed {epoch} epochs")
+    #         if self.exp_config.run_evaluation_during_training:
+    #             print("Eval_interval", self.exp_config.eval_interval_in_epochs)
+    #             if np.mod(epoch, self.exp_config.eval_interval_in_epochs) == 0:
+    #                 train_val_data_iterator.reset_counter("val")
+    #                 train_val_data_iterator.reset_counter("train")
+    #                 self.evaluate(data_iterator=train_val_data_iterator,
+    #                               dataset_type="val")
+    #                 self.evaluate(data_iterator=train_val_data_iterator,
+    #                               dataset_type="train")
+    #                 if self.test_data_iterator is not None:
+    #                     self.test_data_iterator.reset_counter("test")
+    #                     self.evaluate(self.test_data_iterator, dataset_type="test")
+    #                     self.test_data_iterator.reset_counter("test")
+    #
+    #                 for metric in self.metrics_to_compute:
+    #                     print(f"Accuracy: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
+    #                     print(f"Accuracy: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
+    #                     print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
+    #
+    #         train_val_data_iterator.reset_counter("train")
+    #         train_val_data_iterator.reset_counter("val")
+    #
+    #         # After an epoch, start_batch_id is set to zero
+    #         # non-zero value is only for the first epoch after loading pre-trained model
+    #         start_batch_id = 0
+    #         # save model
+    #         train_val_data_iterator.reset_counter("train")
+    #         if np.mod(epoch, self.exp_config.model_save_interval) == 0:
+    #             print("Saving check point", self.exp_config.TRAINED_MODELS_PATH)
+    #             self.save(self.exp_config.TRAINED_MODELS_PATH, self.counter)
+    #
+    #     train_val_data_iterator.reset_counter("val")
+    #     train_val_data_iterator.reset_counter("train")
+    #     self.evaluate(data_iterator=train_val_data_iterator,
+    #                   dataset_type="val")
+    #     self.evaluate(data_iterator=train_val_data_iterator,
+    #                   dataset_type="train")
+    #     if self.test_data_iterator is not None:
+    #         self.test_data_iterator.reset_counter("test")
+    #         self.evaluate(self.test_data_iterator, dataset_type="test")
+    #         self.test_data_iterator.reset_counter("test")
+    #
+    #     for metric in self.metrics_to_compute:
+    #         print(f"Accuracy: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
+    #         print(f"Accuracy: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
+    #         print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
+    #
+    #     # save metrics
+    #     df = None
+    #     for i, metric in enumerate(self.metrics_to_compute):
+    #         column_name = f"train_{metric}"
+    #         if i == 0:
+    #             df = pd.DataFrame(self.metrics["train"][metric], columns=["epoch", column_name])
+    #         else:
+    #             df[column_name] = np.asarray(self.metrics["train"][metric])[:, 1]
+    #         df[f"val_{metric}"] = np.asarray(self.metrics["val"][metric])[:, 1]
+    #         df[f"test_{metric}"] = np.asarray(self.metrics["test"][metric])[:, 1]
+    #         max_value = df[f"test_{metric}"].max()
+    #         print(f"Max test {metric}", max_value)
+    #     if df is not None:
+    #         df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"metrics_{self.num_training_epochs_completed}.csv"), index=False)
+
     def train(self, train_val_data_iterator):
         start_batch_id = self.start_batch_id
         start_epoch = self.start_epoch
         self.num_batches_train = train_val_data_iterator.get_num_samples("train") // self.exp_config.BATCH_SIZE
+        evaluation_run_for_last_epoch = False
+
+        images_saved = 0
+        num_images_to_save = 256
+        num_samples_per_image = 64
+        manifold_w = 4
+        manifold_h = num_samples_per_image // manifold_w
+
+        # self.layers_to_apply_concept_loss = np.unique(train_val_data_iterator.manual_annotation[2], return_counts=False)
+        # self.unique_concepts = dict()
+        # for layer_num in self.layers_to_apply_concept_loss:
+        #     # Get the list of uniques concepts to be aplied on this layer
+        #     labels = np.argmax(train_val_data_iterator.train_y)
+        #     self.unique_concepts[layer_num] = np.unique(labels[train_val_data_iterator.manual_annotation[2] == layer_num])
+
 
         for epoch in range(start_epoch, self.epoch):
-            # get batch data
+            evaluation_run_for_last_epoch = False
+            supervised_loss_concepts_epoch = dict()
+            if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+                for layer_num in self.exp_config.concept_dict.keys():
+                    if layer_num == len(self.exp_config.num_units) + 1:
+                        continue
+                    supervised_loss_concepts_epoch[layer_num] = []
             for batch in range(start_batch_id, self.num_batches_train):
-                # first 10 elements of manual_labels is actual one hot encoded labels
-                # and next value is confidence
-                batch_images, _, manual_labels,_ = train_val_data_iterator.get_next_batch("train")
+                batch_images, batch_labels, manual_labels, manual_labels_concepts = train_val_data_iterator.get_next_batch("train")
                 if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                     break
-                batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
+                labels_categorical = np.argmax(batch_labels, axis=1)
+                if num_images_to_save > images_saved:
+                    save_images(batch_images[0:64],
+                                [manifold_h, manifold_w],
+                                self.exp_config.PREDICTION_RESULTS_PATH + "/" + f"train_{batch}.png")
+                    images_saved += 64
 
-                # # update aut encoder and classifier parameters
-                # _, summary_str, loss, nll_loss, nll_batch, kl_loss, supervised_loss = self.sess.run([self.optim,
-                #                                                                                      self.merged_summary_op,
-                #                                                                                      self.loss,
-                #                                                                                      self.neg_loglikelihood,
-                #                                                                                      self.marginal_likelihood,
-                #                                                                                      self.KL_divergence,
-                #                                                                                      self.supervised_loss],
-                #                                                                                     feed_dict={
-                #                                                                                         self.inputs: batch_images,
-                #                                                                                         self.labels: manual_labels[
-                #                                                                                                      :,
-                #                                                                                                      :self.dao.num_classes],
-                #                                                                                         self.is_manual_annotated: manual_labels[
-                #                                                                                                                   :,
-                #                                                                                                                   self.dao.num_classes],
-                #                                                                                         self.standard_normal: batch_z}
-                #                                                                                     )
-                _, summary_str, loss, nll_loss, nll_batch, kl_loss = self.sess.run([self.optim,
-                                                                                    self.merged_summary_op,
-                                                                                    self.loss,
-                                                                                    self.neg_loglikelihood,
-                                                                                    self.marginal_likelihood,
-                                                                                    self.KL_divergence
-                                                                                    ],
-                                                                                   feed_dict={self.inputs: batch_images,
-                                                                                              self.labels: manual_labels[:, :self.dao.num_classes],
-                                                                                              self.is_manual_annotated: manual_labels[:, self.dao.num_classes],
-                                                                                              self.standard_normal: batch_z
-                                                                                              }
-                                                                                   )
-                # print(f"Epoch: {epoch}/{batch}, Nll_loss shape: {nll_loss.shape}, Nll_batch: {nll_batch.shape}")
-                # print(f"Epoch: {epoch}/{batch},  Loss: {loss}  Nll_loss : {nll_loss} KLD:{kl_loss} ")
+                tensor_list = [self.optim,
+                               self.merged_summary_op,
+                               self.loss,
+                               self.neg_loglikelihood,
+                               self.marginal_likelihood,
+                               self.KL_divergence,
+                               self.supervised_loss
+                               ]
+                feed_dict = {self.inputs: batch_images,
+                             self.labels: manual_labels[:, :self.dao.num_classes],
+                             self.is_manual_annotated: manual_labels[:, self.dao.num_classes]
+                             }
+                # Latent representation is 2-D
+                concepts_label = np.reshape(manual_labels_concepts[:, :, :self.exp_config.dao.num_classes],
+                                            (self.exp_config.BATCH_SIZE,
+                                            self.num_concpets_per_row,
+                                            self.num_concpets_per_col,
+                                            self.exp_config.dao.num_classes)
+                                            )
+                # is_concepts_annotated = np.reshape(manual_labels_concepts[:, :, self.exp_config.num_concepts],
+                #                                   (self.exp_config.BATCH_SIZE,
+                #                                     self.num_concpets_per_row,
+                #                                     self.num_concpets_per_col)
+                #                                   )
+
+                is_concepts_annotated = np.zeros(
+                              (self.exp_config.BATCH_SIZE,
+                                self.num_concpets_per_row,
+                                self.num_concpets_per_col)
+                              )
+                tensor_list.append(self.supervised_loss_concepts)
+
+                if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+                    # Fully convolutional with concept loss: Populate feed_dict with one hot encoded concept labels
+                    for layer_num in self.exp_config.concept_dict.keys():
+                        if layer_num >= len(self.exp_config.num_units) + 1:
+                            # skip decoder output layer
+                            continue
+                        if self.exp_config.training_phase == "CONCEPTS" and layer_num > len(
+                                self.exp_config.num_units) - 1:
+                            continue
+
+                        for concept_no in self.unique_concepts[layer_num]:
+                            masks = np.zeros(self.exp_config.BATCH_SIZE)
+                            if concept_no != -1:
+                                masks[(manual_labels[:, self.dao.num_classes + 1] == layer_num) * (
+                                        labels_categorical == concept_no)] = 1
+                            feed_dict[self.mask_for_concept_no[layer_num][concept_no]] = masks
+
+                if self.exp_config.uncorrelated_features:
+                    # Fully convolutional, uncorrelated features
+                    tensor_list.append(self.corr_loss)
+                    return_list = self.sess.run(tensor_list,
+                                                feed_dict=feed_dict)
+                    loss = return_list[2]
+                    nll_loss = return_list[3]
+                    kl_loss = return_list[4]
+                    supervised_loss = return_list[5]
+                    supervised_loss_concepts = return_list[6]
+                    correlation_loss = return_list[7]
+                else:
+                    # Fully convolutional, correlated features
+                    return_list = self.sess.run(tensor_list, feed_dict=feed_dict)
+                    loss = return_list[2]
+                    nll_loss = return_list[3]
+                    kl_loss = return_list[4]
+                    supervised_loss = return_list[5]
+
+                    supervised_loss_concepts = dict()
+                    supervised_loss_concepts_total = dict()
+                    if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+                        for i, layer_num in enumerate(self.exp_config.concept_dict.keys()):
+                            if layer_num >= len(self.exp_config.num_units) + 1:
+                                continue
+                            if self.dao.training_phase == "CONCEPTS" and layer_num > len(
+                                    self.exp_config.num_units) - 1:
+                                continue
+                            supervised_loss_concepts[layer_num] = return_list[6 + i]
+                            supervised_loss_concepts_total[layer_num] = 0
+                            for k, v in supervised_loss_concepts[layer_num].items():
+                                supervised_loss_concepts_total[layer_num] += v
+
+
+                #Log training progress for the batch
+                if self.exp_config.uncorrelated_features:
+                    print(
+                        f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}  ccrrelation loss:{correlation_loss}")
+                else:
+                    print(f"Epoch: {epoch}/{batch}, Loss:{loss} Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}")
 
                 self.counter += 1
                 self.num_steps_completed = batch + 1
                 # self.writer.add_summary(summary_str, self.counter - 1)
-            print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss}")
+
+            # print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss}")
+            if self.exp_config.concept_dict is not None and len(self.exp_config.concept_dict) > 0:
+                for layer_num in self.exp_config.concept_dict.keys():
+                    if layer_num == len(self.exp_config.num_units) + 1:
+                        continue
+                    print(f"Supervised loss concept Layer {layer_num} {sum(supervised_loss_concepts_epoch[layer_num])}")
+
             self.num_training_epochs_completed = epoch + 1
             print(f"Completed {epoch} epochs")
             if self.exp_config.run_evaluation_during_training:
-                print("Eval_interval", self.exp_config.eval_interval_in_epochs)
                 if np.mod(epoch, self.exp_config.eval_interval_in_epochs) == 0:
                     train_val_data_iterator.reset_counter("val")
                     train_val_data_iterator.reset_counter("train")
@@ -240,10 +443,12 @@ class SemiSupervisedSegmenterMnist(VAE):
                         self.test_data_iterator.reset_counter("test")
 
                     for metric in self.metrics_to_compute:
-                        print(f"Accuracy: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
-                        print(f"Accuracy: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
-                        print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
-
+                        print(f"{metric}: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
+                        print(f"{metric}: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
+                        if self.test_data_iterator is not None:
+                            print(f"{metric}: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
+                    self.save_metrics()
+                    evaluation_run_for_last_epoch = True
             train_val_data_iterator.reset_counter("train")
             train_val_data_iterator.reset_counter("val")
 
@@ -258,34 +463,21 @@ class SemiSupervisedSegmenterMnist(VAE):
 
         train_val_data_iterator.reset_counter("val")
         train_val_data_iterator.reset_counter("train")
-        self.evaluate(data_iterator=train_val_data_iterator,
-                      dataset_type="val")
-        self.evaluate(data_iterator=train_val_data_iterator,
-                      dataset_type="train")
-        if self.test_data_iterator is not None:
-            self.test_data_iterator.reset_counter("test")
-            self.evaluate(self.test_data_iterator, dataset_type="test")
-            self.test_data_iterator.reset_counter("test")
-
+        if not evaluation_run_for_last_epoch:
+            self.evaluate(data_iterator=train_val_data_iterator,
+                          dataset_type="val")
+            self.evaluate(data_iterator=train_val_data_iterator,
+                          dataset_type="train")
+            if self.test_data_iterator is not None:
+                self.test_data_iterator.reset_counter("test")
+                self.evaluate(self.test_data_iterator, dataset_type="test")
+                self.test_data_iterator.reset_counter("test")
         for metric in self.metrics_to_compute:
             print(f"Accuracy: train: {self.metrics[ClassifierModel.dataset_type_train][metric][-1]}")
             print(f"Accuracy: val: {self.metrics[ClassifierModel.dataset_type_val][metric][-1]}")
-            print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
-
-        # save metrics
-        df = None
-        for i, metric in enumerate(self.metrics_to_compute):
-            column_name = f"train_{metric}"
-            if i == 0:
-                df = pd.DataFrame(self.metrics["train"][metric], columns=["epoch", column_name])
-            else:
-                df[column_name] = np.asarray(self.metrics["train"][metric])[:, 1]
-            df[f"val_{metric}"] = np.asarray(self.metrics["val"][metric])[:, 1]
-            df[f"test_{metric}"] = np.asarray(self.metrics["test"][metric])[:, 1]
-            max_value = df[f"test_{metric}"].max()
-            print(f"Max test {metric}", max_value)
-        if df is not None:
-            df.to_csv(os.path.join(self.exp_config.ANALYSIS_PATH, f"metrics_{self.num_training_epochs_completed}.csv"), index=False)
+            if self.test_data_iterator is not None:
+                print(f"Accuracy: test: {self.metrics[ClassifierModel.dataset_type_test][metric][-1]}")
+        self.save_metrics()
 
     def evaluate(self,
                  data_iterator,
