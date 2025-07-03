@@ -67,7 +67,7 @@ class SemiSupervisedSegmenterMnist(VAE):
             self.metrics[SemiSupervisedSegmenterMnist.dataset_type_test][metric] = []
 
     def _encoder(self, x, reuse=False):
-        gaussian_params = fcnn_n_layer(self, x, self.exp_config.num_units,2, reuse)
+        gaussian_params = fcnn_n_layer(self, x, self.exp_config.num_units,2, reuse, False)
         # The mu parameter is unconstrained
         # mu = gaussian_params[:, :, :, 0]
         mu = gaussian_params[:, :self.exp_config.Z_DIM]

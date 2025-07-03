@@ -52,7 +52,7 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
             print(f"z {z.shape}")
         return z
 
-def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False):
+def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False, reshape_z=True):
     # Encoder models the probability  P(z/X)
     layer_num = 0
     strides = model.exp_config.strides
@@ -103,8 +103,8 @@ def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False):
                       )
         if model.exp_config.log_level == logging.DEBUG:
             print("z", z.shape)
-
-        z = tf.reshape(z, [model.exp_config.BATCH_SIZE, -1])
+        if reshape_z:
+            z = tf.reshape(z, [model.exp_config.BATCH_SIZE, -1])
         if model.exp_config.log_level == logging.DEBUG:
             print("z reshaped",z.shape)
         return z
