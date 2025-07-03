@@ -178,9 +178,7 @@ class SemiSupervisedClassifierMnist(VAE):
                         #
                         # self.mse_for_all_images[concept_no] = tf.compat.v1.reduce_mean(mse_other_layers, axis=(1, 2, 3))
 
-        reshaped = tf.reshape(self.z, [self.exp_config.BATCH_SIZE, -1])
-        self.y_pred = linear(reshaped, self.dao.num_classes)
-
+        self.y_pred = linear(self.z, self.dao.num_classes)
         self.supervised_loss = tf.compat.v1.losses.softmax_cross_entropy(onehot_labels=self.labels,
                                                                          logits=self.y_pred,
                                                                          weights=self.is_manual_annotated
