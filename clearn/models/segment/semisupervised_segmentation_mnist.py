@@ -180,7 +180,7 @@ class SemiSupervisedSegmenterMnist(VAE):
             for batch in range(start_batch_id, self.num_batches_train):
                 # first 10 elements of manual_labels is actual one hot encoded labels
                 # and next value is confidence
-                batch_images, _, manual_labels = train_val_data_iterator.get_next_batch("train")
+                batch_images, _, manual_labels,_ = train_val_data_iterator.get_next_batch("train")
                 if batch_images.shape[0] < self.exp_config.BATCH_SIZE:
                     break
                 batch_z = prior.gaussian(self.exp_config.BATCH_SIZE, self.exp_config.Z_DIM)
