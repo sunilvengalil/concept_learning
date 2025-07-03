@@ -288,10 +288,17 @@ def cluster_and_decode_latent_vectors_gmm(model_type: str,
                                           exp_config: ExperimentConfig,
                                           dao: IDao):
     gm = GaussianMixture(n_components=num_clusters, random_state=0)
-    cluster_labels = gm.fit_predict(latent_vectors)
-    cluster_centers = gm.means_
+    if len(latent_vectors.shape)  == 3:
+        reshaped = np.reshape(latent_vectors,[latent_vectors.shape[0], -1])
+    else:
+        reshaped = latent_vectors
+    cluster_labels = gm.fit_predict(reshaped)
+    if len(latent_vectors.shape) == 3:
+        cluster_centers = np.reshape(gm.means_,[num_clusters, latent_vectors.shape[1], latent_vectors[2]])
+    else:
+        cluster_centers = gm.means_
     decoded_images = decode_latent_vectors(model_type, cluster_centers, exp_config, dao)
-    posterior = gm.predict_proba(latent_vectors)
+    posterior = gm.predict_proba(reshaped)
 
     return decoded_images, cluster_centers, cluster_labels, posterior
 
