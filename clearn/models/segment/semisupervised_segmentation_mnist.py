@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 
-import json
 import traceback
 import os
-from collections import defaultdict
-from typing import List, DefaultDict
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -18,8 +16,7 @@ from clearn.models.classify.classifier import ClassifierModel
 from clearn.models.vae import VAE
 from clearn.utils import prior_factory as prior
 from clearn.utils.retention_policy.policy import RetentionPolicy
-from clearn.utils.utils import save_image, get_latent_vector_column
-from clearn.utils.dir_utils import get_eval_result_dir
+from clearn.utils.utils import save_images, get_latent_vector_column
 from scipy.special import softmax
 from sklearn.metrics import accuracy_score
 
