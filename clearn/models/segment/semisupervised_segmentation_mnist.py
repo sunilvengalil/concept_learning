@@ -79,7 +79,7 @@ class SemiSupervisedSegmenterMnist(VAE):
         return mu, stddev
 
     def _decoder(self, z, reuse=False):
-        return fully_deconv_n_layer(self, z, self.exp_config.num_units, self.exp_config.dao.image_shape[2], 1, reuse, False, reshape_input=False)
+        return fully_deconv_n_layer(self, z, self.exp_config.num_units, self.exp_config.dao.image_shape[2], 1, reuse, False)
 
     def get_decoder_weights_bias(self):
         name_w_1 = "decoder/de_fc1/Matrix:0"
