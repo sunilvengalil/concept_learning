@@ -69,13 +69,11 @@ class SemiSupervisedSegmenterMnist(VAE):
     def _encoder(self, x, reuse=False):
         gaussian_params = fcnn_n_layer(self, x, self.exp_config.num_units,2, reuse, False)
         # The mu parameter is unconstrained
-        # mu = gaussian_params[:, :, :, 0]
-        mu = gaussian_params[:, :self.exp_config.Z_DIM]
+        mu = gaussian_params[:, :, :, 0]
 
         # The standard deviation must be positive. Parametrize with a softplus and
         # add a small epsilon for numerical stability
-        #stddev = 1e-6 + tf.nn.softplus(gaussian_params[:, :, :, 1])
-        stddev = 1e-6 + tf.nn.softplus(gaussian_params[:, self.exp_config.Z_DIM:])
+        stddev = 1e-6 + tf.nn.softplus(gaussian_params[:, :, :, 1])
         print("mu.shape", mu.shape)
         print("std.shape", stddev.shape)
         return mu, stddev
