@@ -726,7 +726,7 @@ class SemiSupervisedSegmenterMnist(VAE):
 
         if self.exp_config.return_latent_vector:
             mean_col_names, sigma_col_names, z_col_names, l3_col_names, predicted_proba_col_names = get_latent_vector_column(
-                self.exp_config.Z_DIM, self.dao.num_classes, True)
+                z.shape[1] * z.shape[2], self.dao.num_classes, True)
             # encoded_df[mean_col_names] = mu
             for i, mean_col_name in enumerate(mean_col_names):
                 encoded_df[mean_col_name] = np.reshape(mu, [mu.shape[0], -1])[:,i]

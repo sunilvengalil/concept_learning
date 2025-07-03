@@ -17,8 +17,12 @@ def decode(model:GenerativeModel, z, batch_size, hidden_layer:int = -1):
         reconstructed_images[batch_num * batch_size: (batch_num + 1) * batch_size] = decoded_images
     left_out = num_latent_vectors % batch_size
     if left_out != 0:
-        last_batch = np.zeros([batch_size, z.shape[1]])
-        last_batch[0:left_out, :] = z[num_batches * batch_size:]
+        if len(z.shape) == 2:
+            last_batch = np.zeros([batch_size, z.shape[1]])
+            last_batch[0:left_out, :] = z[num_batches * batch_size:]
+        else:
+            last_batch = np.zeros([batch_size, z.shape[0], z.shape[1]])
+            last_batch[0:left_out, :,:] = z[num_batches * batch_size:]
         decoded_images = model.decode(last_batch)
         reconstructed_images[num_batches * batch_size:] = decoded_images[0:left_out]
 
