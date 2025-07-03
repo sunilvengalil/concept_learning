@@ -262,9 +262,9 @@ def decode_latent_vectors(model_type: str,
                           dao: IDao):
     with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as sess:
         model = get_model(dao, exp_config, model_type, num_epochs=0, sess=sess)
-        z = np.zeros([cluster_centers.shape[0], exp_config.Z_DIM])
+        z = np.zeros(cluster_centers.shape)
         for i in range(cluster_centers.shape[0]):
-            z[i, :] = cluster_centers[i]
+            z[i] = cluster_centers[i]
         decoded_images = decode(model, z, exp_config.BATCH_SIZE)
         return decoded_images
 
