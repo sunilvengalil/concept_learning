@@ -131,8 +131,11 @@ def decode_and_get_features(model: GenerativeModel, z: np.ndarray, batch_size: i
 
     left_out = num_latent_vectors % batch_size
     if left_out > 0:
-        last_batch = np.zeros([batch_size, z.shape[1]])
-        last_batch[0:left_out, :] = z[num_batches * batch_size:]
+        if len(z.shape) == 2:
+            last_batch = np.zeros([batch_size, z.shape[1]])
+        else:
+            last_batch = np.zeros([batch_size, z.shape[1], z.shape[2]])
+        last_batch[0:left_out] = z[num_batches * batch_size:]
         feature_names, decoded_images_and_features = model.decode_and_get_features(last_batch, layer_num, feature_num)
         reconstructed_images[num_batches * batch_size:] = decoded_images_and_features[0][0:left_out]
         for i, feature_name in enumerate(feature_names):
