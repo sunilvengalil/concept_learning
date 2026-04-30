@@ -565,7 +565,7 @@ def compute_distance(df, num_clusters, cluster_labels, z_col_names, cluster_cent
         print(lv.shape)
         cov = np.cov(lv.T)
         inv_cov = sp.linalg.inv(cov)
-        df[f"distance_{cluster_num}"].iloc[indices] = df.iloc[indices].apply(lambda x:distance(x,
+        df.loc[indices, f"distance_{cluster_num}"] = df.iloc[indices].apply(lambda x:distance(x,
                                                                                                inv_cov,
                                                                                                cluster_centers[cluster_num],
                                                                                                z_col_names),
