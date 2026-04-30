@@ -264,7 +264,7 @@ class SemiSupervisedClassifierMnist(VAE):
                 # supervised_labels = manual_labels[:, :self.dao.num_classes]
                 # sample_weights = manual_labels[:, self.dao.num_classes]
                 supervised_labels = batch_labels
-                sample_weights = 1
+                sample_weights = np.ones([64,1])
                 tensor_list = [self.optim,
                                self.merged_summary_op,
                                self.loss,
