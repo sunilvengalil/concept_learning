@@ -261,7 +261,10 @@ class SemiSupervisedClassifierMnist(VAE):
                                 [manifold_h, manifold_w],
                                 self.exp_config.PREDICTION_RESULTS_PATH + "/" + f"train_{batch}.png")
                     images_saved += 64
-
+                # supervised_labels = manual_labels[:, :self.dao.num_classes]
+                # sample_weights = manual_labels[:, self.dao.num_classes]
+                supervised_labels = batch_labels
+                sample_weights = 1
                 tensor_list = [self.optim,
                                self.merged_summary_op,
                                self.loss,
@@ -271,8 +274,8 @@ class SemiSupervisedClassifierMnist(VAE):
                                self.supervised_loss
                                ]
                 feed_dict = {self.inputs: batch_images,
-                             self.labels: manual_labels[:, :self.dao.num_classes],
-                             self.is_manual_annotated: manual_labels[:, self.dao.num_classes]
+                             self.labels: supervised_labels,
+                             self.is_manual_annotated: sample_weights
                              }
                 if self.exp_config.fully_convolutional:
                     # Latent representation is 2-D
@@ -349,15 +352,8 @@ class SemiSupervisedClassifierMnist(VAE):
                     # Latent vector is 1-D
                     return_list = self.sess.run(tensor_list, feed_dict=feed_dict)
 
-                # Log training progress for the batch
-                # if self.exp_config.fully_convolutional:
-                #     if self.exp_config.uncorrelated_features:
-                #         print(
-                #             f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}  ccrrelation loss:{correlation_loss}")
-                #     else:
-                #         print(f"Epoch: {epoch}/{batch}, Loss:{loss} Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} Supervised loss concepts:{supervised_loss_concepts}")
-                # else:
-                #     print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} ")
+
+                print(f"Epoch: {epoch}/{batch}, Nll_loss : {nll_loss} KLD:{kl_loss}  Supervised loss:{supervised_loss} ")
 
                 self.counter += 1
                 self.num_steps_completed = batch + 1
