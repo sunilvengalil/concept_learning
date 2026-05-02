@@ -61,36 +61,33 @@ def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False, reshape_z=True)
     with tf.compat.v1.variable_scope("encoder", reuse=reuse):
         if len(n_units) > 0:
             x = add_zero_padding(x, model.padding_added_row[layer_num], model.padding_added_col[layer_num])
-            if model.exp_config.activation_hidden_layer == "RELU":
-                model.encoder_dict[f"layer_{layer_num}"] = lrelu(conv2d(x,
-                                                                        n_units[layer_num],
-                                                                        3, 3,
-                                                                        strides[layer_num],
-                                                                        strides[layer_num],
-                                                                        name=f"layer_{layer_num}")
-                                                                 )
+            model.encoder_dict[f"layer_{layer_num}"] = lrelu(conv2d(x,
+                                                                    n_units[layer_num],
+                                                                    3, 3,
+                                                                    strides[layer_num],
+                                                                    strides[layer_num],
+                                                                    name=f"layer_{layer_num}")
+                                                             )
+            print(layer_num, model.encoder_dict[f"layer_{layer_num}"].shape)
+            for layer_num in range(1, len(n_units)):
+                zero_padded = add_zero_padding(model.encoder_dict[f"layer_{layer_num-1}"],
+                                                            model.padding_added_row[layer_num],
+                                                            model.padding_added_col[layer_num])
+
+                model.encoder_dict[f"layer_{layer_num}"] = lrelu((conv2d(zero_padded,
+                                                                           n_units[layer_num],
+                                                                           3, 3,
+                                                                           strides[layer_num],
+                                                                           strides[layer_num],
+                                                                           name=f"layer_{layer_num}")))
                 print(layer_num, model.encoder_dict[f"layer_{layer_num}"].shape)
-                for layer_num in range(1, len(n_units)):
-                    zero_padded = add_zero_padding(model.encoder_dict[f"layer_{layer_num-1}"],
-                                                                model.padding_added_row[layer_num],
-                                                                model.padding_added_col[layer_num])
-
-                    model.encoder_dict[f"layer_{layer_num}"] = lrelu((conv2d(zero_padded,
-                                                                               n_units[layer_num],
-                                                                               3, 3,
-                                                                               strides[layer_num],
-                                                                               strides[layer_num],
-                                                                               name=f"layer_{layer_num}")))
-                    print(layer_num, model.encoder_dict[f"layer_{layer_num}"].shape)
-            else:
-                raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
-
-            z = lrelu((conv2d(model.encoder_dict[f"layer_{len(n_units) - 1}"],
+            layer_key = f"layer_{len(n_units)}"
+            z = lrelu((conv2d(model.encoder_dict[layer_key],
                                         num_out_units,
                                         3, 3,
                                         strides[len(n_units)],
                                         strides[len(n_units)],
-                                        name='out'))
+                                        name=layer_key))
                       )
         else:
             z = lrelu((conv2d(x,
