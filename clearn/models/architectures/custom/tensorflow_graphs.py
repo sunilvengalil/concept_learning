@@ -20,6 +20,7 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
             model.cnn_out = fcnn_n_layer(model, x, n_units[0:num_convolutional_layers - 1], n_units[num_convolutional_layers - 1], reuse )
         #
         model.reshaped_en = tf.reshape(model.cnn_out, [model.exp_config.BATCH_SIZE, -1])
+        print("Number of layers: "+ len(n_units) + " Number of convolutional layers: " + num_convolutional_layers)
         if model.exp_config.num_dense_layers > 0:
             if model.exp_config.activation_hidden_layer == "RELU":
                 layer_num = num_convolutional_layers
@@ -29,8 +30,8 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
                                                                     n_units[layer_num],
                                                                     scope=layer_key)
                                                              )
-                if model.exp_config.log_level == logging.DEBUG:
-                    print(layer_num, model.dense_features_dict[layer_key].shape)
+
+                print(layer_num, model.dense_features_dict[layer_key].shape)
                 for layer_num in range(layer_num + 1, len(n_units)):
                     layer_key = f"layer_{layer_num}"
                     previous_layer_key = f"layer_{layer_num-1}"
@@ -38,8 +39,7 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
                                                                         n_units[layer_num]
                                                                         , scope=layer_key)
                                                                  )
-                    if model.exp_config.log_level == logging.DEBUG:
-                        print(layer_num, model.dense_features_dict[layer_key].shape)
+                    print(layer_num, model.dense_features_dict[layer_key].shape)
             else:
                 raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
         if model.exp_config.num_dense_layers > 0:
@@ -81,8 +81,7 @@ def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False, reshape_z=True)
                                                                                strides[layer_num],
                                                                                strides[layer_num],
                                                                                name=f"layer_{layer_num}")))
-                    if model.exp_config.log_level == logging.DEBUG:
-                        print(layer_num, model.encoder_dict[f"layer_{layer_num}"].shape)
+                    print(layer_num, model.encoder_dict[f"layer_{layer_num}"].shape)
             else:
                 raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
 
