@@ -90,6 +90,7 @@ def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False, reshape_z=True)
                                         name="out"))
                       )
             z = model.encoder_dict[layer_key]
+            print(layer_key,model.encoder_dict[layer_key].shape)
         else:
             z = lrelu((conv2d(x,
                               num_out_units,
