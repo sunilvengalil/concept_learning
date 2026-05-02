@@ -20,7 +20,8 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
             model.cnn_out = fcnn_n_layer(model, x, n_units[0:num_convolutional_layers - 1], n_units[num_convolutional_layers - 1], reuse )
         #
         model.reshaped_en = tf.reshape(model.cnn_out, [model.exp_config.BATCH_SIZE, -1])
-        print("Number of layers: "+ len(n_units) + " Number of convolutional layers: " + num_convolutional_layers)
+        number_of_layers = len(n_units)
+        print(f"Number of layers: {number_of_layers}  Number of convolutional layers:  {num_convolutional_layers}")
         if model.exp_config.num_dense_layers > 0:
             if model.exp_config.activation_hidden_layer == "RELU":
                 layer_num = num_convolutional_layers
