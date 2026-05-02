@@ -89,6 +89,7 @@ def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False, reshape_z=True)
                                         strides[len(n_units)],
                                         name="out"))
                       )
+            z = model.encoder_dict[layer_key]
         else:
             z = lrelu((conv2d(x,
                               num_out_units,
