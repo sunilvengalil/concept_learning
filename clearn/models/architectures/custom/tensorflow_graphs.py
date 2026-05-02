@@ -81,8 +81,8 @@ def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False, reshape_z=True)
                                                                            strides[layer_num],
                                                                            name=f"layer_{layer_num}")))
                 print(layer_num, model.encoder_dict[f"layer_{layer_num}"].shape)
-            layer_key = f"layer_{len(n_units)}"
-            z = lrelu((conv2d(model.encoder_dict[layer_key],
+            layer_key = f"layer_{len(n_units)} "
+            model.encoder_dict[layer_key] = lrelu((conv2d(model.encoder_dict[f"layer_{layer_num-1}"],
                                         num_out_units,
                                         3, 3,
                                         strides[len(n_units)],
