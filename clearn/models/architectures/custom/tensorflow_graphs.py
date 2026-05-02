@@ -87,7 +87,7 @@ def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False, reshape_z=True)
                                         3, 3,
                                         strides[len(n_units)],
                                         strides[len(n_units)],
-                                        name=layer_key))
+                                        name="out"))
                       )
         else:
             z = lrelu((conv2d(x,
