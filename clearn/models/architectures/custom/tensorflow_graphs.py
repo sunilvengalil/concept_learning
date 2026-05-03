@@ -58,6 +58,8 @@ def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False, reshape_z=True)
     layer_num = 0
     strides = model.exp_config.strides
     model.encoder_dict ={}
+    print("filter size of conv units: ", n_units)
+    print("filter size of last conv unit", num_out_units)
     with tf.compat.v1.variable_scope("encoder", reuse=reuse):
         if len(n_units) > 0:
             x = add_zero_padding(x, model.padding_added_row[layer_num], model.padding_added_col[layer_num])
@@ -81,6 +83,7 @@ def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False, reshape_z=True)
                                                                            strides[layer_num],
                                                                            name=f"layer_{layer_num}")))
                 print(layer_num, model.encoder_dict[f"layer_{layer_num}"].shape)
+            print("Addking last conv unit, previous layer key: "+ f"layer_{len(n_units)-1}")
             layer_key = f"layer_{len(n_units)} "
             model.encoder_dict[layer_key] = lrelu((conv2d(model.encoder_dict[f"layer_{len(n_units)-1}"],
                                         num_out_units,
@@ -92,6 +95,7 @@ def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False, reshape_z=True)
             z = model.encoder_dict[layer_key]
             print(layer_key,model.encoder_dict[layer_key].shape)
         else:
+            print("Only single conv unit");
             z = lrelu((conv2d(x,
                               num_out_units,
                               3, 3,
