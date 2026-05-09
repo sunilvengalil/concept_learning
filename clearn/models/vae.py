@@ -495,8 +495,7 @@ class VAE(GenerativeModel):
                 feature_list.append(value)
         return feature_names, feature_list
 
-
-    def encode_and_get_features(self, images: np.ndarray):
+    def encode_and_get_features(self, images: np.ndarray, gradient_layer = -1):
         features_list = [self.mu, self.sigma, self.z]
         hidden_feature_names, hidden_features = self.get_encoder_features_list()
         features_list.extend(hidden_features)
