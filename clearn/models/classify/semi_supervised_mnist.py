@@ -545,14 +545,15 @@ class SemiSupervisedClassifierMnist(VAE):
         features_list.extend(hidden_features)
         print(f"Gradient computing for layer {gradient_layers}")
         if gradient_layers is not None:
+            target_class_score = tf.reduce_max(self.y_pred, axis=1)
             features_list.append(self.y_pred)
             print("Number of units", len(self.exp_config.num_units))
             for gradient_layer in gradient_layers:
                 print(gradient_layer)
                 if gradient_layer == len(self.exp_config.num_units):
-                    gradient = tf.gradients(self.y_pred, self.z)
+                    gradient = tf.gradients(target_class_score, self.z)
                 else:
-                    gradient = tf.gradients(self.y_pred, hidden_features[gradient_layer])
+                    gradient = tf.gradients(target_class_score, hidden_features[gradient_layer])
                 features_list.append(gradient)
 
         encoded_features = self.sess.run(features_list,
