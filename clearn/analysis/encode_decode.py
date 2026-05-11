@@ -180,7 +180,7 @@ def encode_and_get_features(model: GenerativeModel,
     return hidden_feature_names, mus, sigmas, latent_vectors, features
 
 def encode_and_get_features(model: GenerativeModel,
-                            images, batch_size, z_dim, grad_layer=-1):
+                            images, batch_size, z_dim, grad_layer=None):
     num_images = images.shape[0]
     num_batches = num_images // batch_size
     mus = np.zeros([len(images), z_dim])

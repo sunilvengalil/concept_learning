@@ -330,11 +330,21 @@ def display_images(decoded_images,
     num_rows = math.ceil(num_images_to_display / num_cols)
     if title is not None and len(title) > 0:
         fig.suptitle(title)
+    img = None
     for i in range(num_images_to_display):
         ax = fig.add_subplot(num_rows, num_cols, i + 1)
-        ax.imshow(np.squeeze(decoded_images[i]), cmap=colormap)
+        img = ax.imshow(np.squeeze(decoded_images[i]), cmap=colormap)
         if axis is not None:
             ax.axis(axis)
+
+    if img is not None:
+        fig.colorbar(
+            img,
+            ax=fig.axes,
+            orientation='vertical',
+            fraction=0.02,
+            pad=0.04
+        )
     if image_filename is not None and len(image_filename) > 0:
         print(f"Saving the image to {image_filename}")
         plt.savefig(image_filename,

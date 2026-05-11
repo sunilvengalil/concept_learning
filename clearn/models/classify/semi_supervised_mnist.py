@@ -539,17 +539,21 @@ class SemiSupervisedClassifierMnist(VAE):
 
         return logits
 
-    def encode_and_get_features(self, images: np.ndarray, gradient_layer = -1):
+    def encode_and_get_features(self, images: np.ndarray, gradient_layers = None):
         features_list = [self.mu, self.sigma, self.z]
         hidden_feature_names, hidden_features = self.get_encoder_features_list()
         features_list.extend(hidden_features)
-        print(f"Gradient computing for layer {gradient_layer}")
-        if gradient_layer >= 0:
-            output_tensor = self.y_pred
-            layer_tensor = hidden_features[gradient_layer]
-            gradient = tf.gradients(output_tensor, layer_tensor)
+        print(f"Gradient computing for layer {gradient_layers}")
+        if gradient_layers is not None:
             features_list.append(self.y_pred)
-            features_list.append(gradient)
+            print("Number of units", len(self.exp_config.num_units))
+            for gradient_layer in gradient_layers:
+                print(gradient_layer)
+                if gradient_layer == len(self.exp_config.num_units):
+                    gradient = tf.gradients(self.y_pred, self.z)
+                else:
+                    gradient = tf.gradients(self.y_pred, hidden_features[gradient_layer])
+                features_list.append(gradient)
 
         encoded_features = self.sess.run(features_list,
                                                        feed_dict={self.inputs: images

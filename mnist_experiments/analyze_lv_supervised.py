@@ -118,7 +118,7 @@ with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=T
     hidden_feature_names, mus, sigmas, latent_vectors, features = encode_and_get_features(model,
                                                                                         images[0:1],
                                                                                         exp_config.BATCH_SIZE,
-                                                                                        exp_config.Z_DIM, 0)
+                                                                                        exp_config.Z_DIM, [3])
 tf.compat.v1.reset_default_graph()
 
 
