@@ -467,13 +467,13 @@ class VAE(GenerativeModel):
         for var in layer_vars:
             layer_param_names.append(var.name)
             param_values.append(var)
-            print(var.name, var.get_shape())
+            # print(var.name, var.get_shape())
         layer_vars = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope="Linear")
         # This returns a list of Variable objects (e.g., [kernel, bias])
         for var in layer_vars:
             layer_param_names.append(var.name)
             param_values.append(var)
-            print(var.name, var.get_shape())
+            # print(var.name, var.get_shape())
         param_values_actual = self.sess.run(param_values)
 
         return {tn: tv for tn, tv in zip(layer_param_names, param_values_actual)}
