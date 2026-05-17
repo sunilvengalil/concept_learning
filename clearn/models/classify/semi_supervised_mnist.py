@@ -549,7 +549,6 @@ class SemiSupervisedClassifierMnist(VAE):
             features_list.append(self.y_pred)
             #print("Number of units", len(self.exp_config.num_units))
             for gradient_layer in gradient_layers:
-                print(gradient_layer)
                 if gradient_layer == len(self.exp_config.num_units):
                     gradient = tf.gradients(target_class_score, self.z)
                 else:

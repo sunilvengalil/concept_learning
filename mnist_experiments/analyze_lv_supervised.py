@@ -142,6 +142,7 @@ tf.compat.v1.reset_default_graph()
 
 
 print(hidden_feature_names)
-print(features[0][4][0].shape)
+print(features.keys())
+print(mus.shape)
 
 
