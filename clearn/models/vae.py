@@ -495,37 +495,11 @@ class VAE(GenerativeModel):
         hidden_feature_names, hidden_features = self.get_encoder_features_list()
         features_list.extend(hidden_features)
 
-        num_images = images.shape[0]
-        batch_size = self.exp_config.BATCH_SIZE
-        num_batches = num_images // self.exp_config.BATCH_SIZE
-        mus = np.zeros([len(images), self.exp_config.Z_DIM])
-        sigmas = np.zeros([len(images), self.exp_config.Z_DIM])
-        latent_vectors = np.zeros([len(images), self.exp_config.Z_DIM])
-        encoded_features =[]
+        encoded_features = self.sess.run(features_list,
+                                                       feed_dict={self.inputs: images
+                                                                  })
 
-        for batch_num in range(num_batches):
-            mu, sigma, z, _encoded_features = self.sess.run(features_list,
-                                             feed_dict = {self.inputs: images[batch_num * batch_size: (batch_num + 1) * batch_size]})
-            mus[batch_num * batch_size: (batch_num + 1) * batch_size] = mu
-            sigmas[batch_num * batch_size: (batch_num + 1) * batch_size] = sigma
-            latent_vectors[batch_num * batch_size: (batch_num + 1) * batch_size] = z
-            encoded_features.append(_encoded_features)
-
-        left_out = num_images % batch_size
-        if left_out > 0:
-            feature_dimension = [batch_size, self.dao.image_shape[0], self.dao.image_shape[1],
-                                 self.dao.image_shape[2]]
-
-            last_batch = np.zeros(feature_dimension)
-            last_batch[0:left_out] = images[num_batches * batch_size:]
-            mu, sigma, z, _encoded_features = self.sess.run(features_list,
-                                             feed_dict = {self.inputs: last_batch})
-            mus[num_batches * batch_size:] = mu[0:left_out]
-            sigmas[num_batches * batch_size:] = sigma[0:left_out]
-            latent_vectors[num_batches * batch_size:] = z[0:left_out]
-            encoded_features.append(_encoded_features)
-
-        return hidden_feature_names, mus, sigmas, latent_vectors, encoded_features
+        return hidden_feature_names, encoded_features[0], encoded_features[1], encoded_features[2], encoded_features[3:]
 
     def get_decoder_features_list(self):
         feature_list = []
