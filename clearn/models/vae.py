@@ -458,30 +458,25 @@ class VAE(GenerativeModel):
         return {tn: tv for tn, tv in zip(param_names, param_values)}
 
     def get_encoder_weights_bias(self):
-        name_w_1 = "encoder/en_conv1/w:0"
-        name_w_2 = "encoder/en_conv2/w:0"
-        name_w_3 = "encoder/en_fc3/Matrix:0"
-        name_w_4 = "encoder/en_fc4/Matrix:0"
+        layer_param_names =[]
+        param_values=[]
 
-        name_b_1 = "encoder/en_conv1/biases:0"
-        name_b_2 = "encoder/en_conv2/biases:0"
-        name_b_3 = "encoder/en_fc3/bias:0"
-        name_b_4 = "encoder/en_fc4/bias:0"
+        # Example: Getting variables for a layer named "my_dense_layer"
+        layer_vars = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope="encoder")
+        # This returns a list of Variable objects (e.g., [kernel, bias])
+        for var in layer_vars:
+            layer_param_names.append(var.name)
+            param_values.append(var)
+            print(var.name, var.get_shape())
+        layer_vars = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.TRAINABLE_VARIABLES, scope="Linear")
+        # This returns a list of Variable objects (e.g., [kernel, bias])
+        for var in layer_vars:
+            layer_param_names.append(var.name)
+            param_values.append(var)
+            print(var.name, var.get_shape())
+        param_values_actual = self.sess.run(param_values)
 
-        layer_param_names = [name_w_1,
-                             name_b_1,
-                             name_w_2,
-                             name_b_2,
-                             name_w_3,
-                             name_b_3,
-                             name_w_4,
-                             name_b_4
-                             ]
-
-        default_graph = tf.get_default_graph()
-        params = [default_graph.get_tensor_by_name(tn) for tn in layer_param_names]
-        param_values = self.sess.run(params)
-        return {tn: tv for tn, tv in zip(layer_param_names, param_values)}
+        return {tn: tv for tn, tv in zip(layer_param_names, param_values_actual)}
 
     def get_encoder_features_list(self):
         feature_list = []
