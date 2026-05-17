@@ -543,11 +543,11 @@ class SemiSupervisedClassifierMnist(VAE):
         features_list = [self.mu, self.sigma, self.z]
         hidden_feature_names, hidden_features = self.get_encoder_features_list()
         features_list.extend(hidden_features)
-        print(f"Gradient computing for layer {gradient_layers}")
+        #print(f"Gradient computing for layer {gradient_layers}")
         if gradient_layers is not None:
             target_class_score = tf.reduce_max(self.y_pred, axis=1)
             features_list.append(self.y_pred)
-            print("Number of units", len(self.exp_config.num_units))
+            #print("Number of units", len(self.exp_config.num_units))
             for gradient_layer in gradient_layers:
                 print(gradient_layer)
                 if gradient_layer == len(self.exp_config.num_units):
@@ -559,7 +559,7 @@ class SemiSupervisedClassifierMnist(VAE):
         encoded_features = self.sess.run(features_list,
                                                        feed_dict={self.inputs: images
                                                                   })
-        print("Number of tensors", len(features_list))
-        print("Number of outputs", len(encoded_features))
+        #print("Number of tensors", len(features_list))
+        #print("Number of outputs", len(encoded_features))
 
         return hidden_feature_names, encoded_features[0], encoded_features[1], encoded_features[2], encoded_features[3:]
