@@ -186,14 +186,16 @@ def encode_and_get_features(model: GenerativeModel,
     mus = np.zeros([len(images), z_dim])
     sigmas = np.zeros([len(images), z_dim])
     latent_vectors = np.zeros([len(images), z_dim])
+    y_preds = np.zeros([len(images), z_dim])
     features = {}
 
     for batch_num in range(num_batches):
-        hidden_feature_names, mu, sigma, z, feature = model.encode_and_get_features(
+        hidden_feature_names, mu, sigma, z, y_pred, feature = model.encode_and_get_features(
             images[batch_num * batch_size: (batch_num + 1) * batch_size], grad_layer)
         mus[batch_num * batch_size: (batch_num + 1) * batch_size] = mu
         sigmas[batch_num * batch_size: (batch_num + 1) * batch_size] = sigma
         latent_vectors[batch_num * batch_size: (batch_num + 1) * batch_size] = z
+        y_preds[batch_num * batch_size: (batch_num + 1) * batch_size] = y_pred
         for i, hidden_feature_name in enumerate(hidden_feature_names):
             if hidden_feature_name in features:
                 features[hidden_feature_name][batch_num * batch_size: (batch_num + 1) * batch_size] = feature[i]
@@ -208,10 +210,11 @@ def encode_and_get_features(model: GenerativeModel,
         feature_dimension = [batch_size, model.dao.image_shape[0], model.dao.image_shape[1], model.dao.image_shape[2]]
         last_batch = np.zeros(feature_dimension)
         last_batch[0:left_out] = images[num_batches * batch_size:]
-        hidden_feature_names, mu, sigma, z, feature = model.encode_and_get_features(last_batch,grad_layer)
+        hidden_feature_names, mu, sigma, z, y_pred, feature = model.encode_and_get_features(last_batch,grad_layer)
         mus[num_batches * batch_size:] = mu[0:left_out]
         sigmas[num_batches * batch_size:] = sigma[0:left_out]
         latent_vectors[num_batches * batch_size:] = z[0:left_out]
+        y_preds[num_batches * batch_size:] = y_pred[0:left_out]
         for i, hidden_feature_name in enumerate(hidden_feature_names):
             if hidden_feature_name in features:
                 features[hidden_feature_name][num_batches * batch_size:] = feature[i][0:left_out]
@@ -222,4 +225,4 @@ def encode_and_get_features(model: GenerativeModel,
                 features[hidden_feature_name][num_batches * batch_size:] = feature[i][0:left_out]
 
 
-    return hidden_feature_names, mus, sigmas, latent_vectors, features
+    return hidden_feature_names, mus, sigmas, latent_vectors, y_preds,features

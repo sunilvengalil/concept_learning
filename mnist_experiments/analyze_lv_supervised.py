@@ -115,10 +115,10 @@ with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=T
               test_data_iterator=None,
               train_val_data_iterator=None)
 
-    hidden_feature_names, mus, sigmas, latent_vectors, features = encode_and_get_features(model,
+    hidden_feature_names, mus, sigmas, latent_vectors, y_preds, features = encode_and_get_features(model,
                                                                                         images[0:1],
                                                                                         exp_config.BATCH_SIZE,
-                                                                                        exp_config.Z_DIM, [3])
+                                                                                        exp_config.Z_DIM, [0,1,2,3])
 tf.compat.v1.reset_default_graph()
 
 
@@ -134,15 +134,16 @@ with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=T
               test_data_iterator=None,
               train_val_data_iterator=None)
 
-    hidden_feature_names, mus, sigmas, latent_vectors, features = encode_and_get_features(model,
+    hidden_feature_names, mus, sigmas, latent_vectors, y_pred, features = encode_and_get_features(model,
                                                                                         images[0:100],
                                                                                         exp_config.BATCH_SIZE,
-                                                                                        exp_config.Z_DIM, [0,1,2,3])
+                                                                                        exp_config.Z_DIM,[0,1,2,3])
 tf.compat.v1.reset_default_graph()
 
 
 print(hidden_feature_names)
 print(features.keys())
 print(mus.shape)
+print(y_pred.shape)
 
 
