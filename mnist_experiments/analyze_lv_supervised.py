@@ -122,6 +122,25 @@ with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=T
 tf.compat.v1.reset_default_graph()
 
 
+from clearn.analysis.encode_decode import decode, encode, encode_and_get_features, decode_and_get_features
+model = None
+tf.compat.v1.reset_default_graph()
+with tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True)) as sess:
+    model = get_model(dao = dao,
+              exp_config=exp_config,
+              model_type=model_type,
+              num_epochs=10,
+              sess=sess,
+              test_data_iterator=None,
+              train_val_data_iterator=None)
+
+    hidden_feature_names, mus, sigmas, latent_vectors, features = encode_and_get_features(model,
+                                                                                        images[0:100],
+                                                                                        exp_config.BATCH_SIZE,
+                                                                                        exp_config.Z_DIM, [0,1,2,3])
+tf.compat.v1.reset_default_graph()
+
+
 print(hidden_feature_names)
 print(features[0][4][0].shape)
 
