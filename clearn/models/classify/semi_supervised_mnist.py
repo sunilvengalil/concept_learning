@@ -549,8 +549,10 @@ class SemiSupervisedClassifierMnist(VAE):
             for gradient_layer in gradient_layers:
                 if gradient_layer == len(self.exp_config.num_units):
                     gradient = tf.gradients(target_class_score, self.z)
+                    hidden_feature_names.append("g_z")
                 else:
                     gradient = tf.gradients(target_class_score, hidden_features[gradient_layer])
+                    hidden_feature_names.append("g_"+hidden_feature_names[gradient_layer])
                 features_list.append(gradient)
         encoded_features = self.sess.run(features_list,
                                                        feed_dict={self.inputs: images

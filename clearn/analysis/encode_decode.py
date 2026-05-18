@@ -197,13 +197,18 @@ def encode_and_get_features(model: GenerativeModel,
         latent_vectors[batch_num * batch_size: (batch_num + 1) * batch_size] = z
         y_preds[batch_num * batch_size: (batch_num + 1) * batch_size] = y_pred
         for i, hidden_feature_name in enumerate(hidden_feature_names):
-            if hidden_feature_name in features:
-                features[hidden_feature_name][batch_num * batch_size: (batch_num + 1) * batch_size] = feature[i]
+            if type(feature[i]) == list:
+                _feature = feature[i][0]
             else:
-                feature_shape = list(feature[i].shape)
+                _feature = feature[i]
+
+            if hidden_feature_name in features:
+                features[hidden_feature_name][batch_num * batch_size: (batch_num + 1) * batch_size] = _feature
+            else:
+                feature_shape = list(_feature.shape)
                 feature_shape[0] = len(images)
                 features[hidden_feature_name] = np.zeros(feature_shape)
-                features[hidden_feature_name][batch_num * batch_size: (batch_num + 1) * batch_size] = feature[i]
+                features[hidden_feature_name][batch_num * batch_size: (batch_num + 1) * batch_size] = _feature
 
     left_out = num_images % batch_size
     if left_out > 0:
@@ -216,13 +221,16 @@ def encode_and_get_features(model: GenerativeModel,
         latent_vectors[num_batches * batch_size:] = z[0:left_out]
         y_preds[num_batches * batch_size:] = y_pred[0:left_out]
         for i, hidden_feature_name in enumerate(hidden_feature_names):
-            if hidden_feature_name in features:
-                features[hidden_feature_name][num_batches * batch_size:] = feature[i][0:left_out]
+            if type(feature[i]) == list:
+                _feature = feature[i][0]
             else:
-                feature_shape = list(feature[i].shape)
+                _feature = feature[i]
+            if hidden_feature_name in features:
+                features[hidden_feature_name][num_batches * batch_size:] = _feature[0:left_out]
+            else:
+                feature_shape = list(_feature.shape)
                 feature_shape[0] = len(images)
                 features[hidden_feature_name] = np.zeros(feature_shape)
-                features[hidden_feature_name][num_batches * batch_size:] = feature[i][0:left_out]
-
+                features[hidden_feature_name][num_batches * batch_size:] = _feature[0:left_out]
 
     return hidden_feature_names, mus, sigmas, latent_vectors, y_preds,features
