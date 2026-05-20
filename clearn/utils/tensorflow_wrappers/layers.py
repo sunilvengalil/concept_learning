@@ -77,6 +77,9 @@ def relu(x, name="relu"):
 def drop_out(x, rate):
     return tf.nn.dropout(x, rate)
 
+def gap(input_,scope=None):
+    with tf.compat.v1.variable_scope(scope or "Gap"):
+        return tf.reduce_mean(input_,axis=[1,2])
 
 def linear(input_, output_size, scope=None, stddev=0.02, bias_start=0.0, with_w=False):
     shape = input_.get_shape().as_list()

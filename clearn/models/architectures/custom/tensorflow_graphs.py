@@ -2,7 +2,9 @@ import logging
 from typing import Tuple
 
 import tensorflow as tf
-from clearn.utils.tensorflow_wrappers.layers import max_pool_2d, avgpool, flatten
+from keras.src.ops import reshape
+
+from clearn.utils.tensorflow_wrappers.layers import max_pool_2d, gap, flatten
 
 from clearn.utils.tensorflow_wrappers import conv2d, lrelu, linear, deconv2d, drop_out
 from clearn.utils.utils import is_convolutional_layer, DECONV_LAYER_PREFIX
@@ -16,10 +18,16 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
         num_convolutional_layers = len(n_units) - model.exp_config.num_dense_layers
         if model.exp_config.log_level == logging.DEBUG:
             print(x, x.shape)
+        if not model.exp_config.use_global_average_pooling:
+            reshape_z = True
+        else:
+            reshape_z = False
         if num_convolutional_layers > 0:
-            model.cnn_out = fcnn_n_layer(model, x, n_units[0:num_convolutional_layers - 1], n_units[num_convolutional_layers - 1], reuse )
+            model.cnn_out = fcnn_n_layer(model, x, n_units[0:num_convolutional_layers - 1], n_units[num_convolutional_layers - 1], reuse , reshape_z=reshape_z)
         #
-        model.reshaped_en = tf.reshape(model.cnn_out, [model.exp_config.BATCH_SIZE, -1])
+        if not model.exp_config.use_global_average_pooling:
+            model.reshaped_en = tf.reshape(model.cnn_out, [model.exp_config.BATCH_SIZE, -1])
+
         number_of_layers = len(n_units)
         print(f"Number of layers: {number_of_layers}  Number of convolutional layers:  {num_convolutional_layers}")
         if model.exp_config.num_dense_layers > 0:
@@ -27,10 +35,15 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
                 layer_num = num_convolutional_layers
                 model.dense_features_dict = dict()
                 layer_key = f"layer_{layer_num}"
-                model.dense_features_dict[layer_key] = lrelu(linear(model.reshaped_en,
-                                                                    n_units[layer_num],
-                                                                    scope=layer_key)
-                                                             )
+                if not model.exp_config.use_global_average_pooling:
+                    model.dense_features_dict[layer_key] = lrelu(linear(model.reshaped_en,
+                                                                        n_units[layer_num],
+                                                                        scope=layer_key)
+                                                                 )
+                else:
+                    model.dense_features_dict[layer_key] = gap(model.cnn_out,
+                                                                        scope=layer_key)
+
 
                 print(layer_num, model.dense_features_dict[layer_key].shape)
                 for layer_num in range(layer_num + 1, len(n_units)):
