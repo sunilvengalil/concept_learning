@@ -19,7 +19,10 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
         if model.exp_config.log_level == logging.DEBUG:
             print(x, x.shape)
         if not model.exp_config.use_global_average_pooling:
-            reshape_z = True
+            if model.exp_config.fully_convolutional:
+                reshape_z = False
+            else:
+                reshape_z = True
         else:
             reshape_z = False
         if num_convolutional_layers > 0:
@@ -60,11 +63,24 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
             z = linear(model.dense_features_dict[layer_key],
                        num_out_units,
                        scope="encoder_out")
+            mean = z["[:, :model.exp_config.Z_DIM]"]
+            stddev = z[:, model.exp_config.Z_DIM:]
         else:
-            z = linear(model.reshaped_en, num_out_units, scope="encoder_out")
-        if model.exp_config.log_level == logging.DEBUG:
-            print(f"z {z.shape}")
-        return z
+            if  model.exp_config.fully_convolutional:
+                layer_num = num_convolutional_layers - 1
+                layer_key = f"layer_{layer_num}"
+                for key in model.encoder_dict:
+                    print(key)
+                    print(model.encoder_dict[key])
+                mean = model.encoder_dict[key][:,:,:,0:1]
+                stddev = model.encoder_dict[key][:,:,:,1:2]
+            else:
+                z = linear(model.reshaped_en, num_out_units, scope="encoder_out")
+                mean = z["[:, :model.exp_config.Z_DIM]"]
+                stddev = z[:, model.exp_config.Z_DIM:]
+
+        print(f"mean {mean.shape} stddev {stddev.shape}")
+        return mean, stddev
 
 def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False, reshape_z=True):
     # Encoder models the probability  P(z/X)
@@ -162,16 +178,18 @@ def fully_deconv_n_layer(model, z, n_units,  out_channels, in_channels, reuse=Fa
                                                )
             else:
                 model.reshaped_de = z
-
-            de_convolved = lrelu(deconv2d(model.reshaped_de,
-                                                                        [model.exp_config.BATCH_SIZE,
-                                                                         image_sizes[len(n_units)][0],
-                                                                         image_sizes[len(n_units)][0],
-                                                                         n_units[len(n_units) - 1]],
-                                                                        3, 3,
-                                                                        stride,
-                                                                        stride,
-                                                                        name=f"de_conv_{layer_num}"))
+            if not model.exp_config.fully_convolutional:
+                de_convolved = lrelu(deconv2d(model.reshaped_de,
+                                                                            [model.exp_config.BATCH_SIZE,
+                                                                             image_sizes[len(n_units)][0],
+                                                                             image_sizes[len(n_units)][0],
+                                                                             n_units[len(n_units) - 1]],
+                                                                            3, 3,
+                                                                            stride,
+                                                                            stride,
+                                                                            name=f"de_conv_{layer_num}"))
+            else:
+                de_convolved = model.reshaped_de
             model.decoder_dict[f"{DECONV_LAYER_PREFIX}_{layer_num}"] = de_convolved
             if model.exp_config.log_level == logging.DEBUG:
                 print(layer_num, model.decoder_dict[f"de_conv_{layer_num}"].shape)
@@ -255,14 +273,15 @@ def deconv_n_layer(model, z,  out_channels, reuse=False):
         num_features = n_units[num_features_index]
         image_size = model.image_sizes[num_features_index + 1 ]
         num_units = image_size[0] * image_size[1] * image_size[2]
-        if model.exp_config.log_level == logging.DEBUG:
-            print(num_features_index, num_features, image_size, num_units)
-        model.dense_out = lrelu(linear(dense_layer_out,
-                                       num_units,
-                                       scope="desne_out")
-                                )
-        if model.exp_config.log_level == logging.DEBUG:
-            print(model.dense_out.shape)
+        print(num_features_index, num_features, image_size, num_units)
+        if not model.exp_config.fully_convolutional:
+            model.dense_out = lrelu(linear(dense_layer_out,
+                                           num_units,
+                                           scope="desne_out")
+                                    )
+        else:
+            model.dense_out = z
+        print(model.dense_out.shape)
         # Add deconvolution layers
         # layer_key = f"layer_{len(n_units)}"
         if num_de_convolutional_layers > 0:
@@ -271,7 +290,9 @@ def deconv_n_layer(model, z,  out_channels, reuse=False):
                                        n_units[0: num_de_convolutional_layers],
                                        out_channels=out_channels,
                                        in_channels=n_units[num_de_convolutional_layers - 1],
-                                       reuse=reuse)
+                                       reuse=reuse,
+                                       reshape_input=not model.exp_config.fully_convolutional)
+
         if model.exp_config.log_level == logging.DEBUG:
             print(out.shape)
 

@@ -39,11 +39,11 @@ import logging
 import logging
 
 env = "colab"
-z_dim = 10
-run_id = 200526
-num_units=[64, 128,32]
-strides = [2, 2, 1]
-num_dense_layers = 1
+z_dim = 16
+run_id = 210526
+num_units=[64, 128,32,2]
+strides = [2, 2, 1,2]
+num_dense_layers = 0
 create_split = False
 num_cluster_config = ExperimentConfig.NUM_CLUSTERS_CONFIG_ELBOW
 experiment_name = "premi"
@@ -133,6 +133,7 @@ train_val_data_iterator, exp_config, model = initialize_model_train_and_get_feat
                                                                                      learning_rate = 1e-3,
                                                                                      log_level = logging.DEBUG,
                                                                                      dao = dao,
-                                                                                     use_global_average_pooling=True
+                                                                                     use_global_average_pooling=False,
+                                                                                     fully_convolutional=True
                                                                                     )
 tf.compat.v1.reset_default_graph()

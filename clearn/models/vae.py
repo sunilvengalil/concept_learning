@@ -70,14 +70,15 @@ class VAE(GenerativeModel):
 
     #   Gaussian Encoder
     def _encoder(self, x, reuse=False):
-        print("Encoding")
-        gaussian_params = cnn_n_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
+        print(f"Encoding, {self.exp_config.Z_DIM}")
+        mean, _stddev  = cnn_n_layer(self, x, 2 * self.exp_config.Z_DIM, reuse)
         # The mean parameter is unconstrained
 
-        mean = gaussian_params[:, :self.exp_config.Z_DIM]
+        #mean,_stddev = gaussian_params[:, :self.exp_config.Z_DIM]
         # The standard deviation must be positive. Parametrize with a softplus and
         # add a small epsilon for numerical stability
-        stddev = 1e-6 + tf.nn.softplus(gaussian_params[:, self.exp_config.Z_DIM:])
+        stddev = 1e-6 + tf.nn.softplus(_stddev)
+        print("Mean, stddev",mean.shape, stddev.shape)
         return mean, stddev
 
     # Bernoulli decoder
@@ -108,7 +109,10 @@ class VAE(GenerativeModel):
         self.mu, self.sigma = self._encoder(self.inputs, reuse=False)
 
         # sampling by re-parameterization technique
-        self.z = self.mu + self.sigma * tf.random.normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
+        if self.exp_config.beta > 0:
+            self.z = self.mu + self.sigma * tf.random.normal(tf.shape(self.mu), 0, 1, dtype=tf.float32)
+        else:
+            self.z = self.mu
 
         # decoding
         out = self._decoder(self.z, reuse=False)
@@ -130,17 +134,20 @@ class VAE(GenerativeModel):
                                                          )
             self.marginal_likelihood = -tf.compat.v1.reduce_mean(mll, axis=(1, 2, 3))
         self.neg_loglikelihood = -tf.reduce_mean(self.marginal_likelihood)
-
         kl = 0.5 * tf.reduce_sum(tf.square(self.mu) +
                                  tf.square(self.sigma) -
                                  tf.math.log(1e-8 + tf.square(self.sigma)) - 1, [1])
 
         self.KL_divergence = tf.reduce_mean(kl)
+
         self.compute_and_optimize_loss()
 
     def compute_and_optimize_loss(self):
         # evidence_lower_bound = -self.neg_loglikelihood - self.exp_config.beta * self.KL_divergence
-        self.loss = self.neg_loglikelihood + self.exp_config.beta * self.KL_divergence
+        if self.exp_config.beta > 0:
+            self.loss = self.neg_loglikelihood + self.exp_config.beta * self.KL_divergence
+        else:
+            self.loss = self.neg_loglikelihood
 
         """ Training """
         # optimizers
