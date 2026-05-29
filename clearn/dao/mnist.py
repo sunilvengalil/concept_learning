@@ -40,14 +40,19 @@ class MnistDao(IDao):
             return 10
 
     def load_test_1(self, data_dir):
-        data_dir = os.path.join(data_dir, "images/")
-        data = self.extract_data(data_dir + 't10k-images-idx3-ubyte.gz',
+        images_dir = os.path.join(data_dir, "images/")
+        data = self.extract_data(images_dir + 't10k-images-idx3-ubyte.gz',
                                  self.number_of_testing_samples,
                                  16,
                                  28 * 28)
         x = data.reshape((self.number_of_testing_samples, 28, 28, 1))
-        data = self.extract_data(data_dir + '/t10k-labels-idx1-ubyte.gz', self.number_of_training_samples, 8, 1)
+        data = self.extract_data(images_dir + '/t10k-labels-idx1-ubyte.gz', self.number_of_training_samples, 8, 1)
         y = np.asarray(data.reshape(self.number_of_testing_samples)).astype(int)
+        if self.add_invalid_images:
+            invalid_images = self.load_invalid_images(os.path.join(data_dir, "invalid_images.png.npy"))[0:self.number_of_testing_samples//10 + 1];
+            x = np.concatenate((x, invalid_images), axis=0)
+            y = np.concatenate((y,np.ones(invalid_images.shape[0],np.int16) * 10), axis=0)
+
         return x, y
 
     def load_train(self, data_dir, shuffle, split_location=None):
