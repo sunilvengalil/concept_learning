@@ -7,10 +7,11 @@ from clearn.dao.idao import IDao
 class MnistDao(IDao):
     def __init__(self,
                  split_name: str,
-                 num_validation_samples: int):
+                 num_validation_samples: int,add_invalid_images=False):
         self.dataset_name = "mnist"
         self.split_name = split_name
         self.num_validation_samples = num_validation_samples
+        self.add_invalid_images=add_invalid_images
         super().__init__()
 
     @property
@@ -33,7 +34,10 @@ class MnistDao(IDao):
 
     @property
     def num_classes(self):
-        return 10
+        if self.add_invalid_images:
+            return 11
+        else:
+            return 10
 
     def load_test_1(self, data_dir):
         data_dir = os.path.join(data_dir, "images/")
@@ -66,8 +70,8 @@ class MnistDao(IDao):
         return _data
 
     def load_train_images_and_label(self, data_dir, map_filename=None, training_phase=None):
-        data_dir = os.path.join(data_dir, "images/")
-        data = self.extract_data(data_dir + 'train-images-idx3-ubyte.gz',
+        images_dir = os.path.join(data_dir, "images/")
+        data = self.extract_data(images_dir + 'train-images-idx3-ubyte.gz',
                                  self.number_of_training_samples,
                                  16,
                                  28 * 28)
@@ -76,11 +80,19 @@ class MnistDao(IDao):
         x = data.reshape((-1, 28, 28, 1))
         print("Mnist x shape after reshaping", x.shape)
 
-        data = self.extract_data(data_dir + '/train-labels-idx1-ubyte.gz', self.number_of_training_samples, 8, 1)
+        data = self.extract_data(images_dir + '/train-labels-idx1-ubyte.gz', self.number_of_training_samples, 8, 1)
         print("Mnist y shape after loading", data.shape)
 
         y = np.asarray(data.reshape(-1)).astype(int)
         print("Mnist y shape after reshaping", y.shape)
-
+        if self.add_invalid_images:
+            invalid_images = self.load_invalid_images(os.path.join(data_dir, "invalid_images.png.npy"));
+            x = np.concatenate((x, invalid_images), axis=0)
+            y = np.concatenate((y,np.ones(invalid_images.shape[0]) * 10), axis=0)
         return x, y
 
+    @staticmethod
+    def load_invalid_images(filename):
+        loaded_array = np.load(filename)
+        print(f"Loaded shape:   {loaded_array.shape}")
+        return loaded_array
