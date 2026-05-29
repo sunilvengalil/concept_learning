@@ -57,6 +57,7 @@ class IDao(ABC):
     def load_test(self, data_dir):
         x, y = self.load_test_1(data_dir)
         y_one_hot = np.eye(self.num_classes)[y]
+        print("Loaded test data:", x.shape, y.shape)
         return {"test_x": x / self.max_value,
                 "test_y": y,
                 "test_y_one_hot": y_one_hot}
