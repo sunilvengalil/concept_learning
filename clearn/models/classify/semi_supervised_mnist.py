@@ -350,8 +350,8 @@ class SemiSupervisedClassifierMnist(VAE):
                                                                                                                               self.marginal_likelihood],
                                                                                                                              feed_dict={
                                                                                                                                  self.inputs: batch_images,
-                                                                                                                                 self.labels: manual_labels[:, :10],
-                                                                                                                                 self.is_manual_annotated: manual_labels[:, 10]
+                                                                                                                                 self.labels: batch_labels,
+                                                                                                                                 self.is_manual_annotated: np.ones([self.exp_config.BATCH_SIZE])
                                                                                                                              })
             nll_batch = -nll_batch
             if len(nll_batch.shape) == 0:
