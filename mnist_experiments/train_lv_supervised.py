@@ -51,6 +51,8 @@ num_clusters = 10
 num_epochs = 10
 dataset_name = "mnist"
 beta = 0
+use_global_average_pooling = True
+fully_convolutional = False
 
 split_name = "Split_1"
 num_val_samples = 128
@@ -87,7 +89,8 @@ exp_config = ExperimentConfig(root_path=root_path,
                               activation_output_layer = "SIGMOID",
                               learning_rate = 1e-3,
                               log_level = logging.DEBUG,
-                              use_global_average_pooling=True
+                              use_global_average_pooling=use_global_average_pooling,
+                              fully_convolutional= False
                               )
 exp_config.check_and_create_directories(run_id)
 BATCH_SIZE = exp_config.BATCH_SIZE
@@ -133,7 +136,7 @@ train_val_data_iterator, exp_config, model = initialize_model_train_and_get_feat
                                                                                      learning_rate = 1e-3,
                                                                                      log_level = logging.DEBUG,
                                                                                      dao = dao,
-                                                                                     use_global_average_pooling=False,
-                                                                                     fully_convolutional=True
+                                                                                     use_global_average_pooling=use_global_average_pooling,
+                                                                                     fully_convolutional=fully_convolutional
                                                                                     )
 tf.compat.v1.reset_default_graph()

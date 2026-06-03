@@ -16,54 +16,38 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
     with tf.compat.v1.variable_scope("encoder", reuse=reuse):
         # Add convolutional layers
         num_convolutional_layers = len(n_units) - model.exp_config.num_dense_layers
-        if model.exp_config.log_level == logging.DEBUG:
-            print(x, x.shape)
-        if not model.exp_config.use_global_average_pooling:
-            if model.exp_config.fully_convolutional:
-                reshape_z = False
-            else:
-                reshape_z = True
-        else:
-            reshape_z = False
+        print(x, x.shape)
+        # Add convolutional layers
         if num_convolutional_layers > 0:
-            model.cnn_out = fcnn_n_layer(model, x, n_units[0:num_convolutional_layers - 1], n_units[num_convolutional_layers - 1], reuse , reshape_z=reshape_z)
+            _cnn_out = fcnn_n_layer(model, x, n_units[0:num_convolutional_layers - 1], n_units[num_convolutional_layers - 1], reuse , reshape_z=False)
         #
-        if not model.exp_config.use_global_average_pooling:
-            model.reshaped_en = tf.reshape(model.cnn_out, [model.exp_config.BATCH_SIZE, -1])
+        if  model.exp_config.use_global_average_pooling:
+            model.cnn_out = gap(_cnn_out, scope="gap")
+        else:
+            model.cnn_out = tf.reshape(_cnn_out, [model.exp_config.BATCH_SIZE, -1])
 
         number_of_layers = len(n_units)
         print(f"Number of layers: {number_of_layers}  Number of convolutional layers:  {num_convolutional_layers}")
         if model.exp_config.num_dense_layers > 0:
-            if model.exp_config.activation_hidden_layer == "RELU":
-                layer_num = num_convolutional_layers
-                model.dense_features_dict = dict()
+            layer_num = num_convolutional_layers
+            model.dense_features_dict = dict()
+            layer_key = f"layer_{layer_num}"
+            model.dense_features_dict[layer_key] = lrelu(linear(model.cnn_out,n_units[layer_num],
+                                                                scope=layer_key))
+            print(layer_num, model.dense_features_dict[layer_key].shape)
+            # Add dense layers
+            for layer_num in range(layer_num + 1, len(n_units)):
                 layer_key = f"layer_{layer_num}"
-                if not model.exp_config.use_global_average_pooling:
-                    model.dense_features_dict[layer_key] = lrelu(linear(model.reshaped_en,
-                                                                        n_units[layer_num],
-                                                                        scope=layer_key)
-                                                                 )
-                else:
-                    model.dense_features_dict[layer_key] = gap(model.cnn_out,
-                                                                        scope=layer_key)
-
-
+                previous_layer_key = f"layer_{layer_num-1}"
+                model.dense_features_dict[layer_key] = lrelu(linear(model.dense_features_dict[previous_layer_key],
+                                                                    n_units[layer_num]
+                                                                    , scope=layer_key)
+                                                             )
                 print(layer_num, model.dense_features_dict[layer_key].shape)
-                for layer_num in range(layer_num + 1, len(n_units)):
-                    layer_key = f"layer_{layer_num}"
-                    previous_layer_key = f"layer_{layer_num-1}"
-                    model.dense_features_dict[layer_key] = lrelu(linear(model.dense_features_dict[previous_layer_key],
-                                                                        n_units[layer_num]
-                                                                        , scope=layer_key)
-                                                                 )
-                    print(layer_num, model.dense_features_dict[layer_key].shape)
-            else:
-                raise Exception(f"Activation {model.exp_config.activation_hidden_layer} not supported")
-        if model.exp_config.num_dense_layers > 0:
             z = linear(model.dense_features_dict[layer_key],
                        num_out_units,
                        scope="encoder_out")
-            mean = z["[:, :model.exp_config.Z_DIM]"]
+            mean =   z[:, :model.exp_config.Z_DIM]
             stddev = z[:, model.exp_config.Z_DIM:]
         else:
             if  model.exp_config.fully_convolutional:
@@ -75,8 +59,8 @@ def cnn_n_layer(model, x, num_out_units, reuse=False):
                 mean = model.encoder_dict[key][:,:,:,0:1]
                 stddev = model.encoder_dict[key][:,:,:,1:2]
             else:
-                z = linear(model.reshaped_en, num_out_units, scope="encoder_out")
-                mean = z["[:, :model.exp_config.Z_DIM]"]
+                z = linear(model.cnn_out, num_out_units, scope="encoder_out")
+                mean = z[:, :model.exp_config.Z_DIM]
                 stddev = z[:, model.exp_config.Z_DIM:]
 
         print(f"mean {mean.shape} stddev {stddev.shape}")
@@ -136,8 +120,7 @@ def fcnn_n_layer(model, x, n_units,  num_out_units, reuse=False, reshape_z=True)
             print("z", z.shape)
         if reshape_z:
             z = tf.reshape(z, [model.exp_config.BATCH_SIZE, -1])
-        if model.exp_config.log_level == logging.DEBUG:
-            print("z reshaped",z.shape)
+        print("z shape",z.shape)
         return z
 
 
