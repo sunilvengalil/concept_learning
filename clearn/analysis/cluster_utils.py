@@ -310,6 +310,7 @@ def display_images(decoded_images,
                    fig_size=None,
                    axis = None,
                    num_cols=4,
+                   show_cmap=False
                    ):
 
     colormap = "Greys"
@@ -337,7 +338,7 @@ def display_images(decoded_images,
         if axis is not None:
             ax.axis(axis)
 
-    if img is not None:
+    if show_cmap and img is not None:
         fig.colorbar(
             img,
             ax=fig.axes,
