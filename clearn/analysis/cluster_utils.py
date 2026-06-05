@@ -12,6 +12,8 @@ from clearn.analysis.encode_decode import decode
 import math
 from matplotlib import pyplot as plt
 import matplotlib
+import matplotlib.patches as patches
+
 from sklearn.mixture import GaussianMixture
 from scipy.spatial.distance import mahalanobis
 import scipy as sp
@@ -335,6 +337,13 @@ def display_images(decoded_images,
     for i in range(num_images_to_display):
         ax = fig.add_subplot(num_rows, num_cols, i + 1)
         img = ax.imshow(np.squeeze(decoded_images[i]), cmap=colormap)
+        ax.grid(False)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_xlabel(None)
+        ax.set_ylabel(None)
+
+
         if axis is not None:
             ax.axis(axis)
 
@@ -346,6 +355,19 @@ def display_images(decoded_images,
             fraction=0.02,
             pad=0.04
         )
+    plt.tight_layout(rect=[0.02, 0.02, 0.98, 0.98])
+
+    # 3. Add an explicit bounding rectangle around the canvas
+    fig.patches.extend([
+        patches.Rectangle(
+            (0, 0), 1, 1,              # Start at bottom-left (0,0), extend to top-right (1,1)
+            edgecolor='black',         # Border color
+            linewidth=1,               # Border thickness
+            facecolor='none',          # Transparent background
+            transform=fig.transFigure  # Keep coordinates relative to the full figure
+        )
+    ])
+    plt.tight_layout()
     if image_filename is not None and len(image_filename) > 0:
         print(f"Saving the image to {image_filename}")
         plt.savefig(image_filename,
