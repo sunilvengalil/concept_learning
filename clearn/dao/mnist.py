@@ -49,7 +49,7 @@ class MnistDao(IDao):
         data = self.extract_data(images_dir + '/t10k-labels-idx1-ubyte.gz', self.number_of_training_samples, 8, 1)
         y = np.asarray(data.reshape(self.number_of_testing_samples)).astype(int)
         if self.add_invalid_images:
-            invalid_images = self.load_invalid_images(os.path.join(data_dir, "invalid_images.png.npy"))[0:self.number_of_testing_samples//10 + 1];
+            invalid_images = self.load_invalid_images(os.path.join(data_dir, "invalid_images.npy"))[0:self.number_of_testing_samples//10 + 1];
             x = np.concatenate((x, invalid_images), axis=0)
             y = np.concatenate((y,np.ones(invalid_images.shape[0],np.int16) * 10), axis=0)
 
