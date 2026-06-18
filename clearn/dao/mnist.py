@@ -91,7 +91,7 @@ class MnistDao(IDao):
         y = np.asarray(data.reshape(-1)).astype(int)
         print("Mnist y shape after reshaping", y.shape)
         if self.add_invalid_images:
-            invalid_images = self.load_invalid_images(os.path.join(data_dir, "invalid_images.png.npy"));
+            invalid_images = self.load_invalid_images(os.path.join(data_dir, "invalid_images.npy"));
             x = np.concatenate((x, invalid_images), axis=0)
             y = np.concatenate((y,np.ones(invalid_images.shape[0]) * 10), axis=0)
         return x, y
